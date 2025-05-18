@@ -1,9 +1,10 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Music, Dumbbell, Users, CalendarDays, PartyPopper } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface Event {
   id: number;
@@ -27,7 +28,7 @@ const EventMap = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDateRange, setSelectedDateRange] = useState<string | null>(null);
   
   // Example events data
   const events: Event[] = [
@@ -102,6 +103,64 @@ const EventMap = () => {
       price: "25-40€"
     }
   ];
+  
+  // Get date ranges based on selection
+  const getDateRangeFromSelection = (selection: string | null): [Date, Date] | null => {
+    if (!selection) return null;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Calculate this weekend (closest Saturday and Sunday)
+    const thisWeekend = new Date(today);
+    const dayOfWeek = today.getDay(); // 0 is Sunday, 6 is Saturday
+    const daysUntilWeekend = dayOfWeek === 0 || dayOfWeek === 6 ? 0 : 6 - dayOfWeek;
+    thisWeekend.setDate(today.getDate() + daysUntilWeekend);
+    
+    // Calculate next weekend
+    const nextWeekend = new Date(thisWeekend);
+    nextWeekend.setDate(nextWeekend.getDate() + 7);
+    
+    // Calculate end of month
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    switch (selection) {
+      case 'today':
+        return [today, today];
+      case 'tomorrow':
+        return [tomorrow, tomorrow];
+      case 'this-weekend': {
+        const weekendEnd = new Date(thisWeekend);
+        weekendEnd.setDate(thisWeekend.getDate() + 1);
+        return [thisWeekend, weekendEnd];
+      }
+      case 'next-weekend': {
+        const nextWeekendEnd = new Date(nextWeekend);
+        nextWeekendEnd.setDate(nextWeekend.getDate() + 1);
+        return [nextWeekend, nextWeekendEnd];
+      }
+      case 'this-month':
+        return [today, endOfMonth];
+      default:
+        return null;
+    }
+  };
+  
+  // Convert date to string format for comparison
+  const formatDateForComparison = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+  
+  // Check if an event date falls within a date range
+  const isEventInDateRange = (eventDate: string, dateRange: [Date, Date]): boolean => {
+    const eventDateTime = new Date(eventDate);
+    eventDateTime.setHours(0, 0, 0, 0);
+    
+    return eventDateTime >= dateRange[0] && eventDateTime <= dateRange[1];
+  };
   
   useEffect(() => {
     // Initialize map only if it hasn't been created yet
@@ -222,9 +281,12 @@ const EventMap = () => {
       });
     }
     
-    if (selectedDate) {
-      // Simple date filter
-      filteredEvents = filteredEvents.filter(event => event.date === selectedDate);
+    // Apply date range filter
+    if (selectedDateRange) {
+      const dateRange = getDateRangeFromSelection(selectedDateRange);
+      if (dateRange) {
+        filteredEvents = filteredEvents.filter(event => isEventInDateRange(event.date, dateRange));
+      }
     }
     
     // Add markers for filtered events
@@ -326,11 +388,15 @@ const EventMap = () => {
         }, 300);
       });
     });
-  }, [mapLoaded, activeCategory, selectedLocation, selectedPrice, selectedDate]);
+  }, [mapLoaded, activeCategory, selectedLocation, selectedPrice, selectedDateRange]);
   
   // Functions to handle filter changes
   const handleCategoryChange = (category: string | null) => {
     setActiveCategory(category === activeCategory ? null : category);
+  };
+  
+  const handleDateRangeChange = (value: string) => {
+    setSelectedDateRange(value === selectedDateRange ? null : value);
   };
   
   return (
@@ -373,17 +439,52 @@ const EventMap = () => {
           </select>
         </div>
         
-        <div className="w-full md:w-auto">
-          <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700 mb-1">
-            Date
+        <div className="w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            When
           </label>
-          <input
-            id="date-filter"
-            type="date"
-            className="w-full border border-gray-300 rounded-md py-2 px-3 bg-white focus:outline-none focus:ring-2 focus:ring-navy-blue"
-            value={selectedDate || ""}
-            onChange={(e) => setSelectedDate(e.target.value || null)}
-          />
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant={selectedDateRange === 'today' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleDateRangeChange('today')}
+              className="flex items-center gap-1"
+            >
+              Today
+            </Button>
+            <Button 
+              variant={selectedDateRange === 'tomorrow' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleDateRangeChange('tomorrow')}
+              className="flex items-center gap-1"
+            >
+              Tomorrow
+            </Button>
+            <Button 
+              variant={selectedDateRange === 'this-weekend' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleDateRangeChange('this-weekend')}
+              className="flex items-center gap-1"
+            >
+              This Weekend
+            </Button>
+            <Button 
+              variant={selectedDateRange === 'next-weekend' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleDateRangeChange('next-weekend')}
+              className="flex items-center gap-1"
+            >
+              Next Weekend
+            </Button>
+            <Button 
+              variant={selectedDateRange === 'this-month' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleDateRangeChange('this-month')}
+              className="flex items-center gap-1"
+            >
+              This Month
+            </Button>
+          </div>
         </div>
       </div>
       
