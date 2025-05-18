@@ -8,6 +8,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 interface Event {
   id: number;
@@ -22,18 +29,32 @@ interface Event {
   sourceWebsite: string;
   venue: string;
   price: string;
+  county: string;
+  city: string;
 }
+
+// Croatian counties and their cities
+const countiesWithCities = {
+  "Split-Dalmatia": ["Split", "Makarska", "Trogir", "Omiš", "Hvar"],
+  "Zagreb": ["Zagreb", "Velika Gorica", "Samobor", "Zaprešić"],
+  "Dubrovnik-Neretva": ["Dubrovnik", "Metković", "Ploče", "Korčula"],
+  "Primorje-Gorski Kotar": ["Rijeka", "Opatija", "Crikvenica", "Krk"],
+  "Zadar": ["Zadar", "Biograd", "Pag", "Nin"],
+  "Istria": ["Pula", "Rovinj", "Poreč", "Umag"],
+  "Lika-Senj": ["Gospić", "Senj", "Otočac", "Novalja"]
+};
 
 const EventMap = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [selectedCounty, setSelectedCounty] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<string | null>(null);
   
-  // Example events data
+  // Example events data with county and city information
   const events: Event[] = [
     {
       id: 1,
@@ -47,7 +68,9 @@ const EventMap = () => {
       ticketLink: "https://entrio.hr/",
       sourceWebsite: "entrio.hr",
       venue: "Poljud Stadium",
-      price: "30-50€"
+      price: "30-50€",
+      county: "Split-Dalmatia",
+      city: "Split"
     },
     {
       id: 2,
@@ -61,7 +84,9 @@ const EventMap = () => {
       ticketLink: "https://meetup.com/",
       sourceWebsite: "meetup.com",
       venue: "Jarun Lake",
-      price: "15€"
+      price: "15€",
+      county: "Zagreb",
+      city: "Zagreb"
     },
     {
       id: 3,
@@ -75,7 +100,9 @@ const EventMap = () => {
       ticketLink: "https://meetup.com/",
       sourceWebsite: "meetup.com",
       venue: "Hotel Excelsior",
-      price: "Free"
+      price: "Free",
+      county: "Dubrovnik-Neretva",
+      city: "Dubrovnik"
     },
     {
       id: 4,
@@ -89,7 +116,9 @@ const EventMap = () => {
       ticketLink: "https://eventim.hr/",
       sourceWebsite: "eventim.hr",
       venue: "Rijeka Convention Center",
-      price: "100-200€"
+      price: "100-200€",
+      county: "Primorje-Gorski Kotar",
+      city: "Rijeka"
     },
     {
       id: 5,
@@ -103,7 +132,9 @@ const EventMap = () => {
       ticketLink: "https://entrio.hr/",
       sourceWebsite: "entrio.hr",
       venue: "Papaya Club",
-      price: "25-40€"
+      price: "25-40€",
+      county: "Lika-Senj",
+      city: "Novalja"
     }
   ];
   
@@ -164,6 +195,11 @@ const EventMap = () => {
     
     return eventDateTime >= dateRange[0] && eventDateTime <= dateRange[1];
   };
+  
+  // Reset city selection when county changes
+  useEffect(() => {
+    setSelectedCity(null);
+  }, [selectedCounty]);
   
   useEffect(() => {
     // Initialize map only if it hasn't been created yet
@@ -265,13 +301,14 @@ const EventMap = () => {
       filteredEvents = filteredEvents.filter(event => event.category === activeCategory);
     }
     
-    if (selectedLocation) {
-      // This is simplified - in a real app, you'd match by city or region
-      filteredEvents = filteredEvents.filter(event => {
-        const [lng, lat] = event.location;
-        // Example: check if near Zagreb (simplified)
-        return selectedLocation === 'Zagreb' ? lat > 45.5 : true;
-      });
+    // Apply county filter
+    if (selectedCounty) {
+      filteredEvents = filteredEvents.filter(event => event.county === selectedCounty);
+      
+      // Apply city filter only if a county is selected
+      if (selectedCity) {
+        filteredEvents = filteredEvents.filter(event => event.city === selectedCity);
+      }
     }
     
     if (selectedPrice !== null) {
@@ -396,7 +433,7 @@ const EventMap = () => {
         }, 300);
       });
     });
-  }, [mapLoaded, activeCategory, selectedLocation, selectedPrice, selectedDateRange]);
+  }, [mapLoaded, activeCategory, selectedCounty, selectedCity, selectedPrice, selectedDateRange]);
   
   // Functions to handle filter changes
   const handleCategoryChange = (category: string | null) => {
@@ -412,27 +449,64 @@ const EventMap = () => {
     setSelectedPrice(value[0]);
   };
   
+  // Handle county selection
+  const handleCountyChange = (county: string) => {
+    setSelectedCounty(county);
+    setSelectedCity(null); // Reset city when county changes
+  };
+  
+  // Handle city selection
+  const handleCityChange = (city: string) => {
+    setSelectedCity(city);
+  };
+  
   return (
     <div className="relative my-6">
       {/* Filter controls */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-wrap gap-4">
-        <div className="w-full md:w-auto">
-          <label htmlFor="location-filter" className="block text-sm font-medium text-gray-700 mb-1">
-            Location
-          </label>
-          <select
-            id="location-filter"
-            className="w-full border border-gray-300 rounded-md py-2 px-3 bg-white focus:outline-none focus:ring-2 focus:ring-navy-blue"
-            value={selectedLocation || ""}
-            onChange={(e) => setSelectedLocation(e.target.value || null)}
-          >
-            <option value="">All Locations</option>
-            <option value="Zagreb">Zagreb</option>
-            <option value="Split">Split</option>
-            <option value="Rijeka">Rijeka</option>
-            <option value="Dubrovnik">Dubrovnik</option>
-            <option value="Osijek">Osijek</option>
-          </select>
+        <div className="w-full md:w-auto flex flex-col md:flex-row gap-2">
+          <div className="w-full md:w-48">
+            <Label htmlFor="county-select" className="block text-sm font-medium text-gray-700 mb-1">
+              County
+            </Label>
+            <Select
+              value={selectedCounty || ""}
+              onValueChange={handleCountyChange}
+            >
+              <SelectTrigger id="county-select" className="w-full">
+                <SelectValue placeholder="Select county" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Counties</SelectItem>
+                {Object.keys(countiesWithCities).map((county) => (
+                  <SelectItem key={county} value={county}>{county}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="w-full md:w-48">
+            <Label htmlFor="city-select" className="block text-sm font-medium text-gray-700 mb-1">
+              City
+            </Label>
+            <Select
+              value={selectedCity || ""}
+              onValueChange={handleCityChange}
+              disabled={!selectedCounty}
+            >
+              <SelectTrigger id="city-select" className="w-full">
+                <SelectValue placeholder={selectedCounty ? "Select city" : "Select county first"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Cities</SelectItem>
+                {selectedCounty && 
+                  countiesWithCities[selectedCounty as keyof typeof countiesWithCities].map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         
         <div className="w-full md:w-auto md:flex-1">
