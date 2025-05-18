@@ -470,14 +470,13 @@ const EventMap = () => {
               County
             </Label>
             <Select
-              value={selectedCounty || ""}
+              value={selectedCounty || undefined}
               onValueChange={handleCountyChange}
             >
               <SelectTrigger id="county-select" className="w-full">
                 <SelectValue placeholder="Select county" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Counties</SelectItem>
                 {Object.keys(countiesWithCities).map((county) => (
                   <SelectItem key={county} value={county}>{county}</SelectItem>
                 ))}
@@ -490,7 +489,7 @@ const EventMap = () => {
               City
             </Label>
             <Select
-              value={selectedCity || ""}
+              value={selectedCity || undefined}
               onValueChange={handleCityChange}
               disabled={!selectedCounty}
             >
@@ -498,7 +497,6 @@ const EventMap = () => {
                 <SelectValue placeholder={selectedCounty ? "Select city" : "Select county first"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Cities</SelectItem>
                 {selectedCounty && 
                   countiesWithCities[selectedCounty as keyof typeof countiesWithCities].map((city) => (
                     <SelectItem key={city} value={city}>{city}</SelectItem>
