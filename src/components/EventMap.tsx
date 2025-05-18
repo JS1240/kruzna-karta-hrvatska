@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Concert, Dumbbell, Users, Conference, PartyPopper } from 'lucide-react';
+import { Music, Dumbbell, Users, CalendarDays, PartyPopper } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Event {
@@ -399,7 +399,7 @@ const EventMap = () => {
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'concert' ? 'active' : ''}`}
           onClick={() => handleCategoryChange('concert')}
         >
-          <Concert size={18} /> Concerts
+          <Music size={18} /> Concerts
         </button>
         <button 
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'workout' ? 'active' : ''}`}
@@ -417,7 +417,7 @@ const EventMap = () => {
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'conference' ? 'active' : ''}`}
           onClick={() => handleCategoryChange('conference')}
         >
-          <Conference size={18} /> Conferences
+          <CalendarDays size={18} /> Conferences
         </button>
         <button 
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'party' ? 'active' : ''}`}
