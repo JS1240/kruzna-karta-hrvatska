@@ -5,6 +5,9 @@ import { Music, Dumbbell, Users, CalendarDays, PartyPopper } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Event {
   id: number;
@@ -27,7 +30,7 @@ const EventMap = () => {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
+  const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<string | null>(null);
   
   // Example events data
@@ -271,12 +274,17 @@ const EventMap = () => {
       });
     }
     
-    if (selectedPrice) {
-      // Simple price filter for demo
+    if (selectedPrice !== null) {
+      // Filter events based on the price slider value
       filteredEvents = filteredEvents.filter(event => {
-        if (selectedPrice === 'free') return event.price.toLowerCase().includes('free');
-        if (selectedPrice === 'under25') return !event.price.includes('Free') && parseInt(event.price) < 25;
-        if (selectedPrice === 'over25') return parseInt(event.price) >= 25;
+        if (event.price.toLowerCase().includes('free')) return selectedPrice === 0;
+        
+        // Extract numeric price value (take the lower bound of ranges like "30-50€")
+        const priceMatch = event.price.match(/\d+/);
+        if (priceMatch) {
+          const eventPrice = parseInt(priceMatch[0]);
+          return eventPrice <= selectedPrice;
+        }
         return true;
       });
     }
@@ -399,6 +407,11 @@ const EventMap = () => {
     setSelectedDateRange(value === selectedDateRange ? null : value);
   };
   
+  // New function to handle price slider change
+  const handlePriceChange = (value: number[]) => {
+    setSelectedPrice(value[0]);
+  };
+  
   return (
     <div className="relative my-6">
       {/* Filter controls */}
@@ -422,21 +435,24 @@ const EventMap = () => {
           </select>
         </div>
         
-        <div className="w-full md:w-auto">
-          <label htmlFor="price-filter" className="block text-sm font-medium text-gray-700 mb-1">
-            Price
-          </label>
-          <select
-            id="price-filter"
-            className="w-full border border-gray-300 rounded-md py-2 px-3 bg-white focus:outline-none focus:ring-2 focus:ring-navy-blue"
-            value={selectedPrice || ""}
-            onChange={(e) => setSelectedPrice(e.target.value || null)}
-          >
-            <option value="">All Prices</option>
-            <option value="free">Free</option>
-            <option value="under25">Under 25€</option>
-            <option value="over25">25€ and above</option>
-          </select>
+        <div className="w-full md:w-auto md:flex-1">
+          <Label htmlFor="price-slider" className="block text-sm font-medium text-gray-700 mb-1">
+            Max Price: {selectedPrice !== null ? `${selectedPrice}€` : 'Any'}
+          </Label>
+          <div className="px-2 pt-1">
+            <Slider 
+              id="price-slider"
+              defaultValue={[50]}
+              value={selectedPrice !== null ? [selectedPrice] : [50]}
+              min={0} 
+              max={200}
+              step={5}
+              showInput={true}
+              onValueChange={handlePriceChange}
+              onInputChange={(value) => setSelectedPrice(value)}
+              className="py-2"
+            />
+          </div>
         </div>
         
         <div className="w-full">
