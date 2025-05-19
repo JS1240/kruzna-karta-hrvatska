@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import EventMap from '@/components/EventMap';
 import FeaturedEvents from '@/components/FeaturedEvents';
 import LatestNews from '@/components/LatestNews';
-import { SearchIcon, CalendarIcon, MapPinIcon, HeartIcon, InfoIcon } from 'lucide-react';
+import { SearchIcon, CalendarIcon, MapPinIcon, HeartIcon } from 'lucide-react';
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,23 +73,6 @@ const Index = () => {
         </section>
         
         <FeaturedEvents />
-        
-        <section className="mb-12">
-          <div className="bg-white rounded-lg shadow-lg p-6 border border-light-blue">
-            <h2 className="text-2xl font-bold mb-4 font-sreda text-navy-blue flex items-center gap-2">
-              <InfoIcon size={24} className="text-medium-blue" />
-              About This Map
-            </h2>
-            <p className="text-gray-700 mb-4">
-              Our interactive event map aggregates events from popular Croatian platforms including entrio.hr, eventim.hr and meetup.com. 
-              We update the map daily to ensure you always have access to the latest events happening across Croatia.
-            </p>
-            <p className="text-gray-700">
-              Use the filters above the map to find specific events by location, price range, or date. Click on the category buttons below the map to focus on a particular type of event. 
-              Hover over any event marker to see details and access links to buy tickets or learn more.
-            </p>
-          </div>
-        </section>
         
         <LatestNews />
       </main>
