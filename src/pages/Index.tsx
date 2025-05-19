@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import EventMap from '@/components/EventMap';
+import FeaturedEvents from '@/components/FeaturedEvents';
+import LatestNews from '@/components/LatestNews';
 import { SearchIcon, CalendarIcon, MapPinIcon, HeartIcon, InfoIcon } from 'lucide-react';
 
 const Index = () => {
@@ -70,6 +72,8 @@ const Index = () => {
           <EventMap />
         </section>
         
+        <FeaturedEvents />
+        
         <section className="mb-12">
           <div className="bg-white rounded-lg shadow-lg p-6 border border-light-blue">
             <h2 className="text-2xl font-bold mb-4 font-sreda text-navy-blue flex items-center gap-2">
@@ -87,46 +91,7 @@ const Index = () => {
           </div>
         </section>
         
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-light-blue hover:shadow-xl transition-shadow">
-            <div className="h-48 bg-navy-blue flex items-center justify-center text-white">
-              <CalendarIcon size={64} />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-bold mb-2 font-josefin text-navy-blue">Featured Events</h3>
-              <p className="text-gray-700">Discover our selection of must-attend events happening across Croatia.</p>
-              <button className="mt-4 px-4 py-2 bg-medium-blue text-white rounded-md hover:bg-navy-blue transition-colors">
-                Explore
-              </button>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-light-blue hover:shadow-xl transition-shadow">
-            <div className="h-48 bg-medium-blue flex items-center justify-center text-white">
-              <InfoIcon size={64} />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-bold mb-2 font-josefin text-navy-blue">About Croatia</h3>
-              <p className="text-gray-700">Learn more about the beautiful country of Croatia and its vibrant culture.</p>
-              <button className="mt-4 px-4 py-2 bg-navy-blue text-white rounded-md hover:bg-medium-blue transition-colors">
-                Learn More
-              </button>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-light-blue hover:shadow-xl transition-shadow">
-            <div className="h-48 bg-light-blue flex items-center justify-center text-navy-blue">
-              <HeartIcon size={64} />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-bold mb-2 font-josefin text-navy-blue">Popular Venues</h3>
-              <p className="text-gray-700">Explore the most popular event venues and locations throughout Croatia.</p>
-              <button className="mt-4 px-4 py-2 bg-medium-blue text-white rounded-md hover:bg-navy-blue transition-colors">
-                View Venues
-              </button>
-            </div>
-          </div>
-        </section>
+        <LatestNews />
       </main>
       
       <footer className="bg-navy-blue text-white py-8 mt-16">
