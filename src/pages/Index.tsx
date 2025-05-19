@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import EventMap from '@/components/EventMap';
 import FeaturedEvents from '@/components/FeaturedEvents';
 import LatestNews from '@/components/LatestNews';
+import AboutCroatia from '@/components/AboutCroatia';
 import { SearchIcon, CalendarIcon, MapPinIcon, HeartIcon } from 'lucide-react';
 
 const Index = () => {
@@ -75,6 +76,8 @@ const Index = () => {
         <FeaturedEvents />
         
         <LatestNews />
+        
+        <AboutCroatia />
       </main>
       
       <footer className="bg-navy-blue text-white py-8 mt-16">
