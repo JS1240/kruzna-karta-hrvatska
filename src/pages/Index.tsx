@@ -5,6 +5,7 @@ import EventMap from '@/components/EventMap';
 import FeaturedEvents from '@/components/FeaturedEvents';
 import LatestNews from '@/components/LatestNews';
 import AboutCroatia from '@/components/AboutCroatia';
+import Footer from '@/components/Footer';
 import { SearchIcon, CalendarIcon, MapPinIcon, HeartIcon } from 'lucide-react';
 
 const Index = () => {
@@ -80,36 +81,7 @@ const Index = () => {
         <AboutCroatia />
       </main>
       
-      <footer className="bg-navy-blue text-white py-8 mt-16">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-6 md:mb-0">
-              <h2 className="text-2xl font-bold mb-2 font-sreda">EventMap Croatia</h2>
-              <p className="text-sm text-medium-blue">© {new Date().getFullYear()} All Rights Reserved</p>
-            </div>
-            
-            <div className="flex gap-8">
-              <div>
-                <h3 className="font-bold mb-2 font-josefin">Information</h3>
-                <ul className="space-y-1 text-sm">
-                  <li><a href="#" className="hover:text-medium-blue transition-colors">About Us</a></li>
-                  <li><a href="#" className="hover:text-medium-blue transition-colors">Contact</a></li>
-                  <li><a href="#" className="hover:text-medium-blue transition-colors">Privacy Policy</a></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="font-bold mb-2 font-josefin">Follow Us</h3>
-                <ul className="space-y-1 text-sm">
-                  <li><a href="#" className="hover:text-medium-blue transition-colors">Facebook</a></li>
-                  <li><a href="#" className="hover:text-medium-blue transition-colors">Instagram</a></li>
-                  <li><a href="#" className="hover:text-medium-blue transition-colors">Twitter</a></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
