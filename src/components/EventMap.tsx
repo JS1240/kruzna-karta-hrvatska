@@ -204,77 +204,24 @@ const EventMap = () => {
   useEffect(() => {
     // Initialize map only if it hasn't been created yet
     if (map.current) return;
-    
-    // For demo purposes, you'd need to add your Mapbox token here
-    // In a production app, this would be stored securely in environment variables
-    mapboxgl.accessToken = 'pk.YOUR_MAPBOX_TOKEN';
-    
+
+    // Load Mapbox token from environment variable
+    mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN as string;
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current!,
       style: 'mapbox://styles/mapbox/light-v11',
       center: [16.4, 44.5], // Center of Croatia
       zoom: 7,
       maxBounds: [
-        [13.2, 42.1], // Southwest coordinates
-        [19.4, 46.9]  // Northeast coordinates
+        [10.0, 40.0], // Expanded southwest coordinates
+        [25.0, 50.0]  // Expanded northeast coordinates
       ]
     });
     
     map.current.on('load', () => {
       if (!map.current) return;
-      
-      // Add Croatia outline
-      map.current.addSource('croatia-outline', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'Polygon',
-            // This is a simplified polygon for Croatia's borders
-            coordinates: [[
-              [13.6569, 45.1583],
-              [16.2, 46.8],
-              [19.4, 46.4],
-              [19.3, 45.2],
-              [18.8, 45.1],
-              [19.0, 44.8],
-              [19.4, 44.3],
-              [19.2, 44.0],
-              [18.8, 43.2],
-              [18.0, 42.6],
-              [17.5, 42.9],
-              [16.1, 43.5],
-              [15.2, 44.2],
-              [14.3, 45.2],
-              [13.6, 44.8],
-              [13.6569, 45.1583]
-            ]]
-          },
-          properties: {}
-        }
-      });
-      
-      map.current.addLayer({
-        id: 'croatia-fill',
-        type: 'fill',
-        source: 'croatia-outline',
-        paint: {
-          'fill-color': 'rgba(203, 220, 235, 0.5)', // Light blue from your palette with transparency
-          'fill-outline-color': '#133E87' // Navy blue from your palette
-        }
-      });
-      
-      // Add a black overlay for areas outside Croatia
-      map.current.addLayer({
-        id: 'outside-croatia',
-        type: 'background',
-        paint: {
-          'background-color': 'rgba(0, 0, 0, 0.5)'
-        },
-        filter: ['!=', 'name', 'Croatia']
-      }, 'croatia-fill');
-      
-      // Now Croatia's fill will be visible above the black background
+
       setMapLoaded(true);
     });
     

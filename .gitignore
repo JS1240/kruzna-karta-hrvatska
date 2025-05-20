@@ -7,18 +7,92 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependency directories
+node_modules/
+bower_components/
+
+# Build output
+dist/
+dist-ssr/
+build/
 *.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# System files
 .DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+!.vscode/extensions.json
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.code-workspace
+
+# OS generated files
+*.swp
+*.swo
+*.tmp
+*.bak
+*.orig
+*.old
+
+# Environment files
+.env
+.env.*
+
+# TypeScript
+*.tsbuildinfo
+
+# Mac specific
+.AppleDouble
+.LSOverride
+Icon?
+
+# npm
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Coverage
+coverage/
+*.lcov
+
+# Misc
+*.tgz
+*.zip
+*.tar.gz
+
+# VSCode settings
+.history/
+
+# Next.js
+.next/
+
+# Vite
+.vite/
+
+# Firebase
+.firebase/
+
+# JetBrains Rider
+.idea/
+
+# SvelteKit
+.svelte-kit/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Test output
+junit.xml
+
+# Other
+*.log.*
+
+# End of file
