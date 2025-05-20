@@ -1,106 +1,110 @@
-
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Flag, Heart } from 'lucide-react';
-import Auth from './Auth';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Logo from "./Logo";
 
 const Header = () => {
-  const [language, setLanguage] = useState<'en' | 'hr'>('en');
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Simulate login state
+  const [mounted, setMounted] = useState(false);
+  const { setTheme } = useTheme();
+  const location = useLocation();
 
-  // For demo purposes - this would normally be handled by proper auth
-  React.useEffect(() => {
-    // Check if user is logged in from localStorage
-    const loggedInStatus = localStorage.getItem('isLoggedIn') === 'true';
-    setIsLoggedIn(loggedInStatus);
-    
-    // Listen for login/logout events
-    const handleAuthChange = (e: CustomEvent) => {
-      setIsLoggedIn(e.detail.isLoggedIn);
-    };
-    
-    window.addEventListener('authStateChanged' as any, handleAuthChange);
-    
-    return () => {
-      window.removeEventListener('authStateChanged' as any, handleAuthChange);
-    };
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
-  const handleFavoritesClick = () => {
-    if (!isLoggedIn) {
-      toast({
-        title: "Login Required",
-        description: "Please log in to view your favorite events",
-        variant: "destructive",
-      });
-      return;
-    }
-  };
-
   return (
-    <header className="bg-navy-blue text-white py-4">
-      <div className="container mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <span className="text-2xl font-sreda font-bold">EventMap</span>
-          <span className="text-medium-blue font-josefin">Croatia</span>
-        </Link>
-        
-        <nav className="hidden md:flex items-center space-x-8">
-          <Link to="/" className="font-josefin hover:text-medium-blue transition-colors">Map</Link>
-          <Link to="/popular" className="font-josefin hover:text-medium-blue transition-colors">Popular</Link>
-          <Link to="/upcoming" className="font-josefin hover:text-medium-blue transition-colors">Upcoming</Link>
-          <Link to="/venues" className="font-josefin hover:text-medium-blue transition-colors">Venues</Link>
-          <Link to="/about" className="font-josefin hover:text-medium-blue transition-colors">About</Link>
-        </nav>
-        
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <div className="container mx-auto flex justify-between items-center h-16 px-4">
+        <div className="flex items-center space-x-8">
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <Logo className="h-8 w-auto" />
+          </Link>
+
+          {/* Navigation */}
+          <nav className="hidden md:flex space-x-6">
+            <Link
+              to="/"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                location.pathname === "/" ? "text-primary" : "text-gray-700"
+              }`}
+            >
+              Home
+            </Link>
+            <Link
+              to="/about"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                location.pathname === "/about" ? "text-primary" : "text-gray-700"
+              }`}
+            >
+              About
+            </Link>
+            <Link
+              to="/venues"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                location.pathname === "/venues" ? "text-primary" : "text-gray-700"
+              }`}
+            >
+              Venues
+            </Link>
+            <Link
+              to="/popular"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                location.pathname === "/popular" ? "text-primary" : "text-gray-700"
+              }`}
+            >
+              Popular
+            </Link>
+          </nav>
+        </div>
+
+        {/* Right side controls */}
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={() => setLanguage('en')} 
-              className={`language-toggle ${language === 'en' ? 'active' : ''}`}
-              aria-label="English"
-            >
-              <img src="/usa-flag.svg" alt="English" className="w-full h-full object-cover" />
-            </button>
-            <button 
-              onClick={() => setLanguage('hr')} 
-              className={`language-toggle ${language === 'hr' ? 'active' : ''}`}
-              aria-label="Hrvatski"
-            >
-              <img src="/croatia-flag.svg" alt="Hrvatski" className="w-full h-full object-cover" />
-            </button>
-          </div>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link to="/favorites">
-                  <Button 
-                    onClick={handleFavoritesClick} 
-                    variant="ghost" 
-                    className="text-white hover:text-medium-blue"
-                  >
-                    <Heart className="h-5 w-5" />
-                  </Button>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Your Favorites</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <Auth />
+          {/* Theme Toggle */}
+          {mounted && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme("light")}>
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Language Toggle - Example, replace with actual implementation */}
+          <button className="language-toggle">
+            <img
+              src="https://flagcdn.com/24x18/hr.png"
+              alt="Croatian"
+              className="w-full h-full object-cover"
+            />
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu (Example - implement as needed) */}
+      {/* You can add a mobile menu here that appears on smaller screens */}
     </header>
   );
 };
