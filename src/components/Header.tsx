@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Flag } from 'lucide-react';
+import Auth from './Auth';
 
 const Header = () => {
   const [language, setLanguage] = useState<'en' | 'hr'>('en');
@@ -39,6 +40,8 @@ const Header = () => {
               <img src="/croatia-flag.svg" alt="Hrvatski" className="w-full h-full object-cover" />
             </button>
           </div>
+          
+          <Auth />
         </div>
       </div>
     </header>
