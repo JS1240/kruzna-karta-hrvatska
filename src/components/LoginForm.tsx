@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,8 +13,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Separator } from '@/components/ui/separator';
-import { Github } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
 import { toast } from '@/hooks/use-toast';
+import { auth, googleProvider } from '@/lib/firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 interface LoginFormProps {
   mode: 'login' | 'signup';
@@ -72,22 +73,20 @@ const LoginForm = ({ mode, onToggleMode, onClose, onLoginSuccess }: LoginFormPro
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Real Google sign-in with Firebase
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
       toast({
         title: 'Google Authentication',
-        description: 'Successfully authenticated with Google',
+        description: `Welcome, ${user.displayName || user.email}!`,
       });
-      
       onLoginSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google authentication error:', error);
       toast({
         title: 'Authentication Failed',
-        description: 'There was a problem with your Google login attempt.',
+        description: error.message || 'There was a problem with your Google login attempt.',
         variant: 'destructive',
       });
     } finally {
@@ -161,7 +160,7 @@ const LoginForm = ({ mode, onToggleMode, onClose, onLoginSuccess }: LoginFormPro
         onClick={handleGoogleLogin}
         disabled={isLoading}
       >
-        <Github className="mr-2 h-4 w-4" />
+        <FcGoogle className="mr-2 h-5 w-5" />
         {mode === 'login' ? 'Login with Google' : 'Sign up with Google'}
       </Button>
       
