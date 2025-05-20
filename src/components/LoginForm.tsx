@@ -1,101 +1,115 @@
 
 import React, { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Mail, Key, Github } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-
-const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { Separator } from '@/components/ui/separator';
+import { Github } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface LoginFormProps {
   mode: 'login' | 'signup';
   onToggleMode: () => void;
   onClose: () => void;
+  onLoginSuccess: () => void;
 }
 
-const LoginForm = ({ mode, onToggleMode, onClose }: LoginFormProps) => {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const loginSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+});
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+const LoginForm = ({ mode, onToggleMode, onClose, onLoginSuccess }: LoginFormProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
     },
   });
 
-  const handleSubmit = async (values: FormValues) => {
-    setIsSubmitting(true);
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    setIsLoading(true);
+    
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Simulate API call with timeout
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock successful authentication
+      console.log('Authentication values:', values);
       
       toast({
-        title: mode === 'login' ? 'Logged in successfully!' : 'Account created successfully!',
-        description: `Welcome, ${values.email}`,
+        title: mode === 'login' ? 'Login Successful' : 'Account Created',
+        description: mode === 'login' 
+          ? 'Welcome back to EventMap Croatia!' 
+          : 'Your account has been created successfully.',
       });
       
-      onClose();
+      onLoginSuccess();
     } catch (error) {
+      console.error('Authentication error:', error);
       toast({
-        title: 'Error',
-        description: 'An error occurred. Please try again.',
+        title: 'Authentication Failed',
+        description: 'There was a problem with your login attempt.',
         variant: 'destructive',
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setIsSubmitting(true);
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    
     try {
-      // Simulate API call for Google auth
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Simulate API call with timeout
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
-        title: mode === 'login' ? 'Logged in with Google!' : 'Account created with Google!',
-        description: 'Authentication successful',
+        title: 'Google Authentication',
+        description: 'Successfully authenticated with Google',
       });
       
-      onClose();
+      onLoginSuccess();
     } catch (error) {
+      console.error('Google authentication error:', error);
       toast({
-        title: 'Error',
-        description: 'An error occurred with Google authentication',
+        title: 'Authentication Failed',
+        description: 'There was a problem with your Google login attempt.',
         variant: 'destructive',
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 py-4">
-      <div className="space-y-2 text-center">
-        <h3 className="text-2xl font-bold">
-          {mode === 'login' ? 'Welcome back' : 'Create an account'}
-        </h3>
-        <p className="text-sm text-gray-500">
+    <div className="space-y-4">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">
+          {mode === 'login' ? 'Login to your account' : 'Create an account'}
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
           {mode === 'login' 
             ? 'Enter your credentials to access your account' 
-            : 'Enter your details to create your account'}
+            : 'Fill out the form to create your account'}
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="email"
@@ -103,15 +117,7 @@ const LoginForm = ({ mode, onToggleMode, onClose }: LoginFormProps) => {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input 
-                      {...field} 
-                      placeholder="your@email.com" 
-                      type="email"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input placeholder="your.email@example.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -125,40 +131,22 @@ const LoginForm = ({ mode, onToggleMode, onClose }: LoginFormProps) => {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input 
-                      {...field} 
-                      type="password" 
-                      placeholder="••••••••" 
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input type="password" placeholder="******" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
           
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <span>Loading...</span>
-            ) : mode === 'login' ? (
-              'Log in'
-            ) : (
-              'Sign up'
-            )}
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Loading...' : mode === 'login' ? 'Login' : 'Sign Up'}
           </Button>
         </form>
       </Form>
       
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
+          <Separator className="w-full" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
@@ -169,31 +157,20 @@ const LoginForm = ({ mode, onToggleMode, onClose }: LoginFormProps) => {
       
       <Button 
         variant="outline" 
-        type="button" 
-        className="w-full"
-        onClick={handleGoogleAuth}
-        disabled={isSubmitting}
+        className="w-full" 
+        onClick={handleGoogleLogin}
+        disabled={isLoading}
       >
         <Github className="mr-2 h-4 w-4" />
-        {mode === 'login' ? 'Login with Github' : 'Sign up with Github'}
+        {mode === 'login' ? 'Login with Google' : 'Sign up with Google'}
       </Button>
       
-      <div className="text-center text-sm">
-        {mode === 'login' ? (
-          <>
-            Don't have an account?{' '}
-            <Button variant="link" className="p-0" onClick={onToggleMode}>
-              Sign up
-            </Button>
-          </>
-        ) : (
-          <>
-            Already have an account?{' '}
-            <Button variant="link" className="p-0" onClick={onToggleMode}>
-              Log in
-            </Button>
-          </>
-        )}
+      <div className="text-center">
+        <Button variant="link" onClick={onToggleMode}>
+          {mode === 'login' 
+            ? "Don't have an account? Sign up" 
+            : 'Already have an account? Login'}
+        </Button>
       </div>
     </div>
   );

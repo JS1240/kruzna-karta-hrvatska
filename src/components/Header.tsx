@@ -1,11 +1,49 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Flag } from 'lucide-react';
+import { Flag, Heart } from 'lucide-react';
 import Auth from './Auth';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 const Header = () => {
   const [language, setLanguage] = useState<'en' | 'hr'>('en');
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Simulate login state
+
+  // For demo purposes - this would normally be handled by proper auth
+  React.useEffect(() => {
+    // Check if user is logged in from localStorage
+    const loggedInStatus = localStorage.getItem('isLoggedIn') === 'true';
+    setIsLoggedIn(loggedInStatus);
+    
+    // Listen for login/logout events
+    const handleAuthChange = (e: CustomEvent) => {
+      setIsLoggedIn(e.detail.isLoggedIn);
+    };
+    
+    window.addEventListener('authStateChanged' as any, handleAuthChange);
+    
+    return () => {
+      window.removeEventListener('authStateChanged' as any, handleAuthChange);
+    };
+  }, []);
+
+  const handleFavoritesClick = () => {
+    if (!isLoggedIn) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to view your favorite events",
+        variant: "destructive",
+      });
+      return;
+    }
+  };
 
   return (
     <header className="bg-navy-blue text-white py-4">
@@ -40,6 +78,25 @@ const Header = () => {
               <img src="/croatia-flag.svg" alt="Hrvatski" className="w-full h-full object-cover" />
             </button>
           </div>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/favorites">
+                  <Button 
+                    onClick={handleFavoritesClick} 
+                    variant="ghost" 
+                    className="text-white hover:text-medium-blue"
+                  >
+                    <Heart className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Your Favorites</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
           <Auth />
         </div>
