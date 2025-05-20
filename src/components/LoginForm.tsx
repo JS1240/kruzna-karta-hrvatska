@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { FcGoogle } from 'react-icons/fc';
 import { toast } from '@/hooks/use-toast';
 import { auth, googleProvider } from '@/lib/firebase';
-import { signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 
 interface LoginFormProps {
   mode: 'login' | 'signup';
@@ -43,27 +43,28 @@ const LoginForm = ({ mode, onToggleMode, onClose, onLoginSuccess }: LoginFormPro
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
-    
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock successful authentication
-      console.log('Authentication values:', values);
-      
-      toast({
-        title: mode === 'login' ? 'Login Successful' : 'Account Created',
-        description: mode === 'login' 
-          ? 'Welcome back to EventMap Croatia!' 
-          : 'Your account has been created successfully.',
-      });
-      
+      if (mode === 'signup') {
+        // Firebase sign up
+        await createUserWithEmailAndPassword(auth, values.email, values.password);
+        toast({
+          title: 'Account Created',
+          description: 'Your account has been created successfully.',
+        });
+      } else {
+        // Firebase login
+        await signInWithEmailAndPassword(auth, values.email, values.password);
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome back to EventMap Croatia!',
+        });
+      }
       onLoginSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Authentication error:', error);
       toast({
         title: 'Authentication Failed',
-        description: 'There was a problem with your login attempt.',
+        description: error.message || 'There was a problem with your login attempt.',
         variant: 'destructive',
       });
     } finally {
