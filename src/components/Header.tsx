@@ -29,51 +29,51 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
       <div className="container mx-auto flex justify-between items-center h-16 px-4">
-        <div className="flex items-center space-x-8">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
+        {/* Left: Logo and Title */}
+        <div className="flex items-center min-w-0 flex-shrink-0">
+          <Link to="/" className="flex items-center gap-2">
             <Logo className="h-8 w-auto" />
           </Link>
-
-          {/* Navigation */}
-          <nav className="hidden md:flex space-x-6">
-            <Link
-              to="/"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === "/" ? "text-primary" : "text-gray-700 dark:text-gray-300"
-              }`}
-            >
-              Home
-            </Link>
-            <Link
-              to="/about"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === "/about" ? "text-primary" : "text-gray-700 dark:text-gray-300"
-              }`}
-            >
-              About
-            </Link>
-            <Link
-              to="/venues"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === "/venues" ? "text-primary" : "text-gray-700 dark:text-gray-300"
-              }`}
-            >
-              Venues
-            </Link>
-            <Link
-              to="/popular"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === "/popular" ? "text-primary" : "text-gray-700 dark:text-gray-300"
-              }`}
-            >
-              Popular
-            </Link>
-          </nav>
         </div>
 
-        {/* Right side controls */}
-        <div className="flex items-center space-x-3">
+        {/* Center: Navigation */}
+        <nav className="hidden md:flex space-x-6 flex-1 justify-center">
+          <Link
+            to="/"
+            className={`text-sm font-bold transition-colors duration-200 hover:text-primary hover:scale-110 hover:bg-sky_blue-100 px-2 py-1 rounded-md ${
+              location.pathname === "/" ? "text-primary" : "text-gray-700 dark:text-gray-300"
+            }`}
+          >
+            Home
+          </Link>
+          <Link
+            to="/about"
+            className={`text-sm font-bold transition-colors duration-200 hover:text-primary hover:scale-110 hover:bg-sky_blue-100 px-2 py-1 rounded-md ${
+              location.pathname === "/about" ? "text-primary" : "text-gray-700 dark:text-gray-300"
+            }`}
+          >
+            About
+          </Link>
+          <Link
+            to="/venues"
+            className={`text-sm font-bold transition-colors duration-200 hover:text-primary hover:scale-110 hover:bg-sky_blue-100 px-2 py-1 rounded-md ${
+              location.pathname === "/venues" ? "text-primary" : "text-gray-700 dark:text-gray-300"
+            }`}
+          >
+            Venues
+          </Link>
+          <Link
+            to="/popular"
+            className={`text-sm font-bold transition-colors duration-200 hover:text-primary hover:scale-110 hover:bg-sky_blue-100 px-2 py-1 rounded-md ${
+              location.pathname === "/popular" ? "text-primary" : "text-gray-700 dark:text-gray-300"
+            }`}
+          >
+            Popular
+          </Link>
+        </nav>
+
+        {/* Right: Controls */}
+        <div className="flex items-center space-x-3 flex-shrink-0">
           {/* Saved/Favorites Button */}
           <Link to="/favorites">
             <Button
