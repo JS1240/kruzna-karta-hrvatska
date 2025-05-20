@@ -20,7 +20,7 @@ interface Event {
   id: number;
   title: string;
   description: string;
-  category: 'concert' | 'workout' | 'meetup' | 'conference' | 'party';
+  category: 'concert' | 'workout' | 'meetup' | 'conference' | 'party' | 'theater' | 'festival' | 'sports' | 'other';
   location: [number, number];
   date: string;
   time: string;
@@ -135,6 +135,70 @@ const EventMap = () => {
       price: "25-40€",
       county: "Lika-Senj",
       city: "Novalja"
+    },
+    {
+      id: 6,
+      title: "Zagreb Theater Night",
+      description: "A night of drama and performance at the city theater.",
+      category: "theater",
+      location: [15.9780, 45.8130], // Zagreb
+      date: "2025-06-20",
+      time: "19:30",
+      image: "/event-images/theater.jpg",
+      ticketLink: "https://ulaznice.hr/",
+      sourceWebsite: "ulaznice.hr",
+      venue: "Zagreb City Theater",
+      price: "20-40€",
+      county: "Zagreb",
+      city: "Zagreb"
+    },
+    {
+      id: 7,
+      title: "Split Summer Festival",
+      description: "Annual festival with music, food, and fun for all ages.",
+      category: "festival",
+      location: [16.4402, 43.5083], // Split
+      date: "2025-07-15",
+      time: "16:00",
+      image: "/event-images/festival.jpg",
+      ticketLink: "https://festival.hr/",
+      sourceWebsite: "festival.hr",
+      venue: "Split Riva",
+      price: "Free",
+      county: "Split-Dalmatia",
+      city: "Split"
+    },
+    {
+      id: 8,
+      title: "Dubrovnik Sports Day",
+      description: "Join the community for a day of sports and activities.",
+      category: "sports",
+      location: [18.0945, 42.6508], // Dubrovnik
+      date: "2025-08-10",
+      time: "10:00",
+      image: "/event-images/sports.jpg",
+      ticketLink: "https://sports.hr/",
+      sourceWebsite: "sports.hr",
+      venue: "Dubrovnik Sports Center",
+      price: "10€",
+      county: "Dubrovnik-Neretva",
+      city: "Dubrovnik"
+    },
+    {
+      id: 9,
+      title: "Istria Art Expo",
+      description: "A gathering of artists and creators from all over the region.",
+      category: "other",
+      location: [13.8496, 45.3271], // Pula
+      date: "2025-09-12",
+      time: "11:00",
+      image: "/event-images/other.jpg",
+      ticketLink: "https://artexpo.hr/",
+      sourceWebsite: "artexpo.hr",
+      venue: "Pula Art Center",
+      price: "5€",
+      county: "Istria",
+      city: "Pula"
     }
   ];
   
@@ -321,6 +385,18 @@ const EventMap = () => {
           break;
         case 'party':
           iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11v0c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98v0C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>`;
+          break;
+        case 'theater':
+          iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 7V4a4 4 0 0 1 8 0v3"/></svg>`;
+          break;
+        case 'festival':
+          iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M6 20V10"/><path d="M18 20V10"/><path d="M12 20V4"/><path d="M2 10h20"/></svg>`;
+          break;
+        case 'sports':
+          iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4 12h16"/><path d="M12 4v16"/></svg>`;
+          break;
+        case 'other':
+          iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>`;
           break;
       }
       
@@ -535,31 +611,55 @@ const EventMap = () => {
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'concert' ? 'active' : ''}`}
           onClick={() => handleCategoryChange('concert')}
         >
-          <Music size={18} /> Concerts
+          <span role="img" aria-label="Concert">🎵</span> Concerts
         </button>
         <button 
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'workout' ? 'active' : ''}`}
           onClick={() => handleCategoryChange('workout')}
         >
-          <Dumbbell size={18} /> Workouts
+          <span role="img" aria-label="Workout">💪</span> Workouts
         </button>
         <button 
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'meetup' ? 'active' : ''}`}
           onClick={() => handleCategoryChange('meetup')}
         >
-          <Users size={18} /> Meet-ups
+          <span role="img" aria-label="Meetup">🤝</span> Meet-ups
         </button>
         <button 
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'conference' ? 'active' : ''}`}
           onClick={() => handleCategoryChange('conference')}
         >
-          <CalendarDays size={18} /> Conferences
+          <span role="img" aria-label="Conference">🎤</span> Conferences
         </button>
         <button 
           className={`map-category-button flex items-center gap-2 ${activeCategory === 'party' ? 'active' : ''}`}
           onClick={() => handleCategoryChange('party')}
         >
-          <PartyPopper size={18} /> Parties
+          <span role="img" aria-label="Party">🎉</span> Parties
+        </button>
+        <button 
+          className={`map-category-button flex items-center gap-2 ${activeCategory === 'theater' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('theater')}
+        >
+          <span role="img" aria-label="Theater">🎭</span> Theaters
+        </button>
+        <button 
+          className={`map-category-button flex items-center gap-2 ${activeCategory === 'festival' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('festival')}
+        >
+          <span role="img" aria-label="Festival">🎪</span> Festivals
+        </button>
+        <button 
+          className={`map-category-button flex items-center gap-2 ${activeCategory === 'sports' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('sports')}
+        >
+          <span role="img" aria-label="Sports">🏟️</span> Sports
+        </button>
+        <button 
+          className={`map-category-button flex items-center gap-2 ${activeCategory === 'other' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('other')}
+        >
+          <span role="img" aria-label="Other">✨</span> Other
         </button>
       </div>
     </div>
