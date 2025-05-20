@@ -1,4 +1,3 @@
-
 import { type Config } from "tailwindcss";
 
 export default {
@@ -55,6 +54,9 @@ export default {
         "navy-blue": "#193459",
         "light-blue": "#d5e3f0",
         "medium-blue": "#8fb3d9",
+        cream: {
+          DEFAULT: '#caf0f8',
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
