@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import EventCard from './EventCard';
 
 interface Event {
   id: string;
@@ -52,19 +53,14 @@ const EventCarousel: React.FC<EventCarouselProps> = ({ events, speed = 40 }) => 
         style={{ willChange: 'transform' }}
       >
         {allEvents.map((event, idx) => (
-          <div
+          <EventCard
             key={event.id + '-' + idx}
-            className="flex-shrink-0 w-64 mx-4 bg-cream rounded-lg shadow p-4 flex flex-col items-center justify-center"
-          >
-            <img
-              src={event.image}
-              alt={event.title}
-              className="w-full h-32 object-cover rounded mb-2"
-            />
-            <div className="font-bold text-lg text-navy-blue mb-1 text-center truncate w-full">{event.title}</div>
-            <div className="text-sm text-gray-600 mb-1">{event.date}</div>
-            <div className="text-xs text-blue_green-700">{event.location}</div>
-          </div>
+            id={event.id}
+            title={event.title}
+            image={event.image}
+            date={event.date}
+            location={event.location}
+          />
         ))}
       </div>
     </div>
