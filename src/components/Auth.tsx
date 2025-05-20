@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -55,13 +54,20 @@ const Auth = () => {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {isLoggedIn ? (
-          <Button variant="ghost" className="gap-2" onClick={handleLogout}>
-            <UserCircle className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            className="gap-2 transition-all duration-200 hover:bg-sky_blue-100 hover:scale-105 hover:shadow-md focus:ring-2 focus:ring-blue_green-400"
+            onClick={handleLogout}
+          >
+            <UserCircle className="h-5 w-5 transition-all group-hover:text-blue_green-600" />
             <span>Logout</span>
           </Button>
         ) : (
-          <Button variant="ghost" className="gap-2">
-            <UserCircle className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            className="gap-2 transition-all duration-200 hover:bg-sky_blue-100 hover:scale-105 hover:shadow-md focus:ring-2 focus:ring-blue_green-400"
+          >
+            <UserCircle className="h-5 w-5 transition-all group-hover:text-blue_green-600" />
             <span>{mode === 'login' ? 'Login' : 'Sign up'}</span>
           </Button>
         )}
