@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -13,10 +12,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
+  EventTabs,
+  EventTabsList,
+  EventTabsTrigger,
+  EventTabsContent,
 } from '@/components/ui/tabs';
 import {
   Select,
@@ -337,17 +336,17 @@ const Venues = () => {
             </div>
             
             <div className="mt-4">
-              <Tabs value={activeTab} onValueChange={handleTabChange}>
-                <TabsList className="w-full mb-6">
-                  <TabsTrigger value="all">All Venues</TabsTrigger>
-                  <TabsTrigger value="hotel">Hotels</TabsTrigger>
-                  <TabsTrigger value="concert-hall">Concert Halls</TabsTrigger>
-                  <TabsTrigger value="conference-center">Conference Centers</TabsTrigger>
-                  <TabsTrigger value="club">Clubs</TabsTrigger>
-                  <TabsTrigger value="restaurant">Restaurants</TabsTrigger>
-                  <TabsTrigger value="outdoor">Outdoor Venues</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <EventTabs value={activeTab} onValueChange={handleTabChange}>
+                <EventTabsList className="w-full mb-6">
+                  <EventTabsTrigger value="all">All Venues</EventTabsTrigger>
+                  <EventTabsTrigger value="hotel">Hotels</EventTabsTrigger>
+                  <EventTabsTrigger value="concert-hall">Concert Halls</EventTabsTrigger>
+                  <EventTabsTrigger value="conference-center">Conference Centers</EventTabsTrigger>
+                  <EventTabsTrigger value="club">Clubs</EventTabsTrigger>
+                  <EventTabsTrigger value="restaurant">Restaurants</EventTabsTrigger>
+                  <EventTabsTrigger value="outdoor">Outdoor Venues</EventTabsTrigger>
+                </EventTabsList>
+              </EventTabs>
             </div>
           </CardContent>
         </Card>
