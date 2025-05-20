@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Moon, Sun, Globe, Bookmark } from "lucide-react";
+import { Moon, Sun, Bookmark, Bookmark as BookmarkFilled, Sun as SunFilled, Moon as MoonFilled } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,8 +76,14 @@ const Header = () => {
         <div className="flex items-center space-x-3">
           {/* Saved/Favorites Button */}
           <Link to="/favorites">
-            <Button variant="ghost" size="icon" aria-label="Saved items">
-              <Bookmark className="h-[1.2rem] w-[1.2rem]" />
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Saved items"
+              className="group"
+            >
+              <Bookmark className="h-[1.2rem] w-[1.2rem] group-hover:hidden transition-all" />
+              <BookmarkFilled className="h-[1.2rem] w-[1.2rem] hidden group-hover:inline transition-all fill-blue_green-500" fill="currentColor" />
             </Button>
           </Link>
 
@@ -88,42 +94,47 @@ const Header = () => {
               size="icon"
               aria-label="Toggle theme"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="group relative"
             >
-              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              {theme === "dark" ? (
+                <Moon className="h-[1.2rem] w-[1.2rem] transition-all group-hover:hidden" />
+              ) : (
+                <Sun className="h-[1.2rem] w-[1.2rem] transition-all group-hover:hidden" />
+              )}
+              {theme === "dark" ? (
+                <MoonFilled className="h-[1.2rem] w-[1.2rem] hidden group-hover:inline transition-all text-blue-400" fill="currentColor" />
+              ) : (
+                <SunFilled className="h-[1.2rem] w-[1.2rem] hidden group-hover:inline transition-all text-yellow-400" fill="currentColor" />
+              )}
               <span className="sr-only">Toggle theme</span>
             </Button>
           )}
 
-          {/* Language Toggle */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Globe className="h-[1.2rem] w-[1.2rem]" />
-                <span className="sr-only">Change language</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setCurrentLanguage("en")} className="flex items-center gap-2">
-                <img
-                  src="/usa-flag.svg"
-                  alt="English"
-                  className="w-4 h-3 object-cover"
-                />
-                <span>English</span>
-                {currentLanguage === "en" && <span className="ml-auto">✓</span>}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setCurrentLanguage("hr")} className="flex items-center gap-2">
-                <img
-                  src="/croatia-flag.svg"
-                  alt="Croatian"
-                  className="w-4 h-3 object-cover"
-                />
-                <span>Croatian</span>
-                {currentLanguage === "hr" && <span className="ml-auto">✓</span>}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Language Toggle Buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentLanguage("en")}
+              className={`px-3 py-1 rounded font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue_green-400 text-sm tracking-wide
+                ${currentLanguage === "en"
+                  ? "bg-sky_blue-400 text-white shadow-lg scale-105"
+                  : "bg-sky_blue-100 text-blue_green-700 hover:bg-blue_green-100 hover:text-blue_green-900 active:bg-sky_blue-200"}
+              `}
+              aria-label="Switch to English"
+            >
+              ENG
+            </button>
+            <button
+              onClick={() => setCurrentLanguage("hr")}
+              className={`px-3 py-1 rounded font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue_green-400 text-sm tracking-wide
+                ${currentLanguage === "hr"
+                  ? "bg-sky_blue-400 text-white shadow-lg scale-105"
+                  : "bg-sky_blue-100 text-blue_green-700 hover:bg-blue_green-100 hover:text-blue_green-900 active:bg-sky_blue-200"}
+              `}
+              aria-label="Switch to Croatian"
+            >
+              HRV
+            </button>
+          </div>
 
           {/* Auth Component */}
           <Auth />
