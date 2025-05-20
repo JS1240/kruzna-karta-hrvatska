@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -314,7 +313,7 @@ const Venues = () => {
                     <SelectValue placeholder="County" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Counties</SelectItem>
+                    <SelectItem value="all">All Counties</SelectItem>
                     {counties.map(county => (
                       <SelectItem key={county} value={county}>{county}</SelectItem>
                     ))}
