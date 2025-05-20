@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import EventMap from '@/components/EventMap';
@@ -7,6 +6,7 @@ import LatestNews from '@/components/LatestNews';
 import AboutCroatia from '@/components/AboutCroatia';
 import Footer from '@/components/Footer';
 import { SearchIcon, CalendarIcon, MapPinIcon, HeartIcon } from 'lucide-react';
+import EventCarousel from '@/components/EventCarousel';
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,11 +56,45 @@ const Index = () => {
             </div>
             
             <div className="md:w-1/2">
-              <img 
-                src="/hero-image.jpg" 
-                alt="Events in Croatia" 
-                className="w-full h-auto rounded-lg shadow-xl object-cover"
-                style={{ maxHeight: '400px' }}
+              <EventCarousel
+                events={[
+                  {
+                    id: '1',
+                    title: 'Zagreb Summer Festival',
+                    image: '/event-images/concert.jpg',
+                    date: 'June 10, 2025',
+                    location: 'Zagreb',
+                  },
+                  {
+                    id: '2',
+                    title: 'Dubrovnik Night Run',
+                    image: '/event-images/workout.jpg',
+                    date: 'June 12, 2025',
+                    location: 'Dubrovnik',
+                  },
+                  {
+                    id: '3',
+                    title: 'Split Tech Meetup',
+                    image: '/event-images/meetup.jpg',
+                    date: 'June 15, 2025',
+                    location: 'Split',
+                  },
+                  {
+                    id: '4',
+                    title: 'Pula Party Weekend',
+                    image: '/event-images/party.jpg',
+                    date: 'June 20, 2025',
+                    location: 'Pula',
+                  },
+                  {
+                    id: '5',
+                    title: 'Rijeka Business Conference',
+                    image: '/event-images/conference.jpg',
+                    date: 'June 25, 2025',
+                    location: 'Rijeka',
+                  },
+                ]}
+                speed={40}
               />
             </div>
           </div>
