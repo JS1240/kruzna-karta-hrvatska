@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Heart, ThumbsUp, Eye, Share, Star, Fire, Sparkles, Award } from "lucide-react";
+import { Heart, ThumbsUp, Eye, Share, Star, Flame, Sparkles, Award } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 // Types for our popular items
@@ -121,7 +121,7 @@ const Popular = () => {
             <Tabs defaultValue="trending" className="w-full md:w-auto" onValueChange={setSortBy}>
               <TabsList className="grid grid-cols-3 w-full md:w-auto">
                 <TabsTrigger value="trending" className="flex items-center gap-1">
-                  <Fire className="h-4 w-4" /> Trending
+                  <Flame className="h-4 w-4" /> Trending
                 </TabsTrigger>
                 <TabsTrigger value="mostLiked" className="flex items-center gap-1">
                   <ThumbsUp className="h-4 w-4" /> Most Liked
@@ -176,7 +176,7 @@ const Popular = () => {
                         variant="default" 
                         className="bg-red-500 flex items-center gap-1 animate-pulse"
                       >
-                        <Fire className="h-3 w-3" /> Hot
+                        <Flame className="h-3 w-3" /> Hot
                       </Badge>
                     </div>
                   )}
