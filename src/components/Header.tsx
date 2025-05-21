@@ -117,7 +117,7 @@ const Header = () => {
               className={`px-3 py-1 rounded font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue_green-400 text-sm tracking-wide
                 ${currentLanguage === "en"
                   ? "bg-sky_blue-400 text-white shadow-lg scale-105"
-                  : "bg-sky_blue-100 text-blue_green-700 hover:bg-blue_green-100 hover:text-blue_green-900 active:bg-sky_blue-200"}
+                  : "bg-sky_blue-100 text-blue_green-700 hover:bg-blue_green-100 hover:text-blue_green-900 active:bg-sky_blue-200 active:text-blue_green-700"}
               `}
               aria-label="Switch to English"
             >
@@ -128,7 +128,7 @@ const Header = () => {
               className={`px-3 py-1 rounded font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue_green-400 text-sm tracking-wide
                 ${currentLanguage === "hr"
                   ? "bg-sky_blue-400 text-white shadow-lg scale-105"
-                  : "bg-sky_blue-100 text-blue_green-700 hover:bg-blue_green-100 hover:text-blue_green-900 active:bg-sky_blue-200"}
+                  : "bg-sky_blue-100 text-blue_green-700 hover:bg-blue_green-100 hover:text-blue_green-900 active:bg-sky_blue-200 active:text-blue_green-700"}
               `}
               aria-label="Switch to Croatian"
             >

@@ -15,6 +15,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
 
 interface Event {
   id: number;
@@ -53,6 +55,9 @@ const EventMap = () => {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<string | null>(null);
+  // Use a proper DateRange type for selectedDateRangeObj
+  const [selectedDateRangeObj, setSelectedDateRangeObj] = useState<DateRange | undefined>(undefined);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   
   // Example events data with county and city information
   const events: Event[] = [
@@ -465,6 +470,7 @@ const EventMap = () => {
   
   const handleDateRangeChange = (value: string) => {
     setSelectedDateRange(value === selectedDateRange ? null : value);
+    setSelectedDateRangeObj(undefined); // Clear custom date range when quick filter is chosen
   };
   
   // New function to handle price slider change
@@ -481,6 +487,15 @@ const EventMap = () => {
   // Handle city selection
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
+  };
+  
+  // Handler for custom date range selection from calendar
+  const handleCustomDateRange = (range: DateRange | undefined) => {
+    setSelectedDateRangeObj(range);
+    setSelectedDateRange(null); // Unselect quick range
+    if (range && range.from && range.to) {
+      setCalendarOpen(false); // Close the calendar popover when both dates are picked
+    }
   };
   
   return (
@@ -554,7 +569,8 @@ const EventMap = () => {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             When
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Existing quick range buttons */}
             <Button 
               variant={selectedDateRange === 'today' ? 'default' : 'outline'}
               size="sm"
@@ -595,6 +611,27 @@ const EventMap = () => {
             >
               This Month
             </Button>
+            {/* Date range picker */}
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant={selectedDateRangeObj && selectedDateRangeObj.from && selectedDateRangeObj.to ? 'default' : 'outline'} 
+                  size="sm" 
+                  className="flex items-center gap-1"
+                  onClick={() => setCalendarOpen(true)}
+                >
+                  {selectedDateRangeObj && selectedDateRangeObj.from && selectedDateRangeObj.to ? 'Date Range Chosen' : 'Pick Date Range'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={selectedDateRangeObj}
+                  onSelect={handleCustomDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </div>
