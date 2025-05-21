@@ -53,7 +53,7 @@ const EventMap = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedCounty, setSelectedCounty] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
+  const [selectedPrice, setSelectedPrice] = useState<[number, number] | null>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<string | null>(null);
   // Use a proper DateRange type for selectedDateRangeObj
   const [selectedDateRangeObj, setSelectedDateRangeObj] = useState<DateRange | undefined>(undefined);
@@ -330,13 +330,14 @@ const EventMap = () => {
     if (selectedPrice !== null) {
       // Filter events based on the price slider value
       filteredEvents = filteredEvents.filter(event => {
-        if (event.price.toLowerCase().includes('free')) return selectedPrice === 0;
+        if (event.price.toLowerCase().includes('free')) return selectedPrice[0] === 0;
         
         // Extract numeric price value (take the lower bound of ranges like "30-50€")
-        const priceMatch = event.price.match(/\d+/);
-        if (priceMatch) {
-          const eventPrice = parseInt(priceMatch[0]);
-          return eventPrice <= selectedPrice;
+        const priceMatches = event.price.match(/\d+/g);
+        if (priceMatches) {
+          const eventMin = parseInt(priceMatches[0]);
+          const eventMax = priceMatches[1] ? parseInt(priceMatches[1]) : eventMin;
+          return eventMax >= selectedPrice[0] && eventMin <= selectedPrice[1];
         }
         return true;
       });
@@ -473,9 +474,9 @@ const EventMap = () => {
     setSelectedDateRangeObj(undefined); // Clear custom date range when quick filter is chosen
   };
   
-  // New function to handle price slider change
+  // Update price slider change handler
   const handlePriceChange = (value: number[]) => {
-    setSelectedPrice(value[0]);
+    setSelectedPrice([value[0], value[1]]);
   };
   
   // Handle county selection
@@ -547,19 +548,17 @@ const EventMap = () => {
         
         <div className="w-full md:w-auto md:flex-1">
           <Label htmlFor="price-slider" className="block text-sm font-medium text-gray-700 mb-1">
-            Max Price: {selectedPrice !== null ? `${selectedPrice}€` : 'Any'}
+            Price Range: {selectedPrice !== null ? `${selectedPrice[0]}€ - ${selectedPrice[1]}€` : 'Any'}
           </Label>
           <div className="px-2 pt-1">
             <Slider 
               id="price-slider"
-              defaultValue={[50]}
-              value={selectedPrice !== null ? [selectedPrice] : [50]}
+              defaultValue={[0, 50]}
+              value={selectedPrice !== null ? selectedPrice : [0, 50]}
               min={0} 
               max={200}
               step={5}
-              showInput={true}
               onValueChange={handlePriceChange}
-              onInputChange={(value) => setSelectedPrice(value)}
               className="py-2"
             />
           </div>
