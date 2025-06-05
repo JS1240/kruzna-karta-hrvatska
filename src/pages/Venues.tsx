@@ -214,7 +214,6 @@ const Venues = () => {
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Contact form submitted:", contactForm);
     
     toast({
       title: "Request Sent",

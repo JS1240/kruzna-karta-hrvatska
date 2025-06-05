@@ -60,11 +60,12 @@ const LoginForm = ({ mode, onToggleMode, onClose, onLoginSuccess }: LoginFormPro
         });
       }
       onLoginSuccess();
-    } catch (error: any) {
+  } catch (error: unknown) {
       console.error('Authentication error:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: 'Authentication Failed',
-        description: error.message || 'There was a problem with your login attempt.',
+        description: message || 'There was a problem with your login attempt.',
         variant: 'destructive',
       });
     } finally {
@@ -83,11 +84,12 @@ const LoginForm = ({ mode, onToggleMode, onClose, onLoginSuccess }: LoginFormPro
         description: `Welcome, ${user.displayName || user.email}!`,
       });
       onLoginSuccess();
-    } catch (error: any) {
+  } catch (error: unknown) {
       console.error('Google authentication error:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: 'Authentication Failed',
-        description: error.message || 'There was a problem with your Google login attempt.',
+        description: message || 'There was a problem with your Google login attempt.',
         variant: 'destructive',
       });
     } finally {

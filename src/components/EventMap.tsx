@@ -462,7 +462,7 @@ const EventMap = () => {
         }, 300);
       });
     });
-  }, [mapLoaded, activeCategory, selectedCounty, selectedCity, selectedPrice, selectedDateRange]);
+  }, [mapLoaded, activeCategory, selectedCounty, selectedCity, selectedPrice, selectedDateRange, events]);
   
   // Functions to handle filter changes
   const handleCategoryChange = (category: string | null) => {

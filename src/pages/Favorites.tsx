@@ -115,7 +115,7 @@ const Favorites = () => {
     }
     
     // Listen for auth state changes
-    const handleAuthChange = (e: CustomEvent) => {
+    const handleAuthChange = (e: CustomEvent<{ isLoggedIn: boolean }>) => {
       setIsLoggedIn(e.detail.isLoggedIn);
       if (!e.detail.isLoggedIn) {
         setFavoriteEvents([]);
@@ -130,10 +130,10 @@ const Favorites = () => {
       }
     };
     
-    window.addEventListener('authStateChanged' as any, handleAuthChange);
+    window.addEventListener('authStateChanged', handleAuthChange as EventListener);
     
     return () => {
-      window.removeEventListener('authStateChanged' as any, handleAuthChange);
+      window.removeEventListener('authStateChanged', handleAuthChange as EventListener);
     };
   }, []);
 
