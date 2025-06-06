@@ -1,0 +1,11 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Red location pin -->
+  <circle cx="100" cy="120" r="35" fill="#FF4444"/>
+  <circle cx="100" cy="115" r="15" fill="white"/>
+  
+  <!-- Text: diidemo.hr -->
+  <text x="180" y="130" font-family="Arial, sans-serif" font-size="42" font-weight="300" fill="#CCCCCC">diidemo.hr</text>
+  
+  <!-- Subtitle: EVENTS NEAR YOU -->
+  <text x="180" y="155" font-family="Arial, sans-serif" font-size="14" font-weight="normal" fill="#AAAAAA" letter-spacing="3px">EVENTS NEAR YOU</text>
+</svg>

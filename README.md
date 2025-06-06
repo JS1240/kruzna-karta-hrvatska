@@ -1,73 +1,419 @@
-# Welcome to your Lovable project
+# Diidemo.hr - Croatian Events Discovery Platform
 
-## Project info
+A full-stack Croatian events platform built with React (frontend), FastAPI (backend), and PostgreSQL (database).
 
-**URL**: https://lovable.dev/projects/29016042-752b-45b1-be19-6d1ae3bf243d
+## 🚀 Quick Start with Makefile (Recommended)
 
-## How can I edit this code?
+### Prerequisites
+- Docker and Docker Compose installed
+- 4GB+ RAM available
+- Ports 80, 3000, 8000, 5432, 6379 available
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/29016042-752b-45b1-be19-6d1ae3bf243d) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 1. Clone and Setup
+```bash
+git clone <repository-url>
+cd kruzna-karta-hrvatska
 ```
 
-**Edit a file directly in GitHub**
+### 2. One-Command Setup
+```bash
+# Complete setup and start (recommended)
+make quick-start
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# Or step by step
+make env-setup
+make docker-up-build
+```
 
-**Use GitHub Codespaces**
+### 3. Alternative: Manual Docker Setup
+```bash
+# Copy environment template
+cp .env.example .env
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Build and start all services
+docker-compose up --build
 
-## What technologies are used for this project?
+# Or run in background
+docker-compose up -d --build
+```
 
-This project is built with:
+### 4. Access the Application
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+- **Database**: localhost:5432 (postgres/diidemo2024)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 5. Docker Management
+```bash
+# View logs
+docker-compose logs -f
 
-## How can I deploy this project?
+# Stop services
+docker-compose down
 
-Simply open [Lovable](https://lovable.dev/projects/29016042-752b-45b1-be19-6d1ae3bf243d) and click on Share -> Publish.
+# Reset database
+docker-compose down -v && docker-compose up --build
+```
 
-## Can I connect a custom domain to my Lovable project?
+## 🐳 Docker Architecture
 
-Yes, you can!
+### Container Stack
+```
+┌─────────────────┐
+│   Nginx Proxy   │ :80
+├─────────────────┤
+│   Frontend      │ :3000 (React + Nginx)
+├─────────────────┤
+│   Backend API   │ :8000 (FastAPI + Python)
+├─────────────────┤
+│   PostgreSQL    │ :5432 (Database)
+├─────────────────┤
+│   Redis         │ :6379 (Cache)
+└─────────────────┘
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Services
+- **Frontend**: React + TypeScript + Vite served by Nginx
+- **Backend**: FastAPI + SQLAlchemy + Python with uv
+- **Database**: PostgreSQL 15 with sample Croatian events
+- **Cache**: Redis 7 for caching and task queues
+- **Proxy**: Nginx reverse proxy with load balancing
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🏗️ Project Structure
+
+```
+kruzna-karta-hrvatska/
+├── frontend/                 # React + TypeScript frontend
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   ├── pages/           # Page components
+│   │   ├── lib/             # Utilities and API client
+│   │   └── hooks/           # Custom React hooks
+│   ├── public/              # Static assets
+│   └── package.json         # Frontend dependencies
+├── backend/                 # FastAPI Python backend
+│   ├── app/
+│   │   ├── routes/          # API endpoints
+│   │   ├── models/          # Database models & schemas
+│   │   ├── core/            # Configuration & database
+│   │   └── main.py          # FastAPI application
+│   ├── scripts/             # Database setup scripts
+│   ├── pyproject.toml       # Python dependencies (uv)
+│   └── run.py              # Development server runner
+└── package.json            # Root package.json for monorepo
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** >= 18.0.0
+- **Python** >= 3.11.0
+- **PostgreSQL** database
+- **uv** package manager for Python
+
+#### Install uv (Python package manager)
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### 1. Clone and Setup
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd kruzna-karta-hrvatska
+
+# Install root dependencies (includes concurrently for running both servers)
+npm install
+
+# Setup backend and frontend dependencies
+npm run setup
+```
+
+### 2. Database Setup
+
+```bash
+# 1. Create PostgreSQL database
+createdb kruzna_karta_hrvatska
+
+# 2. Copy environment files and configure
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# 3. Edit backend/.env with your database credentials:
+# DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
+
+# 4. Run database setup script
+npm run setup:db
+```
+
+### 3. Start Development Servers
+
+```bash
+# Start both frontend and backend simultaneously
+npm run dev
+
+# Or start individually:
+npm run dev:frontend  # Frontend at http://localhost:5173
+npm run dev:backend   # Backend at http://localhost:8000
+```
+
+## 📁 Detailed Structure
+
+### Frontend (`/frontend`)
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **Tailwind CSS** for styling
+- **shadcn/ui** component library
+- **React Router** for navigation
+- **React Hook Form** with Zod validation
+- **Mapbox** for interactive maps
+
+### Backend (`/backend`)
+- **FastAPI** Python web framework
+- **SQLAlchemy** ORM for database operations
+- **Pydantic** for data validation
+- **PostgreSQL** database
+- **uv** for dependency management
+- **Uvicorn** ASGI server
+
+### Database Schema
+
+The `events` table includes:
+- `id` (Primary Key)
+- `name` (Event name)
+- `time` (Event time)
+- `date` (Event date)
+- `location` (Event location)
+- `description` (Event description)
+- `price` (Ticket price)
+- `image` (Event image URL)
+- `link` (Ticket/event link)
+- `created_at` & `updated_at` (Timestamps)
+
+## 🕷️ Event Scraping System
+
+The backend includes an integrated web scraping system that automatically collects events from Croatian event websites:
+
+### Supported Sites
+- **Entrio.hr** - Croatia's leading event ticketing platform
+- **Croatia.hr** - Official Croatian tourism events portal
+
+### Features
+- **Dual Scraping Approach**: Uses both requests/BeautifulSoup and Playwright for maximum compatibility
+- **BrightData Integration**: Supports proxy scraping through BrightData for reliable data collection
+- **Automatic Data Processing**: Transforms scraped data to match database schema
+- **Duplicate Prevention**: Automatically detects and prevents duplicate events
+- **Scheduled Tasks**: Optional automatic scraping at configurable intervals
+
+### Usage
+
+#### Manual Scraping via API
+```bash
+# Quick scraping from Entrio.hr (1-3 pages)
+curl -X GET "http://localhost:8000/api/scraping/entrio/quick?max_pages=2"
+
+# Quick scraping from Croatia.hr (1-3 pages)
+curl -X GET "http://localhost:8000/api/scraping/croatia/quick?max_pages=2"
+
+# Full scraping from specific site (background task)
+curl -X POST "http://localhost:8000/api/scraping/entrio" \
+  -H "Content-Type: application/json" \
+  -d '{"max_pages": 5, "use_playwright": true}'
+
+# Scrape from ALL supported sites
+curl -X POST "http://localhost:8000/api/scraping/all" \
+  -H "Content-Type: application/json" \
+  -d '{"max_pages": 3}'
+
+# Check scraping status
+curl -X GET "http://localhost:8000/api/scraping/status"
+```
+
+#### Automated Scraping
+Enable in `.env`:
+```env
+ENABLE_SCHEDULER=true
+```
+
+**Schedules:**
+- **Production**: Daily at 02:00 (10 pages per site)
+- **Development**: Hourly (2 pages per site)
+- **Sites**: Both Entrio.hr and Croatia.hr
+
+### Configuration
+
+#### Basic Setup (No Proxy)
+```env
+USE_PLAYWRIGHT=true
+USE_PROXY=false
+```
+
+#### With BrightData Proxy
+```env
+USE_PROXY=true
+USE_PLAYWRIGHT=true
+BRIGHTDATA_USER=your-user
+BRIGHTDATA_PASSWORD=your-password
+```
+
+## 🔧 Development with Makefile
+
+We provide a comprehensive Makefile for easy development, testing, and deployment. See [MAKEFILE.md](./MAKEFILE.md) for detailed documentation.
+
+### Common Makefile Commands
+```bash
+make help            # Show all available commands
+make dev             # Start development servers
+make format          # Format all code
+make lint            # Run linting
+make test            # Run all tests
+make docker-up       # Start with Docker
+make clean           # Clean build artifacts
+```
+
+### Quick Development Workflow
+```bash
+make dev             # Start development
+make format          # Format code before committing
+make test            # Run tests
+make health-check    # Verify everything works
+```
+
+## 🔧 Alternative: NPM Scripts
+
+### Root Scripts
+```bash
+npm run dev          # Start both frontend and backend
+npm run setup        # Setup all dependencies
+npm run setup:db     # Initialize database with sample data
+npm run build        # Build frontend for production
+npm run lint         # Lint frontend code
+```
+
+### Frontend Scripts
+```bash
+cd frontend
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run lint         # Run ESLint
+npm run preview      # Preview production build
+```
+
+### Backend Scripts
+```bash
+cd backend
+uv run python run.py                    # Start development server
+uv run uvicorn app.main:app --reload   # Alternative start method
+uv run python scripts/setup_database.py # Setup database
+uv run pytest                          # Run tests
+```
+
+## 🌐 API Endpoints
+
+The backend provides RESTful API endpoints:
+
+### Events
+- `GET /api/events` - Get all events (with filtering & pagination)
+- `GET /api/events/{id}` - Get specific event
+- `POST /api/events` - Create new event
+- `PUT /api/events/{id}` - Update event
+- `DELETE /api/events/{id}` - Delete event
+
+### Scraping
+- `POST /api/scraping/entrio` - Trigger full Entrio.hr scraping
+- `GET /api/scraping/entrio/quick` - Quick Entrio.hr scraping (1-3 pages)
+- `POST /api/scraping/croatia` - Trigger full Croatia.hr scraping  
+- `GET /api/scraping/croatia/quick` - Quick Croatia.hr scraping (1-3 pages)
+- `POST /api/scraping/all` - Scrape from all supported sites
+- `GET /api/scraping/status` - Get scraping system status
+
+### API Documentation
+Visit http://localhost:8000/docs for interactive API documentation (Swagger UI).
+
+## 🔐 Environment Variables
+
+### Backend (`.env`)
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+FRONTEND_URL=http://localhost:5173
+
+# Scraping Configuration
+ENABLE_SCHEDULER=false
+USE_PROXY=false
+USE_PLAYWRIGHT=true
+
+# BrightData (optional, for proxy scraping)
+BRIGHTDATA_USER=your-brightdata-user
+BRIGHTDATA_PASSWORD=your-brightdata-password
+```
+
+### Frontend (`.env`)
+```env
+VITE_API_BASE_URL=http://localhost:8000/api
+VITE_MAPBOX_ACCESS_TOKEN=your_mapbox_token_here
+```
+
+## 🧪 Testing
+
+```bash
+# Run backend tests
+npm run test
+
+# Run frontend tests (if configured)
+cd frontend && npm test
+```
+
+## 📦 Production Deployment
+
+### Backend
+```bash
+cd backend
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+```bash
+cd frontend
+npm run build
+# Serve the dist/ directory with your preferred web server
+```
+
+## 🛠️ Development
+
+### Adding New Features
+
+1. **Backend**: Add new routes in `backend/app/routes/`
+2. **Frontend**: Create components in `frontend/src/components/`
+3. **Database**: Update models in `backend/app/models/`
+
+### Database Migrations
+
+The project uses SQLAlchemy. For schema changes:
+
+```bash
+cd backend
+# Create migration
+uv run alembic revision --autogenerate -m "Description"
+# Apply migration
+uv run alembic upgrade head
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.

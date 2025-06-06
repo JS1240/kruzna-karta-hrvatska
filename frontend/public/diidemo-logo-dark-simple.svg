@@ -1,0 +1,35 @@
+<svg width="350" height="80" viewBox="0 0 350 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Red location pin -->
+  <g transform="translate(15, 15)">
+    <!-- Pin body - classic teardrop shape -->
+    <path d="M30 10 
+             C42 10, 50 18, 50 30 
+             C50 42, 30 50, 30 50 
+             C30 50, 10 42, 10 30 
+             C10 18, 18 10, 30 10 Z" 
+          fill="#EF4444" 
+          stroke="none"/>
+    <!-- Pin hole -->
+    <circle cx="30" cy="28" r="10" fill="white"/>
+  </g>
+  
+  <!-- Text: diidemo.hr in white -->
+  <text x="85" y="45" 
+        font-family="Arial, Helvetica, sans-serif" 
+        font-size="28" 
+        font-weight="bold" 
+        fill="white"
+        letter-spacing="0.5px">
+    diidemo.hr
+  </text>
+  
+  <!-- Subtitle: EVENTS NEAR YOU in light gray -->
+  <text x="85" y="62" 
+        font-family="Arial, Helvetica, sans-serif" 
+        font-size="10" 
+        font-weight="normal" 
+        fill="#94A3B8"
+        letter-spacing="2px">
+    EVENTS NEAR YOU
+  </text>
+</svg>

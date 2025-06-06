@@ -1,0 +1,54 @@
+#!/bin/bash
+# Pre-commit hook for Diidemo.hr
+# This hook runs formatting and linting before commits
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Check if we're in the right directory
+if [ ! -f "Makefile" ]; then
+    echo "❌ Please run from project root directory"
+    exit 1
+fi
+
+# Format code
+echo "🎨 Formatting code..."
+make format-frontend > /dev/null 2>&1 || {
+    echo "❌ Frontend formatting failed"
+    exit 1
+}
+
+make format-backend > /dev/null 2>&1 || {
+    echo "❌ Backend formatting failed"
+    exit 1
+}
+
+# Run linting
+echo "🔍 Running linters..."
+make lint-frontend > /dev/null 2>&1 || {
+    echo "❌ Frontend linting failed"
+    exit 1
+}
+
+make lint-backend > /dev/null 2>&1 || {
+    echo "❌ Backend linting failed"
+    exit 1
+}
+
+# Run type checking
+echo "📝 Type checking..."
+make typecheck > /dev/null 2>&1 || {
+    echo "❌ Type checking failed"
+    exit 1
+}
+
+# Run quick tests
+echo "🧪 Running quick tests..."
+make test-backend > /dev/null 2>&1 || {
+    echo "❌ Backend tests failed"
+    exit 1
+}
+
+echo "✅ All pre-commit checks passed!"
+exit 0

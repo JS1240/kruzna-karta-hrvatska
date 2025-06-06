@@ -1,0 +1,14 @@
+<svg width="300" height="80" viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Red location pin -->
+  <g transform="translate(10, 10)">
+    <!-- Pin body -->
+    <path d="M25 10 C35 10, 45 18, 45 30 C45 42, 25 60, 25 60 C25 60, 5 42, 5 30 C5 18, 15 10, 25 10 Z" fill="#E53E3E"/>
+    <!-- Pin hole -->
+    <circle cx="25" cy="28" r="12" fill="white"/>
+  </g>
+  
+  <!-- Text: diidemo.hr -->
+  <text x="70" y="50" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#2D3748">
+    diidemo.hr
+  </text>
+</svg>

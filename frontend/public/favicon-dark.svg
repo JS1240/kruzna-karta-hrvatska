@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background -->
+  <rect width="32" height="32" fill="#1a202c" rx="4"/>
+  
+  <!-- Red location pin icon -->
+  <path d="M16 4 
+           C22 4, 28 8, 28 15 
+           C28 22, 16 28, 16 28 
+           C16 28, 4 22, 4 15 
+           C4 8, 10 4, 16 4 Z" 
+        fill="#EF4444"/>
+  <!-- Pin hole -->
+  <circle cx="16" cy="14" r="5" fill="white"/>
+</svg>

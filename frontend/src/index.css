@@ -1,0 +1,121 @@
+@import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap");
+@import url("https://use.typekit.net/eus6dqo.css"); /* Sofia Pro font */
+@import url("https://use.typekit.net/hkc6buu.css"); /* Sreda font */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 33% 92%;
+    --foreground: 222 47% 30%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 222 72% 30%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 55% 56%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 72% 30%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222 84% 5%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 84% 5%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 84% 5%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 212 72% 59%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-cream text-foreground font-sofia;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-sreda;
+  }
+
+  h4,
+  h5,
+  h6 {
+    @apply font-josefin;
+  }
+}
+
+@layer components {
+  .map-category-button {
+    @apply px-4 py-2 rounded-full transition-all duration-300 font-josefin;
+  }
+
+  .map-category-button.active {
+    @apply bg-navy-blue text-white shadow-md;
+  }
+
+  .map-category-button:not(.active) {
+    @apply bg-light-blue text-navy-blue hover:bg-medium-blue hover:text-white;
+  }
+
+  .popup-content {
+    @apply bg-white p-4 rounded-lg shadow-lg border border-light-blue max-w-sm;
+  }
+
+  .language-toggle {
+    @apply w-8 h-8 rounded-full overflow-hidden border-2 transition-all duration-300;
+  }
+
+  .language-toggle.active {
+    @apply border-navy-blue;
+  }
+
+  .language-toggle:not(.active) {
+    @apply border-transparent hover:border-medium-blue;
+  }
+}
