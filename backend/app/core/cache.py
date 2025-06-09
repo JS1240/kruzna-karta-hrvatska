@@ -162,14 +162,22 @@ class CacheService:
         
         try:
             cache_pattern = self._make_key(namespace, pattern)
-            keys = self._redis.keys(cache_pattern)
-            
-            if keys:
-                deleted = self._redis.delete(*keys)
-                logger.info(f"Invalidated {deleted} cache keys matching {cache_pattern}")
-                return deleted
-            
-            return 0
+            deleted = 0
+            batch: List[bytes] = []
+            for key in self._redis.scan_iter(match=cache_pattern, count=1000):
+                batch.append(key)
+                if len(batch) >= 500:
+                    deleted += self._redis.delete(*batch)
+                    batch = []
+
+            if batch:
+                deleted += self._redis.delete(*batch)
+
+            if deleted:
+                logger.info(
+                    f"Invalidated {deleted} cache keys matching {cache_pattern}"
+                )
+            return deleted
         
         except Exception as e:
             logger.error(f"Cache invalidation error: {e}")
@@ -285,12 +293,12 @@ class CacheService:
         
         try:
             namespace_counts = {}
-            
+
             for namespace in self.ttl_config.keys():
                 pattern = self._make_key(namespace, "*")
-                keys = self._redis.keys(pattern)
-                namespace_counts[namespace] = len(keys)
-            
+                count = sum(1 for _ in self._redis.scan_iter(match=pattern, count=1000))
+                namespace_counts[namespace] = count
+
             return namespace_counts
         
         except Exception as e:
