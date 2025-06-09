@@ -8,13 +8,17 @@ import sys
 import os
 import json
 from datetime import datetime
+import pytest
 
 # Add the parent directory to the path to import our app modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+
+
 from app.scraping.croatia_scraper import CroatiaScraper
 
 
+@pytest.mark.asyncio
 async def test_croatia_scraper():
     """Test the Croatia.hr scraper and verify data quality."""
     print("=" * 60)
