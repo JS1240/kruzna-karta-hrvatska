@@ -258,11 +258,34 @@ class PrometheusMonitoring:
         self.last_collection_time = datetime.now()
         self.collection_interval = 30  # seconds
         self.enabled = os.getenv("MONITORING_ENABLED", "true").lower() == "true"
-        
+
+        # Cached database metrics and refresh settings
+        # Metrics are refreshed only after this interval (default 60s) to avoid
+        # excessive database queries. Adjust via DB_METRICS_REFRESH_INTERVAL
+        # environment variable.
+        self.db_metrics_refresh_interval = int(
+            os.getenv("DB_METRICS_REFRESH_INTERVAL", "60")
+        )  # seconds
+        self.db_metrics_cache: Optional[DatabaseMetrics] = None
+        self.db_metrics_last_updated = datetime.min
+
         logger.info("Prometheus monitoring service initialized")
     
-    async def collect_database_metrics(self) -> DatabaseMetrics:
-        """Collect comprehensive database metrics."""
+    async def collect_database_metrics(self, force_refresh: bool = False) -> DatabaseMetrics:
+        """Collect comprehensive database metrics with simple caching.
+
+        Metrics are cached for ``self.db_metrics_refresh_interval`` seconds to
+        reduce database load. Use ``force_refresh=True`` to bypass the cache.
+        """
+        now = datetime.now()
+        if (
+            not force_refresh
+            and self.db_metrics_cache is not None
+            and now - self.db_metrics_last_updated
+            < timedelta(seconds=self.db_metrics_refresh_interval)
+        ):
+            return self.db_metrics_cache
+
         try:
             db = next(get_db())
             
@@ -358,8 +381,8 @@ class PrometheusMonitoring:
             temp_bytes = temp_stats.temp_bytes if temp_stats and temp_stats.temp_bytes else 0
             
             db.close()
-            
-            return DatabaseMetrics(
+
+            metrics = DatabaseMetrics(
                 active_connections=active_connections,
                 idle_connections=idle_connections,
                 total_connections=total_connections,
@@ -377,6 +400,12 @@ class PrometheusMonitoring:
                 buffers_clean=buffers_clean,
                 buffers_backend=buffers_backend
             )
+
+            # Update cache with latest metrics
+            self.db_metrics_cache = metrics
+            self.db_metrics_last_updated = now
+
+            return metrics
         
         except Exception as e:
             logger.error(f"Failed to collect database metrics: {e}")
@@ -388,6 +417,10 @@ class PrometheusMonitoring:
                 checkpoints_requested=0, buffers_checkpoint=0,
                 buffers_clean=0, buffers_backend=0
             )
+
+    async def get_cached_database_metrics(self) -> DatabaseMetrics:
+        """Get cached database metrics without forcing a refresh."""
+        return await self.collect_database_metrics()
     
     async def collect_application_metrics(self) -> ApplicationMetrics:
         """Collect application-level metrics."""
