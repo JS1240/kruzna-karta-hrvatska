@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { debugLog, debugError } from "@/lib/debug";
 
 interface ScrapeResponse {
   status: string;
@@ -27,7 +28,7 @@ interface ScrapeResponse {
   scraped_events?: number;
   saved_events?: number;
   task_id?: string;
-  details?: Record<string, any>;
+  details?: Record<string, ScrapeResponse>;
 }
 
 const Admin = () => {
@@ -138,10 +139,10 @@ const Admin = () => {
     try {
       const response = await fetch(`${apiBase}/scraping/status`);
       const status = await response.json();
-      console.log("Scraping Status:", status);
+      debugLog("Scraping Status:", status);
       alert(`Scraping system is ${status.status}. Check console for details.`);
     } catch (error) {
-      console.error("Failed to check status:", error);
+      debugError("Failed to check status:", error);
       alert("Failed to check scraping status");
     }
   };
@@ -464,7 +465,7 @@ const Admin = () => {
                         {results["all"].details && (
                           <div className="mt-2 space-y-1 text-xs">
                             {Object.entries(results["all"].details).map(
-                              ([site, result]: [string, any]) => (
+                              ([site, result]: [string, ScrapeResponse]) => (
                                 <div key={site}>
                                   <strong>{site}:</strong> {result.message}
                                 </div>

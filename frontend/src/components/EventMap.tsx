@@ -33,6 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { DateRange } from "react-day-picker";
 import { useEvents } from "@/hooks/useEvents";
 import { Event } from "@/lib/api";
+import { debugError } from "@/lib/debug";
 import {
   getCoordinatesForLocation,
   addCoordinateJitter,
@@ -92,7 +93,7 @@ const EventMap = () => {
 
   // API filters based on current selections
   const apiFilters = useMemo(() => {
-    const filters: any = {};
+    const filters: Record<string, string> = {};
 
     if (searchTerm) {
       filters.search = searchTerm;
@@ -293,7 +294,7 @@ const EventMap = () => {
 
     const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
     if (!mapboxToken) {
-      console.error("Mapbox access token is required");
+      debugError("Mapbox access token is required");
       return;
     }
 

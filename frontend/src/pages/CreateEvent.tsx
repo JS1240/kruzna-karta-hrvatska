@@ -12,6 +12,7 @@ import { Plus, X, Save, Clock, MapPin, Calendar, Tag, DollarSign } from 'lucide-
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageTransition from '../components/PageTransition';
+import { debugError } from '../lib/debug';
 
 interface TicketType {
   name: string;
@@ -82,7 +83,7 @@ const CreateEvent = () => {
       const data = await response.json();
       setCategories(data.categories || []);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      debugError('Error fetching categories:', error);
     }
   };
 
@@ -93,7 +94,7 @@ const CreateEvent = () => {
       const data = await response.json();
       setVenues(data.venues || []);
     } catch (error) {
-      console.error('Error fetching venues:', error);
+      debugError('Error fetching venues:', error);
     }
   };
 
@@ -217,7 +218,7 @@ const CreateEvent = () => {
         }
       }
     } catch (error) {
-      console.error('Error creating event:', error);
+      debugError('Error creating event:', error);
       setErrors({ form: 'Network error. Please check your connection and try again.' });
     } finally {
       setLoading(false);

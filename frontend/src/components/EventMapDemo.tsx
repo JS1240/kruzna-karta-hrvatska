@@ -39,7 +39,7 @@ const EventMapDemo = () => {
 
   // API filters based on current selections
   const apiFilters = useMemo(() => {
-    const filters: any = {};
+    const filters: Record<string, string> = {};
     if (searchTerm) {
       filters.search = searchTerm;
     }

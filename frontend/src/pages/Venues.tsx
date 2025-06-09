@@ -38,6 +38,7 @@ import {
   Mail,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { debugLog } from "@/lib/debug";
 import {
   Dialog,
   DialogContent,
@@ -249,7 +250,7 @@ const Venues = () => {
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Contact form submitted:", contactForm);
+    debugLog("Contact form submitted:", contactForm);
 
     toast({
       title: "Request Sent",

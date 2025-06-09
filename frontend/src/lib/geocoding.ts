@@ -1,4 +1,5 @@
 // Geocoding utilities for converting location names to coordinates
+import { debugError } from "./debug";
 
 export interface Coordinates {
   lat: number;
@@ -193,7 +194,7 @@ export async function geocodeLocation(
 
     return null;
   } catch (error) {
-    console.error("Geocoding error:", error);
+    debugError("Geocoding error:", error);
     return null;
   }
 }

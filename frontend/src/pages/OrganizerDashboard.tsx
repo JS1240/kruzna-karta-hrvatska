@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { debugError } from '../lib/debug';
 import { 
   ChartContainer,
   ChartTooltip,
@@ -251,7 +252,7 @@ const OrganizerDashboard = () => {
       }
 
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
+      debugError('Error fetching analytics data:', error);
     } finally {
       setAnalyticsLoading(false);
     }
@@ -305,7 +306,7 @@ const OrganizerDashboard = () => {
       }
 
     } catch (error) {
-      console.error('Error fetching data:', error);
+      debugError('Error fetching data:', error);
       setError('Network error. Please check your connection.');
     } finally {
       setLoading(false);

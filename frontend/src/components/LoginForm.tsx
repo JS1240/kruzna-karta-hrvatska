@@ -16,6 +16,7 @@ import { Separator } from "./ui/separator";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "../hooks/use-toast";
 import { login, signup, googleLogin } from "../lib/auth";
+import { debugError } from "../lib/debug";
 
 interface LoginFormProps {
   mode: "login" | "signup";
@@ -65,7 +66,7 @@ const LoginForm = ({
       }
       onLoginSuccess();
     } catch (error: unknown) {
-      console.error("Authentication error:", error);
+      debugError("Authentication error:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -90,7 +91,7 @@ const LoginForm = ({
       });
       onLoginSuccess();
     } catch (error: unknown) {
-      console.error("Google authentication error:", error);
+      debugError("Google authentication error:", error);
       const errorMessage =
         error instanceof Error
           ? error.message

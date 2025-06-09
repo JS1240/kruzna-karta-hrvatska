@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { eventsApi, Event, EventFilters } from "../lib/api";
+import { debugError } from "../lib/debug";
 
 export interface UseEventsOptions {
   filters?: EventFilters;
@@ -57,7 +58,7 @@ export const useEvents = (options: UseEventsOptions = {}): UseEventsReturn => {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch events");
-      console.error("Error fetching events:", err);
+      debugError("Error fetching events:", err);
     } finally {
       setLoading(false);
     }
