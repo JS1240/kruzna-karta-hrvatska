@@ -409,6 +409,12 @@ uv run alembic revision --autogenerate -m "Description"
 uv run alembic upgrade head
 ```
 
+### Adding a New Language
+
+1. Place a new `<code>.json` file inside `frontend/src/i18n/` with your translations.
+2. Add the language code to the `Language` type in `frontend/src/contexts/LanguageContext.tsx`.
+3. Provide a UI option for switching to the new language.
+
 ## 🤝 Contributing
 
 1. Fork the repository
