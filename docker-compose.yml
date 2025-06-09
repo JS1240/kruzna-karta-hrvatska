@@ -6,10 +6,12 @@ services:
     image: postgres:15-alpine
     container_name: diidemo-postgres
     environment:
-      POSTGRES_DB: kruzna_karta_hrvatska
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: diidemo2024
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_HOST_AUTH_METHOD: trust
+    secrets:
+      - postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -41,16 +43,18 @@ services:
 
   # Backend API
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: diidemo-backend
     environment:
-      - DATABASE_URL=postgresql://postgres:diidemo2024@postgres:5432/kruzna_karta_hrvatska
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=diidemo-secret-key-2024
-      - DEBUG=false
-      - FRONTEND_URL=http://localhost:3000
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      SECRET_KEY_FILE: /run/secrets/secret_key
+      DEBUG: ${DEBUG}
+      FRONTEND_URL: ${FRONTEND_URL}
+    secrets:
+      - secret_key
     ports:
       - "8000:8000"
     depends_on:
@@ -109,3 +113,9 @@ volumes:
 networks:
   diidemo-network:
     driver: bridge
+
+secrets:
+  secret_key:
+    file: ./secrets/secret_key.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt

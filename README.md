@@ -29,6 +29,10 @@ make docker-up-build
 ```bash
 # Copy environment template
 cp .env.example .env
+# Create secret files
+mkdir -p secrets
+echo "your-secret-key" > secrets/secret_key.txt
+echo "your-db-password" > secrets/postgres_password.txt
 
 # Build and start all services
 docker-compose up --build
@@ -141,12 +145,14 @@ npm run setup
 # 1. Create PostgreSQL database
 createdb kruzna_karta_hrvatska
 
-# 2. Copy environment files and configure
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+# 2. Copy environment file and configure secrets
+cp .env.example .env
+mkdir -p secrets
+echo "your-secret-key" > secrets/secret_key.txt
+echo "your-db-password" > secrets/postgres_password.txt
 
-# 3. Edit backend/.env with your database credentials:
-# DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
+# 3. Edit .env with your database connection string:
+# DATABASE_URL=postgresql://postgres:postgres@localhost:5432/kruzna_karta_hrvatska
 
 # 4. Run database setup script
 npm run setup:db
@@ -340,10 +346,11 @@ Visit http://localhost:8000/docs for interactive API documentation (Swagger UI).
 
 ### Backend (`.env`)
 ```env
-DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
-SECRET_KEY=your-secret-key-here
-DEBUG=True
-FRONTEND_URL=http://localhost:5173
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/kruzna_karta_hrvatska
+REDIS_URL=redis://redis:6379/0
+DEBUG=false
+FRONTEND_URL=http://localhost:3000
+SECRET_KEY_FILE=/run/secrets/secret_key
 
 # Scraping Configuration
 ENABLE_SCHEDULER=false

@@ -1,3 +1,5 @@
+from pathlib import Path
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from typing import Optional
 
@@ -20,9 +22,19 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
 
     # JWT settings
-    secret_key: str
+    secret_key: Optional[str] = None
+    secret_key_file: Optional[str] = None
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+
+    @model_validator(mode="before")
+    def load_secret_key(cls, values):
+        if not values.get("secret_key") and values.get("secret_key_file"):
+            try:
+                values["secret_key"] = Path(values["secret_key_file"]).read_text().strip()
+            except OSError:
+                pass
+        return values
 
     class Config:
         env_file = ".env"

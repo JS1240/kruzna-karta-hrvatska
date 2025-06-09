@@ -31,6 +31,8 @@ Thumbs.db
 *.sln
 *.sw?
 *.code-workspace
+# Secrets (real values)
+secrets/*.txt
 
 # OS generated files
 *.swp
@@ -43,6 +45,7 @@ Thumbs.db
 # Environment files
 .env
 .env.*
+!.env.example
 
 # TypeScript
 *.tsbuildinfo
