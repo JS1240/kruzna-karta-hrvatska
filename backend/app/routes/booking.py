@@ -11,6 +11,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from ..core.auth import get_current_user
+from ..core.permissions import require_admin
 from ..core.booking import BookingServiceError, get_booking_service
 from ..core.database import get_db
 from ..models.booking import BookingStatus, PaymentMethod, TicketStatus
@@ -446,10 +447,7 @@ def get_booking_statistics(
     """Get booking statistics overview."""
     try:
         # Check if user has permission to view statistics (admin only)
-        if not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
-            )
+        require_admin(current_user)
 
         booking_service = get_booking_service()
         stats = booking_service.get_booking_statistics(db=db, event_id=event_id)
@@ -479,10 +477,7 @@ def get_all_bookings(
     """Get all bookings (admin only)."""
     try:
         # Check admin permission
-        if not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
-            )
+        require_admin(current_user)
 
         from sqlalchemy.orm import joinedload
 
