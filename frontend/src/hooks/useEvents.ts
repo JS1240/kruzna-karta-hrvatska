@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { eventsApi, Event, EventFilters } from "@/lib/api";
+import { eventsApi, Event, EventFilters } from "../lib/api";
 
 export interface UseEventsOptions {
   filters?: EventFilters;
@@ -34,13 +34,12 @@ export const useEvents = (options: UseEventsOptions = {}): UseEventsReturn => {
 
     try {
       const currentPage = reset ? 1 : page;
-      const limit = 20;
-      const skip = (currentPage - 1) * limit;
+      const size = 20;
 
       const response = await eventsApi.getEvents({
         ...filters,
-        skip,
-        limit,
+        page: currentPage,
+        size,
       });
 
       if (reset) {
@@ -53,7 +52,7 @@ export const useEvents = (options: UseEventsOptions = {}): UseEventsReturn => {
 
       setTotal(response.total);
       setHasMore(
-        response.events.length === limit &&
+        response.events.length === size &&
           events.length + response.events.length < response.total,
       );
     } catch (err) {

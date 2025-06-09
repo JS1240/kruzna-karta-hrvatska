@@ -1,14 +1,14 @@
 import React from "react";
 import { CalendarIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent } from "./ui/card";
+import { ScrollArea } from "./ui/scroll-area";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
-} from "@/components/ui/carousel";
+} from "./ui/carousel";
 import { useNavigate } from "react-router-dom";
 
 const CompactFeaturedEventCard = ({

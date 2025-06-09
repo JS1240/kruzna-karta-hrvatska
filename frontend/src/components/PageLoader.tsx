@@ -1,6 +1,6 @@
 import React from "react";
 import { MapPin } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const PageLoader = () => {
   const { t } = useLanguage();

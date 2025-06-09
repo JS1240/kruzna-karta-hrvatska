@@ -1,13 +1,13 @@
 import React from "react";
 import { CalendarIcon, ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "./ui/card";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
-} from "@/components/ui/carousel";
+} from "./ui/carousel";
 
 interface NewsCardProps {
   title: string;

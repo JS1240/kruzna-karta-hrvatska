@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 import {
   Form,
   FormControl,
@@ -7,15 +7,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "./ui/form";
+import { Input } from "./ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "./ui/separator";
 import { FcGoogle } from "react-icons/fc";
-import { toast } from "@/hooks/use-toast";
-import { login, signup, googleLogin } from "@/lib/auth";
+import { toast } from "../hooks/use-toast";
+import { login, signup, googleLogin } from "../lib/auth";
 
 interface LoginFormProps {
   mode: "login" | "signup";

@@ -9,14 +9,14 @@ import {
   Moon as MoonFilled,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
-import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { Button } from "./ui/button";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "./ui/dropdown-menu";
 import Logo from "./Logo";
 import Auth from "./Auth";
 
@@ -81,16 +81,6 @@ const Header = () => {
             }`}
           >
             {t("nav.popular")}
-          </Link>
-          <Link
-            to="/map"
-            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-red-500 hover:scale-110 hover:bg-red-50 px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
-              location.pathname === "/map"
-                ? "text-red-500 bg-red-50 scale-105 shadow-md animate-pulse"
-                : "text-gray-700 dark:text-gray-300 hover:bg-red-50"
-            }`}
-          >
-            {t("nav.map")}
           </Link>
         </nav>
 

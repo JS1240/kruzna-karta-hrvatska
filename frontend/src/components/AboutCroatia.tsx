@@ -1,7 +1,7 @@
 import React from "react";
 import { MapPinIcon } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ScrollArea } from "./ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 
 const AboutCroatia = () => {
   const regions = [
