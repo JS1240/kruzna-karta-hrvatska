@@ -3,7 +3,6 @@ Redis caching service for improved performance and reduced database load.
 """
 
 import json
-import pickle
 import hashlib
 from typing import Any, Optional, Dict, List, Union, Callable
 from datetime import datetime, timedelta
@@ -87,22 +86,32 @@ class CacheService:
         """Generate cache key with namespace."""
         return f"{self.key_prefix}:{namespace}:{key}"
     
+    def _json_default(self, obj: Any) -> Any:
+        """Fallback serializer for non-JSON types."""
+        if isinstance(obj, (datetime, timedelta)):
+            return obj.isoformat()
+        if hasattr(obj, "dict"):
+            return obj.dict()
+        if hasattr(obj, "__dict__"):
+            return obj.__dict__
+        return str(obj)
+
     def _serialize_value(self, value: Any) -> bytes:
-        """Serialize value for storage."""
-        if isinstance(value, (str, int, float, bool)):
-            return json.dumps(value).encode('utf-8')
-        else:
-            # Use pickle for complex objects
-            return pickle.dumps(value)
+        """Serialize value for storage using JSON."""
+        try:
+            return json.dumps(value, default=self._json_default).encode("utf-8")
+        except (TypeError, ValueError) as e:
+            logger.error(f"Failed to serialize cache value: {e}")
+            raise
     
     def _deserialize_value(self, value: bytes) -> Any:
         """Deserialize value from storage."""
         try:
             # Try JSON first (for simple types)
             return json.loads(value.decode('utf-8'))
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            # Fall back to pickle
-            return pickle.loads(value)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            logger.error(f"Failed to deserialize cache value: {e}")
+            return None
     
     def get(self, namespace: str, key: str) -> Optional[Any]:
         """Get value from cache."""
