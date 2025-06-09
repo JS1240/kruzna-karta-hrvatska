@@ -386,6 +386,16 @@ npm run build
 # Serve the dist/ directory with your preferred web server
 ```
 
+### Cache Migration
+
+Cached data now uses **msgpack**. Clear old entries after deploying:
+
+```bash
+redis-cli -h <redis-host> -p <redis-port> FLUSHDB
+```
+
+The cache will repopulate automatically.
+
 ## 🛠️ Development
 
 ### Adding New Features
