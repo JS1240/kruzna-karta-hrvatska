@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS events (
     price VARCHAR(50),
     image VARCHAR(500),
     link VARCHAR(500),
+    search_vector tsvector,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -19,6 +20,10 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);
 CREATE INDEX IF NOT EXISTS idx_events_location ON events(location);
 CREATE INDEX IF NOT EXISTS idx_events_name ON events(name);
+CREATE INDEX IF NOT EXISTS idx_events_search ON events USING GIN(search_vector);
+CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE
+    ON events FOR EACH ROW EXECUTE FUNCTION
+    tsvector_update_trigger(search_vector, 'pg_catalog.simple', name, description);
 
 -- Insert sample Croatian events data
 INSERT INTO events (name, time, date, location, description, price, image, link) VALUES

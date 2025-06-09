@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Text
+from sqlalchemy import Column, Date, DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.sql import func
+
 from ..core.database import Base
 
 
@@ -15,5 +17,8 @@ class Event(Base):
     price = Column(String(50))
     image = Column(String(500))
     link = Column(String(500))
+    search_vector = Column(TSVECTOR)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

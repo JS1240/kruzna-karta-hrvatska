@@ -76,7 +76,7 @@ docker-compose down -v && docker-compose up --build
 - **Frontend**: React + TypeScript + Vite served by Nginx
 - **Backend**: FastAPI + SQLAlchemy + Python with uv
 - **Database**: PostgreSQL 15 with sample Croatian events
-- **Cache**: Redis 7 for caching and task queues
+- **Cache**: Redis 7 used for caching frequent event queries and task queues
 - **Proxy**: Nginx reverse proxy with load balancing
 
 ## 🏗️ Project Structure
@@ -210,6 +210,8 @@ The backend includes an integrated web scraping system that automatically collec
 - **Automatic Data Processing**: Transforms scraped data to match database schema
 - **Duplicate Prevention**: Automatically detects and prevents duplicate events
 - **Scheduled Tasks**: Optional automatic scraping at configurable intervals
+- **Redis Caching**: Frequently requested event lists are cached in Redis
+- **Full-Text Search**: PostgreSQL full-text index for efficient search
 
 ### Usage
 
@@ -319,7 +321,7 @@ uv run pytest                          # Run tests
 The backend provides RESTful API endpoints:
 
 ### Events
-- `GET /api/events` - Get all events (with filtering & pagination)
+- `GET /api/events` - Get all events (supports full-text search & caching)
 - `GET /api/events/{id}` - Get specific event
 - `POST /api/events` - Create new event
 - `PUT /api/events/{id}` - Update event
@@ -396,7 +398,7 @@ npm run build
 
 ### Database Migrations
 
-The project uses SQLAlchemy. For schema changes:
+The backend uses Alembic for migrations. For schema changes:
 
 ```bash
 cd backend

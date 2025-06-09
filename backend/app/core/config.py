@@ -1,10 +1,12 @@
-from pydantic_settings import BaseSettings
 from typing import Optional
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     # Database settings
     database_url: str
+    redis_url: str = "redis://localhost:6379/0"
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "kruzna_karta_hrvatska"
