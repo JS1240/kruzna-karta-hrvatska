@@ -1,0 +1,207 @@
+groups:
+  - name: kruzna-karta-database
+    rules:
+      # Database connection alerts
+      - alert: HighDatabaseConnections
+        expr: kruzna_karta_db_connections_active > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database connection usage"
+          description: "Database has {{ $value }} active connections, which is above the threshold of 80."
+
+      - alert: LowDatabaseCacheHitRatio
+        expr: kruzna_karta_db_cache_hit_ratio < 0.90
+        for: 10m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Low database cache hit ratio"
+          description: "Database cache hit ratio is {{ $value }}%, which is below the optimal 90%."
+
+      - alert: DatabaseSlowQueries
+        expr: increase(kruzna_karta_db_slow_queries_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High number of slow queries"
+          description: "{{ $value }} slow queries detected in the last 5 minutes."
+
+      - alert: DatabaseDeadlocks
+        expr: increase(kruzna_karta_db_deadlocks_total[10m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database deadlocks detected"
+          description: "{{ $value }} deadlocks detected in the last 10 minutes."
+
+      - alert: LargeDatabaseSize
+        expr: kruzna_karta_db_size_bytes / 1024 / 1024 / 1024 > 50
+        for: 30m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Database size is growing large"
+          description: "Database size is {{ $value }}GB, consider cleanup or archiving."
+
+  - name: kruzna-karta-application
+    rules:
+      # API performance alerts
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(kruzna_karta_api_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile API response time is {{ $value }}s, which exceeds 2s threshold."
+
+      - alert: HighAPIErrorRate
+        expr: rate(kruzna_karta_api_requests_total{status=~"5.."}[5m]) / rate(kruzna_karta_api_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value }}%, which exceeds 5% threshold."
+
+      # Event data alerts
+      - alert: NoRecentEvents
+        expr: increase(kruzna_karta_events_total[24h]) == 0
+        for: 30m
+        labels:
+          severity: warning
+          service: application
+        annotations:
+          summary: "No new events created recently"
+          description: "No new events have been created in the last 24 hours."
+
+      - alert: ScrapingFailures
+        expr: rate(kruzna_karta_scraping_events_total{status="failed"}[1h]) / rate(kruzna_karta_scraping_events_total[1h]) > 0.20
+        for: 10m
+        labels:
+          severity: warning
+          service: scraping
+        annotations:
+          summary: "High scraping failure rate"
+          description: "Scraping failure rate is {{ $value }}%, which exceeds 20% threshold."
+
+  - name: kruzna-karta-system
+    rules:
+      # System resource alerts
+      - alert: HighCPUUsage
+        expr: kruzna_karta_system_cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%, which exceeds 80% threshold."
+
+      - alert: HighMemoryUsage
+        expr: kruzna_karta_system_memory_usage_bytes / (1024 * 1024 * 1024) > 4
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}GB, which exceeds 4GB threshold."
+
+      - alert: HighDiskUsage
+        expr: kruzna_karta_system_disk_usage_percent > 85
+        for: 15m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value }}% on {{ $labels.mount_point }}, which exceeds 85% threshold."
+
+      # Service availability alerts
+      - alert: ServiceDown
+        expr: up{job="kruzna-karta-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: application
+        annotations:
+          summary: "Kruzna Karta backend service is down"
+          description: "The Kruzna Karta backend service has been down for more than 1 minute."
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "The PostgreSQL database has been down for more than 1 minute."
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "The Redis cache service has been down for more than 2 minutes."
+
+  - name: kruzna-karta-cache
+    rules:
+      # Cache performance alerts
+      - alert: LowCacheHitRatio
+        expr: rate(kruzna_karta_cache_operations_total{result="hit"}[10m]) / rate(kruzna_karta_cache_operations_total[10m]) < 0.80
+        for: 10m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Low cache hit ratio"
+          description: "Cache hit ratio is {{ $value }}%, which is below the optimal 80%."
+
+      - alert: HighCacheErrors
+        expr: rate(kruzna_karta_cache_operations_total{result="error"}[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "High cache error rate"
+          description: "Cache error rate is {{ $value }} errors/second."
+
+  - name: kruzna-karta-business
+    rules:
+      # Business logic alerts
+      - alert: LowActiveUsers
+        expr: kruzna_karta_users_total{status="active"} < 10
+        for: 1h
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Low number of active users"
+          description: "Only {{ $value }} active users in the system."
+
+      - alert: EventImbalance
+        expr: kruzna_karta_events_total{status="active"} / kruzna_karta_events_total{status="total"} < 0.60
+        for: 30m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low ratio of active events"
+          description: "Only {{ $value }}% of events are active, consider reviewing event lifecycle."

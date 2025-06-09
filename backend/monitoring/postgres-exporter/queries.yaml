@@ -1,0 +1,239 @@
+# Custom PostgreSQL queries for Kruzna Karta monitoring
+
+pg_database:
+  query: "SELECT pg_database.datname, pg_database_size(pg_database.datname) as size FROM pg_database"
+  master: true
+  cache_seconds: 30
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Name of the database"
+    - size:
+        usage: "GAUGE"
+        description: "Database size in bytes"
+
+pg_stat_user_tables:
+  query: |
+    SELECT 
+      schemaname,
+      relname,
+      seq_scan,
+      seq_tup_read,
+      idx_scan,
+      idx_tup_fetch,
+      n_tup_ins,
+      n_tup_upd,
+      n_tup_del,
+      n_tup_hot_upd,
+      n_live_tup,
+      n_dead_tup,
+      vacuum_count,
+      autovacuum_count,
+      analyze_count,
+      autoanalyze_count
+    FROM pg_stat_user_tables
+  master: true
+  cache_seconds: 30
+  metrics:
+    - schemaname:
+        usage: "LABEL"
+        description: "Name of the schema"
+    - relname:
+        usage: "LABEL"
+        description: "Name of the table"
+    - seq_scan:
+        usage: "COUNTER"
+        description: "Number of sequential scans initiated on this table"
+    - seq_tup_read:
+        usage: "COUNTER"
+        description: "Number of live rows fetched by sequential scans"
+    - idx_scan:
+        usage: "COUNTER"
+        description: "Number of index scans initiated on this table"
+    - idx_tup_fetch:
+        usage: "COUNTER"
+        description: "Number of live rows fetched by index scans"
+    - n_tup_ins:
+        usage: "COUNTER"
+        description: "Number of rows inserted"
+    - n_tup_upd:
+        usage: "COUNTER"
+        description: "Number of rows updated"
+    - n_tup_del:
+        usage: "COUNTER"
+        description: "Number of rows deleted"
+    - n_tup_hot_upd:
+        usage: "COUNTER"
+        description: "Number of rows HOT updated"
+    - n_live_tup:
+        usage: "GAUGE"
+        description: "Estimated number of live rows"
+    - n_dead_tup:
+        usage: "GAUGE"
+        description: "Estimated number of dead rows"
+    - vacuum_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been manually vacuumed"
+    - autovacuum_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been vacuumed by the autovacuum daemon"
+    - analyze_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been manually analyzed"
+    - autoanalyze_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been analyzed by the autovacuum daemon"
+
+pg_stat_activity:
+  query: |
+    SELECT 
+      datname,
+      state,
+      COUNT(*) as count,
+      MAX(EXTRACT(EPOCH FROM (now() - query_start))) as max_duration
+    FROM pg_stat_activity 
+    WHERE datname = 'kruzna_karta_hrvatska'
+    GROUP BY datname, state
+  master: true
+  cache_seconds: 30
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - state:
+        usage: "LABEL"
+        description: "Connection state"
+    - count:
+        usage: "GAUGE"
+        description: "Number of connections in this state"
+    - max_duration:
+        usage: "GAUGE"
+        description: "Maximum query duration in seconds"
+
+pg_stat_statements:
+  query: |
+    SELECT 
+      query,
+      calls,
+      total_exec_time,
+      mean_exec_time,
+      max_exec_time,
+      rows
+    FROM pg_stat_statements 
+    WHERE dbid = (SELECT oid FROM pg_database WHERE datname = 'kruzna_karta_hrvatska')
+    ORDER BY mean_exec_time DESC 
+    LIMIT 20
+  master: true
+  cache_seconds: 60
+  metrics:
+    - query:
+        usage: "LABEL"
+        description: "Query text"
+    - calls:
+        usage: "COUNTER"
+        description: "Number of times executed"
+    - total_exec_time:
+        usage: "COUNTER"
+        description: "Total time spent executing this statement, in milliseconds"
+    - mean_exec_time:
+        usage: "GAUGE"
+        description: "Mean time spent executing this statement, in milliseconds"
+    - max_exec_time:
+        usage: "GAUGE"
+        description: "Maximum time spent executing this statement, in milliseconds"
+    - rows:
+        usage: "COUNTER"
+        description: "Total number of rows retrieved or affected by the statement"
+
+pg_locks:
+  query: |
+    SELECT 
+      mode,
+      locktype,
+      granted,
+      COUNT(*) as count
+    FROM pg_locks 
+    GROUP BY mode, locktype, granted
+  master: true
+  cache_seconds: 30
+  metrics:
+    - mode:
+        usage: "LABEL"
+        description: "Lock mode"
+    - locktype:
+        usage: "LABEL"
+        description: "Type of lock"
+    - granted:
+        usage: "LABEL"
+        description: "Whether lock is granted"
+    - count:
+        usage: "GAUGE"
+        description: "Number of locks"
+
+kruzna_karta_events:
+  query: |
+    SELECT 
+      event_status,
+      COUNT(*) as count,
+      AVG(view_count) as avg_view_count,
+      COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as recent_count
+    FROM events 
+    GROUP BY event_status
+  master: true
+  cache_seconds: 60
+  metrics:
+    - event_status:
+        usage: "LABEL"
+        description: "Event status"
+    - count:
+        usage: "GAUGE"
+        description: "Number of events with this status"
+    - avg_view_count:
+        usage: "GAUGE"
+        description: "Average view count for events with this status"
+    - recent_count:
+        usage: "GAUGE"
+        description: "Number of events created in last 24 hours"
+
+kruzna_karta_users:
+  query: |
+    SELECT 
+      is_active,
+      COUNT(*) as count,
+      COUNT(*) FILTER (WHERE last_login >= NOW() - INTERVAL '7 days') as recent_login_count
+    FROM users 
+    GROUP BY is_active
+  master: true
+  cache_seconds: 60
+  metrics:
+    - is_active:
+        usage: "LABEL"
+        description: "User active status"
+    - count:
+        usage: "GAUGE"
+        description: "Number of users"
+    - recent_login_count:
+        usage: "GAUGE"
+        description: "Number of users who logged in within last 7 days"
+
+kruzna_karta_categories:
+  query: |
+    SELECT 
+      c.name as category_name,
+      COUNT(e.id) as event_count,
+      COUNT(e.id) FILTER (WHERE e.event_status = 'active') as active_event_count
+    FROM event_categories c
+    LEFT JOIN events e ON c.id = e.category_id
+    GROUP BY c.id, c.name
+  master: true
+  cache_seconds: 300
+  metrics:
+    - category_name:
+        usage: "LABEL"
+        description: "Category name"
+    - event_count:
+        usage: "GAUGE"
+        description: "Total number of events in this category"
+    - active_event_count:
+        usage: "GAUGE"
+        description: "Number of active events in this category"
