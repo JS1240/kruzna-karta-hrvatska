@@ -24,9 +24,37 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
+    # Redis settings
+    redis_url: Optional[str] = None
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    redis_db: int = 0
+    redis_password: Optional[str] = None
+    redis_max_connections: int = 20
+
+    # Performance settings
+    enable_caching: bool = True
+    enable_query_optimization: bool = True
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_timeout: int = 30
+    db_pool_recycle: int = 3600
+
+    # Stripe payment settings
+    stripe_publishable_key: Optional[str] = None
+    stripe_secret_key: Optional[str] = None
+    stripe_webhook_secret: Optional[str] = None
+    stripe_connect_client_id: Optional[str] = None  # For future Stripe Connect integration
+    
+    # Payment settings
+    platform_commission_rate: float = 5.0  # Default 5% commission
+    currency: str = "EUR"
+    payment_methods: list[str] = ["card", "sepa_debit"]  # Supported payment methods
+
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields from .env
 
 
 settings = Settings()
