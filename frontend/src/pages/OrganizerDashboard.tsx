@@ -13,6 +13,7 @@ import {
   ChartLegend,
   ChartLegendContent
 } from '../components/ui/chart';
+import { logger } from '../lib/logger';
 import { 
   LineChart, 
   Line, 
@@ -251,7 +252,7 @@ const OrganizerDashboard = () => {
       }
 
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
+      logger.error('Error fetching analytics data:', error);
     } finally {
       setAnalyticsLoading(false);
     }
@@ -305,7 +306,7 @@ const OrganizerDashboard = () => {
       }
 
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logger.error('Error fetching data:', error);
       setError('Network error. Please check your connection.');
     } finally {
       setLoading(false);

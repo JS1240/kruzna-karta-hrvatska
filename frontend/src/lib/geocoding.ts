@@ -1,4 +1,5 @@
 // Geocoding utilities for converting location names to coordinates
+import { logger } from "./logger";
 
 export interface Coordinates {
   lat: number;
@@ -140,7 +141,7 @@ export function getCoordinatesForLocation(
     }
   }
 
-  console.warn(`Could not find coordinates for location: ${location}`);
+  logger.warn(`Could not find coordinates for location: ${location}`);
   return null;
 }
 
@@ -170,7 +171,7 @@ export async function geocodeLocation(
 ): Promise<Coordinates | null> {
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
   if (!mapboxToken) {
-    console.warn("Mapbox token not available for geocoding");
+    logger.warn("Mapbox token not available for geocoding");
     return null;
   }
 
@@ -193,7 +194,7 @@ export async function geocodeLocation(
 
     return null;
   } catch (error) {
-    console.error("Geocoding error:", error);
+    logger.error("Geocoding error:", error);
     return null;
   }
 }

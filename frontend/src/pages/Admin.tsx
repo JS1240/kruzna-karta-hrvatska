@@ -18,6 +18,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
+import { logger } from "../lib/logger";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -138,10 +139,10 @@ const Admin = () => {
     try {
       const response = await fetch(`${apiBase}/scraping/status`);
       const status = await response.json();
-      console.log("Scraping Status:", status);
+      logger.info("Scraping Status:", status);
       alert(`Scraping system is ${status.status}. Check console for details.`);
     } catch (error) {
-      console.error("Failed to check status:", error);
+      logger.error("Failed to check status:", error);
       alert("Failed to check scraping status");
     }
   };

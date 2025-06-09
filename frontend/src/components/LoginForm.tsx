@@ -13,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Separator } from "./ui/separator";
+import { logger } from "../lib/logger";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "../hooks/use-toast";
 import { login, signup, googleLogin } from "../lib/auth";
@@ -65,7 +66,7 @@ const LoginForm = ({
       }
       onLoginSuccess();
     } catch (error: unknown) {
-      console.error("Authentication error:", error);
+      logger.error("Authentication error:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -90,7 +91,7 @@ const LoginForm = ({
       });
       onLoginSuccess();
     } catch (error: unknown) {
-      console.error("Google authentication error:", error);
+      logger.error("Google authentication error:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
