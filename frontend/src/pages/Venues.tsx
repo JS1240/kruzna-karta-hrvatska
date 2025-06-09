@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import VenueContactForm from "@/components/VenueContactForm";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -682,95 +683,13 @@ const Venues = () => {
         )}
 
         {/* Contact venue dialog */}
-        <Dialog open={contactDialog} onOpenChange={setContactDialog}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Contact Venue</DialogTitle>
-            </DialogHeader>
-
-            <form onSubmit={handleContactSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Your Name</Label>
-                  <Input
-                    id="name"
-                    value={contactForm.name}
-                    onChange={(e) =>
-                      setContactForm({ ...contactForm, name: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={contactForm.email}
-                    onChange={(e) =>
-                      setContactForm({ ...contactForm, email: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={contactForm.phone}
-                    onChange={(e) =>
-                      setContactForm({ ...contactForm, phone: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="eventDate">Event Date (if known)</Label>
-                  <Input
-                    id="eventDate"
-                    type="date"
-                    value={contactForm.eventDate}
-                    onChange={(e) =>
-                      setContactForm({
-                        ...contactForm,
-                        eventDate: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message</Label>
-                  <textarea
-                    id="message"
-                    rows={4}
-                    className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Describe your event and requirements..."
-                    value={contactForm.message}
-                    onChange={(e) =>
-                      setContactForm({
-                        ...contactForm,
-                        message: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline" type="button">
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button type="submit">Send Inquiry</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <VenueContactForm
+          open={contactDialog}
+          setOpen={setContactDialog}
+          form={contactForm}
+          setForm={setContactForm}
+          onSubmit={handleContactSubmit}
+        />
       </main>
 
       <Footer />
