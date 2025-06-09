@@ -220,8 +220,12 @@ scrape-entrio: ## Quick scrape from Entrio.hr
 	@curl -X GET "http://localhost:8000/api/scraping/entrio/quick?max_pages=2"
 
 scrape-croatia: ## Quick scrape from Croatia.hr
-	@echo "$(YELLOW)Scraping events from Croatia.hr...$(NC)"
-	@curl -X GET "http://localhost:8000/api/scraping/croatia/quick?max_pages=2"
+        @echo "$(YELLOW)Scraping events from Croatia.hr...$(NC)"
+        @curl -X GET "http://localhost:8000/api/scraping/croatia/quick?max_pages=2"
+
+scrape-infozagreb: ## Quick scrape from InfoZagreb.hr
+        @echo "$(YELLOW)Scraping events from InfoZagreb.hr...$(NC)"
+        @curl -X GET "http://localhost:8000/api/scraping/infozagreb/quick?max_pages=2"
 
 scrape-all: ## Scrape from all sources
 	@echo "$(YELLOW)Scraping events from all sources...$(NC)"

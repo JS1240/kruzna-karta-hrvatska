@@ -203,6 +203,7 @@ The backend includes an integrated web scraping system that automatically collec
 ### Supported Sites
 - **Entrio.hr** - Croatia's leading event ticketing platform
 - **Croatia.hr** - Official Croatian tourism events portal
+- **InfoZagreb.hr** - Zagreb tourist board event listings
 
 ### Features
 - **Dual Scraping Approach**: Uses both requests/BeautifulSoup and Playwright for maximum compatibility
@@ -221,10 +222,18 @@ curl -X GET "http://localhost:8000/api/scraping/entrio/quick?max_pages=2"
 # Quick scraping from Croatia.hr (1-3 pages)
 curl -X GET "http://localhost:8000/api/scraping/croatia/quick?max_pages=2"
 
+# Quick scraping from InfoZagreb.hr (1-3 pages)
+curl -X GET "http://localhost:8000/api/scraping/infozagreb/quick?max_pages=2"
+
 # Full scraping from specific site (background task)
 curl -X POST "http://localhost:8000/api/scraping/entrio" \
   -H "Content-Type: application/json" \
   -d '{"max_pages": 5, "use_playwright": true}'
+
+# Full scraping from InfoZagreb.hr
+curl -X POST "http://localhost:8000/api/scraping/infozagreb" \
+  -H "Content-Type: application/json" \
+  -d '{"max_pages": 5}'
 
 # Scrape from ALL supported sites
 curl -X POST "http://localhost:8000/api/scraping/all" \
@@ -244,7 +253,7 @@ ENABLE_SCHEDULER=true
 **Schedules:**
 - **Production**: Daily at 02:00 (10 pages per site)
 - **Development**: Hourly (2 pages per site)
-- **Sites**: Both Entrio.hr and Croatia.hr
+- **Sites**: Entrio.hr, Croatia.hr and InfoZagreb.hr
 
 ### Configuration
 
@@ -328,8 +337,10 @@ The backend provides RESTful API endpoints:
 ### Scraping
 - `POST /api/scraping/entrio` - Trigger full Entrio.hr scraping
 - `GET /api/scraping/entrio/quick` - Quick Entrio.hr scraping (1-3 pages)
-- `POST /api/scraping/croatia` - Trigger full Croatia.hr scraping  
+- `POST /api/scraping/croatia` - Trigger full Croatia.hr scraping
 - `GET /api/scraping/croatia/quick` - Quick Croatia.hr scraping (1-3 pages)
+- `POST /api/scraping/infozagreb` - Trigger full InfoZagreb.hr scraping
+- `GET /api/scraping/infozagreb/quick` - Quick InfoZagreb.hr scraping (1-3 pages)
 - `POST /api/scraping/all` - Scrape from all supported sites
 - `GET /api/scraping/status` - Get scraping system status
 
