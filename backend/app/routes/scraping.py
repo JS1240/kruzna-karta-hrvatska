@@ -199,13 +199,14 @@ async def scrape_all_sites(
 @router.get("/status")
 async def scraping_status():
     """Get scraping system status and configuration."""
-    import os
-    
+
+    from ..core.config import settings
+
     config = {
-        "use_proxy": os.getenv("USE_PROXY", "0") == "1",
-        "use_playwright": os.getenv("USE_PLAYWRIGHT", "1") == "1",
-        "use_scraping_browser": os.getenv("USE_SCRAPING_BROWSER", "0") == "1",
-        "brightdata_configured": bool(os.getenv("BRIGHTDATA_USER")) and bool(os.getenv("BRIGHTDATA_PASSWORD")),
+        "use_proxy": settings.use_proxy,
+        "use_playwright": settings.use_playwright,
+        "use_scraping_browser": settings.use_scraping_browser,
+        "brightdata_configured": bool(settings.brightdata_user) and bool(settings.brightdata_password),
     }
     
     return {

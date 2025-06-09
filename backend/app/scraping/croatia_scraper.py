@@ -5,7 +5,6 @@ This scraper handles the Vue.js-based dynamic content and extracts event informa
 
 import asyncio
 import json
-import os
 import time
 import re
 from datetime import date, datetime
@@ -22,17 +21,17 @@ from ..models.event import Event
 from ..models.schemas import EventCreate
 
 # BrightData configuration (reuse from entrio scraper)
-USER = os.getenv("BRIGHTDATA_USER", "demo_user")
-PASSWORD = os.getenv("BRIGHTDATA_PASSWORD", "demo_password")
+USER = settings.brightdata_user or "demo_user"
+PASSWORD = settings.brightdata_password or "demo_password"
 BRIGHTDATA_HOST_RES = "brd.superproxy.io"
-BRIGHTDATA_PORT = int(os.getenv("BRIGHTDATA_PORT", 22225))
+BRIGHTDATA_PORT = settings.brightdata_port
 SCRAPING_BROWSER_EP = f"https://brd.superproxy.io:{BRIGHTDATA_PORT}"
 PROXY = f"http://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
 BRD_WSS = f"wss://{USER}:{PASSWORD}@brd.superproxy.io:9222"
 
-USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
-USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
-USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "1") == "1"
+USE_SB = settings.use_scraping_browser
+USE_PROXY = settings.use_proxy
+USE_PLAYWRIGHT = settings.use_playwright
 
 HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

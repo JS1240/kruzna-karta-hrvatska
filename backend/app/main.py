@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import os
 
 from .core.config import settings
 from .routes import events_router, scraping_router
@@ -14,7 +13,7 @@ async def lifespan(app: FastAPI):
     print("Starting Kruzna Karta Hrvatska API...")
     
     # Start scheduler if enabled
-    enable_scheduler = os.getenv("ENABLE_SCHEDULER", "false").lower() == "true"
+    enable_scheduler = settings.enable_scheduler
     if enable_scheduler:
         from .tasks.scheduler import start_scheduler
         development = settings.debug

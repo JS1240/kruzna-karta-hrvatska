@@ -141,11 +141,10 @@ npm run setup
 # 1. Create PostgreSQL database
 createdb kruzna_karta_hrvatska
 
-# 2. Copy environment files and configure
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+# 2. Copy environment file and configure
+cp .env.example .env
 
-# 3. Edit backend/.env with your database credentials:
+# 3. Edit `.env` with your database credentials:
 # DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
 
 # 4. Run database setup script
@@ -338,25 +337,26 @@ Visit http://localhost:8000/docs for interactive API documentation (Swagger UI).
 
 ## 🔐 Environment Variables
 
-### Backend (`.env`)
+All services use a shared `.env` file located in the project root. Create it by
+copying `.env.example` and adjusting the values:
+
 ```env
 DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
 SECRET_KEY=your-secret-key-here
 DEBUG=True
 FRONTEND_URL=http://localhost:5173
 
-# Scraping Configuration
+# Scraping configuration
 ENABLE_SCHEDULER=false
 USE_PROXY=false
 USE_PLAYWRIGHT=true
+USE_SCRAPING_BROWSER=false
+BRIGHTDATA_USER=
+BRIGHTDATA_PASSWORD=
+BRIGHTDATA_PORT=22225
+CATEGORY_URL=https://www.entrio.hr/hr/
 
-# BrightData (optional, for proxy scraping)
-BRIGHTDATA_USER=your-brightdata-user
-BRIGHTDATA_PASSWORD=your-brightdata-password
-```
-
-### Frontend (`.env`)
-```env
+# Frontend
 VITE_API_BASE_URL=http://localhost:8000/api
 VITE_MAPBOX_ACCESS_TOKEN=your_mapbox_token_here
 ```
