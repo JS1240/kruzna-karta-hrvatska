@@ -14,7 +14,8 @@ from urllib.parse import urljoin, urlparse, parse_qs
 import requests
 from bs4 import BeautifulSoup, Tag
 import pandas as pd
-from sqlalchemy.orm import Session
+from sqlalchemy import select, tuple_
+from sqlalchemy.dialects.postgresql import insert
 
 from ..core.config import settings
 from ..core.database import SessionLocal
@@ -524,39 +525,42 @@ class EntrioScraper:
         return events
     
     def save_events_to_database(self, events: List[EventCreate]) -> int:
-        """Save events to database and return count of saved events."""
+        """Insert events using a bulk query and return number of new rows."""
         if not events:
             return 0
-        
+
         db = SessionLocal()
-        saved_count = 0
-        
+
         try:
-            for event_data in events:
-                # Check if event already exists (by name and date)
-                existing = db.query(Event).filter(
-                    Event.name == event_data.name,
-                    Event.date == event_data.date
-                ).first()
-                
-                if not existing:
-                    db_event = Event(**event_data.model_dump())
-                    db.add(db_event)
-                    saved_count += 1
-                else:
-                    print(f"Event already exists: {event_data.name}")
-            
+            # Prepare incoming data
+            event_dicts = [e.model_dump() for e in events]
+            pairs = [(e["name"], e["date"]) for e in event_dicts]
+
+            # Fetch all existing events for these (name, date) pairs
+            existing = db.execute(
+                select(Event.name, Event.date).where(tuple_(Event.name, Event.date).in_(pairs))
+            ).all()
+            existing_pairs = set(existing)
+
+            # Filter to only new events
+            to_insert = [e for e in event_dicts if (e["name"], e["date"]) not in existing_pairs]
+
+            if to_insert:
+                stmt = insert(Event).values(to_insert)
+                stmt = stmt.on_conflict_do_nothing(index_elements=["name", "date"])
+                db.execute(stmt)
+                db.commit()
+                return len(to_insert)
+
             db.commit()
-            print(f"Saved {saved_count} new events to database")
-            
+            return 0
+
         except Exception as e:
             print(f"Error saving events to database: {e}")
             db.rollback()
             raise
         finally:
             db.close()
-        
-        return saved_count
 
 
 # Convenience functions for API endpoints
