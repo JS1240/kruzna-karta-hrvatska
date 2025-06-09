@@ -38,6 +38,7 @@ import {
   addCoordinateJitter,
   Coordinates,
 } from "@/lib/geocoding";
+import { logger } from "@/lib/logger";
 
 // Croatian counties and their cities
 const countiesWithCities = {
@@ -149,7 +150,7 @@ const EventMap = () => {
           coordinates: addCoordinateJitter(coords, count),
         });
       } else {
-        console.warn(
+        logger.warn(
           `Could not geocode location: ${event.location} for event: ${event.name}`,
         );
       }
@@ -293,7 +294,7 @@ const EventMap = () => {
 
     const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
     if (!mapboxToken) {
-      console.error("Mapbox access token is required");
+      logger.error("Mapbox access token is required");
       return;
     }
 
