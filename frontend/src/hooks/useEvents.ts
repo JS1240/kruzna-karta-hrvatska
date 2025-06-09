@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { eventsApi, Event, EventFilters } from "../lib/api";
 
-export interface UseEventsOptions {
-  filters?: EventFilters;
+export interface UseEventsOptions<F extends EventFilters = EventFilters> {
+  filters?: F;
   autoFetch?: boolean;
 }
 
@@ -16,8 +16,10 @@ export interface UseEventsReturn {
   hasMore: boolean;
 }
 
-export const useEvents = (options: UseEventsOptions = {}): UseEventsReturn => {
-  const { filters = {}, autoFetch = true } = options;
+export const useEvents = <F extends EventFilters = EventFilters>(
+  options: UseEventsOptions<F> = {},
+): UseEventsReturn => {
+  const { filters = {} as F, autoFetch = true } = options;
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,7 +39,7 @@ export const useEvents = (options: UseEventsOptions = {}): UseEventsReturn => {
       const size = 20;
 
       const response = await eventsApi.getEvents({
-        ...filters,
+        ...(filters as EventFilters),
         page: currentPage,
         size,
       });

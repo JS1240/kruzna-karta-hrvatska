@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEvents } from "@/hooks/useEvents";
+import { MapFilters } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Event category mapping and icons
@@ -39,7 +40,7 @@ const EventMapDemo = () => {
 
   // API filters based on current selections
   const apiFilters = useMemo(() => {
-    const filters: any = {};
+    const filters: MapFilters = {};
     if (searchTerm) {
       filters.search = searchTerm;
     }
@@ -47,7 +48,7 @@ const EventMapDemo = () => {
   }, [searchTerm]);
 
   // Fetch events from API
-  const { events, loading, error, total, refetch } = useEvents({
+  const { events, loading, error, total, refetch } = useEvents<MapFilters>({
     filters: apiFilters,
     autoFetch: true,
   });
