@@ -63,7 +63,7 @@ async def get_database_metrics(current_user: User = Depends(get_current_superuse
     """Get detailed database metrics."""
     try:
         monitoring_service = get_monitoring_service()
-        db_metrics = await monitoring_service.collect_database_metrics()
+        db_metrics = await monitoring_service.get_cached_database_metrics()
         
         return {
             "timestamp": datetime.now().isoformat(),
