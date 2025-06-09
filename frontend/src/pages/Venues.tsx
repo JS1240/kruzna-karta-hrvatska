@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import VenueCard from "@/components/VenueCard";
 import {
   Card,
   CardContent,
@@ -434,103 +435,15 @@ const Venues = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredVenues.map((venue) => (
-              <Card
+              <VenueCard
                 key={venue.id}
-                className="overflow-hidden h-full flex flex-col"
-              >
-                <div className="relative h-48">
-                  <img
-                    src={venue.imageUrl}
-                    alt={venue.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-navy-blue">
-                      {renderCategoryIcon(venue.category)}
-                      <span className="ml-1">
-                        {formatCategoryName(venue.category)}
-                      </span>
-                    </Badge>
-                  </div>
-                </div>
-
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex justify-between items-start">
-                    <span>{venue.name}</span>
-                    <div className="flex items-center text-yellow-500">
-                      <Star className="fill-yellow-500 h-4 w-4" />
-                      <span className="ml-1 text-sm">{venue.rating}</span>
-                    </div>
-                  </CardTitle>
-                  <CardDescription>
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {venue.city}, {venue.county}
-                    </div>
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="pb-2 flex-grow">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Capacity:</span>
-                      <span className="text-sm font-medium">
-                        {venue.capacity} people
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">
-                        Price Range:
-                      </span>
-                      <span className="text-sm font-medium">
-                        {renderPriceRange(venue.priceRange)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500 block mb-1">
-                        Amenities:
-                      </span>
-                      <div className="flex flex-wrap gap-1">
-                        {venue.amenities.slice(0, 3).map((amenity, index) => (
-                          <Badge
-                            key={index}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {amenity}
-                          </Badge>
-                        ))}
-                        {venue.amenities.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{venue.amenities.length - 3} more
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="pt-2">
-                  <div className="w-full flex gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleVenueSelect(venue)}
-                    >
-                      Details
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={() => {
-                        setSelectedVenue(venue);
-                        setContactDialog(true);
-                      }}
-                    >
-                      Contact
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
+                venue={venue}
+                onSelect={handleVenueSelect}
+                onContact={(v) => {
+                  setSelectedVenue(v);
+                  setContactDialog(true);
+                }}
+              />
             ))}
           </div>
         )}
@@ -626,37 +539,37 @@ const Venues = () => {
                     )}
                     {selectedVenue.category === "hotel" && (
                       <>
-                        <Badge variant="secondary">Corporate Events</Badge>
-                        <Badge variant="secondary">Weddings</Badge>
-                        <Badge variant="secondary">Galas</Badge>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Corporate Events</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Weddings</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Galas</span>
                       </>
                     )}
                     {selectedVenue.category === "conference-center" && (
                       <>
-                        <Badge variant="secondary">Conferences</Badge>
-                        <Badge variant="secondary">Trade Shows</Badge>
-                        <Badge variant="secondary">Seminars</Badge>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Conferences</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Trade Shows</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Seminars</span>
                       </>
                     )}
                     {selectedVenue.category === "club" && (
                       <>
-                        <Badge variant="secondary">Parties</Badge>
-                        <Badge variant="secondary">DJ Events</Badge>
-                        <Badge variant="secondary">Private Events</Badge>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Parties</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">DJ Events</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Private Events</span>
                       </>
                     )}
                     {selectedVenue.category === "restaurant" && (
                       <>
-                        <Badge variant="secondary">Private Dining</Badge>
-                        <Badge variant="secondary">Celebrations</Badge>
-                        <Badge variant="secondary">Business Meals</Badge>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Private Dining</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Celebrations</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Business Meals</span>
                       </>
                     )}
                     {selectedVenue.category === "outdoor" && (
                       <>
-                        <Badge variant="secondary">Festivals</Badge>
-                        <Badge variant="secondary">Open-air Events</Badge>
-                        <Badge variant="secondary">Cultural Events</Badge>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Festivals</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Open-air Events</span>
+                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded text-xs">Cultural Events</span>
                       </>
                     )}
                   </div>

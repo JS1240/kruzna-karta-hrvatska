@@ -14,6 +14,7 @@ import {
   ChartLegendContent
 } from '../components/ui/chart';
 import { logger } from '../lib/logger';
+import { useAnalytics } from '../hooks/useAnalytics';
 import { 
   LineChart, 
   Line, 
@@ -153,14 +154,16 @@ const OrganizerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   
-  // Analytics state
-  const [revenueTrends, setRevenueTrends] = useState<RevenueTrend[]>([]);
-  const [eventPerformance, setEventPerformance] = useState<EventPerformance[]>([]);
-  const [ticketAnalytics, setTicketAnalytics] = useState<TicketTypeAnalytics[]>([]);
-  const [conversionMetrics, setConversionMetrics] = useState<ConversionMetrics | null>(null);
-  const [geographicRevenue, setGeographicRevenue] = useState<GeographicRevenue[]>([]);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [revenuePeriod, setRevenuePeriod] = useState('month');
+  const {
+    revenueTrends,
+    eventPerformance,
+    ticketAnalytics,
+    conversionMetrics,
+    geographicRevenue,
+    analyticsLoading,
+    fetchAnalyticsData,
+  } = useAnalytics(revenuePeriod);
 
   useEffect(() => {
     // Check for navigation message
@@ -189,74 +192,6 @@ const OrganizerDashboard = () => {
     }
   }, [message]);
 
-  const fetchAnalyticsData = async () => {
-    setAnalyticsLoading(true);
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
-      
-      // Fetch all analytics data in parallel
-      const [
-        trendsResponse,
-        performanceResponse,
-        ticketsResponse,
-        conversionResponse,
-        geoResponse
-      ] = await Promise.all([
-        fetch(`${apiBase}/user-events/analytics/revenue-trends?period=${revenuePeriod}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${apiBase}/user-events/analytics/event-performance`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${apiBase}/user-events/analytics/ticket-types`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${apiBase}/user-events/analytics/booking-conversion`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${apiBase}/user-events/analytics/geographic-revenue`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
-
-      if (trendsResponse.ok) {
-        const trendsData = await trendsResponse.json();
-        setRevenueTrends(trendsData.trends || []);
-      }
-
-      if (performanceResponse.ok) {
-        const performanceData = await performanceResponse.json();
-        setEventPerformance(performanceData.events || []);
-      }
-
-      if (ticketsResponse.ok) {
-        const ticketsData = await ticketsResponse.json();
-        setTicketAnalytics(ticketsData.ticket_types || []);
-      }
-
-      if (conversionResponse.ok) {
-        const conversionData = await conversionResponse.json();
-        setConversionMetrics(conversionData);
-      }
-
-      if (geoResponse.ok) {
-        const geoData = await geoResponse.json();
-        setGeographicRevenue(geoData.locations || []);
-      }
-
-    } catch (error) {
-      logger.error('Error fetching analytics data:', error);
-    } finally {
-      setAnalyticsLoading(false);
-    }
-  };
 
   const fetchData = async () => {
     setLoading(true);
