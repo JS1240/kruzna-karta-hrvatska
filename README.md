@@ -338,25 +338,28 @@ Visit http://localhost:8000/docs for interactive API documentation (Swagger UI).
 
 ## 🔐 Environment Variables
 
-### Backend (`.env`)
+Create a `.env` file at the project root by copying `.env.example` and setting the values:
+
+### `.env`
 ```env
-DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
-SECRET_KEY=your-secret-key-here
-DEBUG=True
-FRONTEND_URL=http://localhost:5173
+POSTGRES_DB=kruzna_karta_hrvatska
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your-postgres-password
+
+DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+REDIS_URL=redis://redis:6379/0
+SECRET_KEY=your-secret-key
+DEBUG=true
+FRONTEND_URL=http://localhost:3000
 
 # Scraping Configuration
 ENABLE_SCHEDULER=false
 USE_PROXY=false
 USE_PLAYWRIGHT=true
-
-# BrightData (optional, for proxy scraping)
 BRIGHTDATA_USER=your-brightdata-user
 BRIGHTDATA_PASSWORD=your-brightdata-password
-```
 
-### Frontend (`.env`)
-```env
+# Frontend
 VITE_API_BASE_URL=http://localhost:8000/api
 VITE_MAPBOX_ACCESS_TOKEN=your_mapbox_token_here
 ```
