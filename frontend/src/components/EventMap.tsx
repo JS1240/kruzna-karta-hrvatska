@@ -32,7 +32,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { DateRange } from "react-day-picker";
 import { useEvents } from "@/hooks/useEvents";
-import { Event } from "@/lib/api";
+import { Event, MapFilters } from "@/lib/api";
 import {
   getCoordinatesForLocation,
   addCoordinateJitter,
@@ -93,7 +93,7 @@ const EventMap = () => {
 
   // API filters based on current selections
   const apiFilters = useMemo(() => {
-    const filters: any = {};
+    const filters: MapFilters = {};
 
     if (searchTerm) {
       filters.search = searchTerm;
@@ -127,7 +127,7 @@ const EventMap = () => {
   ]);
 
   // Fetch events from API
-  const { events, loading, error, total, refetch } = useEvents({
+  const { events, loading, error, total, refetch } = useEvents<MapFilters>({
     filters: apiFilters,
     autoFetch: true,
   });

@@ -54,6 +54,13 @@ export interface EventFilters {
   date_to?: string;
 }
 
+export interface MapFilters {
+  search?: string;
+  location?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,
