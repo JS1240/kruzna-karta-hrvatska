@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
 from typing import Optional
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -44,8 +45,10 @@ class Settings(BaseSettings):
     stripe_publishable_key: Optional[str] = None
     stripe_secret_key: Optional[str] = None
     stripe_webhook_secret: Optional[str] = None
-    stripe_connect_client_id: Optional[str] = None  # For future Stripe Connect integration
-    
+    stripe_connect_client_id: Optional[str] = (
+        None  # For future Stripe Connect integration
+    )
+
     # Payment settings
     platform_commission_rate: float = 5.0  # Default 5% commission
     currency: str = "EUR"

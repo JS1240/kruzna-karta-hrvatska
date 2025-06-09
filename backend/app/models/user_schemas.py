@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, EmailStr, validator
-from datetime import datetime, date
-from typing import Optional, List, Dict, Any
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, EmailStr, Field, validator
+
 from .schemas import Event
 
 
@@ -12,26 +14,26 @@ class UserBase(BaseModel):
     last_name: Optional[str] = Field(None, max_length=100)
     phone: Optional[str] = Field(None, max_length=50)
     city: Optional[str] = Field(None, max_length=100)
-    country: Optional[str] = Field(default='Croatia', max_length=100)
+    country: Optional[str] = Field(default="Croatia", max_length=100)
     bio: Optional[str] = Field(None, max_length=1000)
-    preferred_language: Optional[str] = Field(default='hr', pattern=r'^(hr|en)$')
+    preferred_language: Optional[str] = Field(default="hr", pattern=r"^(hr|en)$")
 
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=100)
     email_notifications: Optional[bool] = Field(default=True)
     marketing_emails: Optional[bool] = Field(default=False)
-    
-    @validator('password')
+
+    @validator("password")
     def validate_password(cls, v):
         if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
+            raise ValueError("Password must be at least 8 characters long")
         if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
+            raise ValueError("Password must contain at least one uppercase letter")
         if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
+            raise ValueError("Password must contain at least one lowercase letter")
         if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one digit')
+            raise ValueError("Password must contain at least one digit")
         return v
 
 
@@ -44,7 +46,7 @@ class UserUpdate(BaseModel):
     city: Optional[str] = Field(None, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
     bio: Optional[str] = Field(None, max_length=1000)
-    preferred_language: Optional[str] = Field(None, pattern=r'^(hr|en)$')
+    preferred_language: Optional[str] = Field(None, pattern=r"^(hr|en)$")
     email_notifications: Optional[bool] = None
     marketing_emails: Optional[bool] = None
 
@@ -64,19 +66,23 @@ class UserInDB(UserBase):
 
 class User(UserInDB):
     """Public user representation (excludes sensitive fields)."""
+
     pass
 
 
 class UserWithProfile(User):
     """User with profile information."""
-    user_profile: Optional['UserProfile'] = None
+
+    user_profile: Optional["UserProfile"] = None
 
 
 # Profile Schemas
 class UserProfileBase(BaseModel):
     website: Optional[str] = Field(None, max_length=500)
     interests: Optional[List[str]] = None
-    profile_visibility: Optional[str] = Field(default='public', pattern=r'^(public|friends|private)$')
+    profile_visibility: Optional[str] = Field(
+        default="public", pattern=r"^(public|friends|private)$"
+    )
     show_email: Optional[bool] = Field(default=False)
     show_phone: Optional[bool] = Field(default=False)
     show_location: Optional[bool] = Field(default=True)
@@ -122,11 +128,11 @@ class UserLogin(BaseModel):
 
 class UserRegister(UserCreate):
     confirm_password: str
-    
-    @validator('confirm_password')
+
+    @validator("confirm_password")
     def passwords_match(cls, v, values, **kwargs):
-        if 'password' in values and v != values['password']:
-            raise ValueError('Passwords do not match')
+        if "password" in values and v != values["password"]:
+            raise ValueError("Passwords do not match")
         return v
 
 
@@ -134,11 +140,11 @@ class PasswordChange(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=8, max_length=100)
     confirm_password: str
-    
-    @validator('confirm_password')
+
+    @validator("confirm_password")
     def passwords_match(cls, v, values, **kwargs):
-        if 'new_password' in values and v != values['new_password']:
-            raise ValueError('Passwords do not match')
+        if "new_password" in values and v != values["new_password"]:
+            raise ValueError("Passwords do not match")
         return v
 
 
@@ -150,11 +156,11 @@ class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str = Field(..., min_length=8, max_length=100)
     confirm_password: str
-    
-    @validator('confirm_password')
+
+    @validator("confirm_password")
     def passwords_match(cls, v, values, **kwargs):
-        if 'new_password' in values and v != values['new_password']:
-            raise ValueError('Passwords do not match')
+        if "new_password" in values and v != values["new_password"]:
+            raise ValueError("Passwords do not match")
         return v
 
 
@@ -245,6 +251,7 @@ class AuthResponse(BaseModel):
 # Admin Schemas
 class UserAdmin(UserInDB):
     """Admin view of user with all fields."""
+
     email_verification_token: Optional[str] = None
     password_reset_token: Optional[str] = None
     password_reset_expires: Optional[datetime] = None

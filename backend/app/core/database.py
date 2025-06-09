@@ -1,9 +1,11 @@
+import logging
+
 from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
+
 from .config import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +34,10 @@ engine = create_engine(settings.database_url, **engine_kwargs)
 
 # Configure session with performance optimizations
 SessionLocal = sessionmaker(
-    autocommit=False, 
-    autoflush=False, 
+    autocommit=False,
+    autoflush=False,
     bind=engine,
-    expire_on_commit=False  # Keep objects accessible after commit
+    expire_on_commit=False,  # Keep objects accessible after commit
 )
 
 Base = declarative_base()
@@ -43,13 +45,17 @@ Base = declarative_base()
 
 # Database event listeners for performance monitoring
 @event.listens_for(engine, "before_cursor_execute")
-def receive_before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+def receive_before_cursor_execute(
+    conn, cursor, statement, parameters, context, executemany
+):
     """Log slow queries for performance monitoring."""
     context._query_start_time = time.time()
 
 
 @event.listens_for(engine, "after_cursor_execute")
-def receive_after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+def receive_after_cursor_execute(
+    conn, cursor, statement, parameters, context, executemany
+):
     """Log query execution time."""
     total = time.time() - context._query_start_time
     if total > 1.0:  # Log queries taking more than 1 second
@@ -87,20 +93,16 @@ def health_check_db():
         db = SessionLocal()
         db.execute("SELECT 1")
         db.close()
-        
+
         pool_status = get_db_pool_status()
-        
+
         return {
             "status": "healthy",
             "database_connected": True,
-            "pool_status": pool_status
+            "pool_status": pool_status,
         }
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "database_connected": False,
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "database_connected": False, "error": str(e)}
 
 
 # Import time for query timing

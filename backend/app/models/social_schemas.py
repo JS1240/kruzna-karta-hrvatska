@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field, validator
 from datetime import datetime
-from typing import Optional, List, Dict, Any
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field, validator
 
 
 class ConnectionStatus(str, Enum):
@@ -59,7 +60,7 @@ class UserSocialProfileBase(BaseModel):
     interests: Optional[List[str]] = None
     favorite_event_types: Optional[List[str]] = None
     location: Optional[str] = Field(None, max_length=100)
-    
+
     # Privacy settings
     profile_visibility: str = Field(default="public")
     show_email: bool = False
@@ -68,11 +69,11 @@ class UserSocialProfileBase(BaseModel):
     show_events_attended: bool = True
     allow_connection_requests: bool = True
     allow_event_invitations: bool = True
-    
-    @validator('profile_visibility')
+
+    @validator("profile_visibility")
     def validate_visibility(cls, v):
-        if v not in ['public', 'friends', 'private']:
-            raise ValueError('Invalid visibility setting')
+        if v not in ["public", "friends", "private"]:
+            raise ValueError("Invalid visibility setting")
         return v
 
 
@@ -87,7 +88,7 @@ class UserSocialProfileUpdate(BaseModel):
     interests: Optional[List[str]] = None
     favorite_event_types: Optional[List[str]] = None
     location: Optional[str] = Field(None, max_length=100)
-    
+
     profile_visibility: Optional[str] = None
     show_email: Optional[bool] = None
     show_phone: Optional[bool] = None
@@ -100,7 +101,7 @@ class UserSocialProfileUpdate(BaseModel):
 class UserSocialProfile(UserSocialProfileBase):
     id: int
     user_id: int
-    
+
     # Social stats
     connections_count: int = 0
     posts_count: int = 0
@@ -108,13 +109,13 @@ class UserSocialProfile(UserSocialProfileBase):
     reviews_count: int = 0
     followers_count: int = 0
     following_count: int = 0
-    
+
     # Verification and badges
     is_verified: bool = False
     is_event_organizer: bool = False
     is_venue_owner: bool = False
     badges: Optional[List[str]] = None
-    
+
     created_at: datetime
     updated_at: datetime
 
@@ -127,32 +128,32 @@ class SocialPostBase(BaseModel):
     post_type: PostType = PostType.TEXT
     content: Optional[str] = None
     title: Optional[str] = Field(None, max_length=200)
-    
+
     # Media attachments
     images: Optional[List[str]] = None
     videos: Optional[List[str]] = None
-    
+
     # Related content
     event_id: Optional[int] = None
     venue_id: Optional[int] = None
-    
+
     # Poll data
     poll_options: Optional[Dict[str, Any]] = None
     poll_expires_at: Optional[datetime] = None
     poll_multiple_choice: bool = False
-    
+
     # Post settings
     visibility: str = Field(default="public")
     allow_comments: bool = True
     allow_reactions: bool = True
-    
+
     # Content
     hashtags: Optional[List[str]] = None
 
-    @validator('visibility')
+    @validator("visibility")
     def validate_visibility(cls, v):
-        if v not in ['public', 'friends', 'private']:
-            raise ValueError('Invalid visibility setting')
+        if v not in ["public", "friends", "private"]:
+            raise ValueError("Invalid visibility setting")
         return v
 
 
@@ -172,22 +173,22 @@ class SocialPostUpdate(BaseModel):
 class SocialPost(SocialPostBase):
     id: int
     user_id: int
-    
+
     # Engagement stats
     likes_count: int = 0
     comments_count: int = 0
     shares_count: int = 0
     views_count: int = 0
-    
+
     # Flags
     is_pinned: bool = False
     is_featured: bool = False
     is_flagged: bool = False
     is_hidden: bool = False
-    
+
     created_at: datetime
     updated_at: datetime
-    
+
     # Nested objects (when needed)
     user: Optional[Dict[str, Any]] = None
     event: Optional[Dict[str, Any]] = None
@@ -217,22 +218,22 @@ class PostComment(PostCommentBase):
     id: int
     post_id: int
     user_id: int
-    
+
     # Stats
     likes_count: int = 0
     replies_count: int = 0
-    
+
     # Flags
     is_flagged: bool = False
     is_hidden: bool = False
-    
+
     created_at: datetime
     updated_at: datetime
-    
+
     # Nested objects
     user: Optional[Dict[str, Any]] = None
     user_reaction: Optional[ReactionType] = None
-    replies: Optional[List['PostComment']] = None
+    replies: Optional[List["PostComment"]] = None
 
     class Config:
         from_attributes = True
@@ -249,7 +250,7 @@ class PostReaction(BaseModel):
     user_id: int
     reaction_type: ReactionType
     created_at: datetime
-    
+
     # Nested objects
     user: Optional[Dict[str, Any]] = None
 
@@ -277,18 +278,18 @@ class EventReviewBase(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     title: Optional[str] = Field(None, max_length=200)
     review_text: Optional[str] = None
-    
+
     # Detailed ratings
     organization_rating: Optional[int] = Field(None, ge=1, le=5)
     value_rating: Optional[int] = Field(None, ge=1, le=5)
     venue_rating: Optional[int] = Field(None, ge=1, le=5)
     content_rating: Optional[int] = Field(None, ge=1, le=5)
     atmosphere_rating: Optional[int] = Field(None, ge=1, le=5)
-    
+
     # Media
     images: Optional[List[str]] = None
     videos: Optional[List[str]] = None
-    
+
     is_public: bool = True
 
 
@@ -301,17 +302,17 @@ class EventReviewUpdate(BaseModel):
     rating: Optional[int] = Field(None, ge=1, le=5)
     title: Optional[str] = Field(None, max_length=200)
     review_text: Optional[str] = None
-    
+
     organization_rating: Optional[int] = Field(None, ge=1, le=5)
     value_rating: Optional[int] = Field(None, ge=1, le=5)
     venue_rating: Optional[int] = Field(None, ge=1, le=5)
     content_rating: Optional[int] = Field(None, ge=1, le=5)
     atmosphere_rating: Optional[int] = Field(None, ge=1, le=5)
-    
+
     images: Optional[List[str]] = None
     videos: Optional[List[str]] = None
     is_public: Optional[bool] = None
-    
+
     organizer_response: Optional[str] = None
 
 
@@ -320,16 +321,16 @@ class EventReview(EventReviewBase):
     event_id: int
     user_id: int
     booking_id: Optional[int] = None
-    
+
     is_verified: bool = False
     helpful_votes: int = 0
-    
+
     organizer_response: Optional[str] = None
     organizer_responded_at: Optional[datetime] = None
-    
+
     created_at: datetime
     updated_at: datetime
-    
+
     # Nested objects
     user: Optional[Dict[str, Any]] = None
     event: Optional[Dict[str, Any]] = None
@@ -355,16 +356,16 @@ class UserConnection(BaseModel):
     addressee_id: int
     status: ConnectionStatus
     connection_message: Optional[str] = None
-    
+
     # Metadata
     connection_strength: int = 1
     mutual_connections_count: int = 0
     interaction_score: int = 0
-    
+
     created_at: datetime
     updated_at: datetime
     accepted_at: Optional[datetime] = None
-    
+
     # Nested objects
     requester: Optional[Dict[str, Any]] = None
     addressee: Optional[Dict[str, Any]] = None
@@ -385,7 +386,7 @@ class UserFollow(BaseModel):
     following_id: int
     receive_notifications: bool = True
     created_at: datetime
-    
+
     # Nested objects
     follower: Optional[Dict[str, Any]] = None
     following: Optional[Dict[str, Any]] = None
@@ -401,16 +402,16 @@ class EventAttendanceCreate(BaseModel):
     visibility: str = Field(default="public")
     shared_on_timeline: bool = False
 
-    @validator('attendance_status')
+    @validator("attendance_status")
     def validate_attendance_status(cls, v):
-        if v not in ['going', 'interested', 'not_going']:
-            raise ValueError('Invalid attendance status')
+        if v not in ["going", "interested", "not_going"]:
+            raise ValueError("Invalid attendance status")
         return v
 
-    @validator('visibility')
+    @validator("visibility")
     def validate_visibility(cls, v):
-        if v not in ['public', 'friends', 'private']:
-            raise ValueError('Invalid visibility setting')
+        if v not in ["public", "friends", "private"]:
+            raise ValueError("Invalid visibility setting")
         return v
 
 
@@ -426,15 +427,15 @@ class EventAttendance(BaseModel):
     user_id: int
     attendance_status: str
     visibility: str
-    
+
     checked_in: bool = False
     check_in_time: Optional[datetime] = None
     check_in_location: Optional[str] = None
     shared_on_timeline: bool = False
-    
+
     created_at: datetime
     updated_at: datetime
-    
+
     # Nested objects
     user: Optional[Dict[str, Any]] = None
     event: Optional[Dict[str, Any]] = None
@@ -449,13 +450,13 @@ class SocialNotificationCreate(BaseModel):
     notification_type: NotificationType
     title: str = Field(..., max_length=200)
     message: Optional[str] = None
-    
+
     from_user_id: Optional[int] = None
     post_id: Optional[int] = None
     comment_id: Optional[int] = None
     event_id: Optional[int] = None
     connection_id: Optional[int] = None
-    
+
     action_url: Optional[str] = Field(None, max_length=500)
     action_data: Optional[Dict[str, Any]] = None
 
@@ -466,22 +467,22 @@ class SocialNotification(BaseModel):
     notification_type: NotificationType
     title: str
     message: Optional[str] = None
-    
+
     from_user_id: Optional[int] = None
     post_id: Optional[int] = None
     comment_id: Optional[int] = None
     event_id: Optional[int] = None
     connection_id: Optional[int] = None
-    
+
     is_read: bool = False
     is_seen: bool = False
-    
+
     action_url: Optional[str] = None
     action_data: Optional[Dict[str, Any]] = None
-    
+
     created_at: datetime
     read_at: Optional[datetime] = None
-    
+
     # Nested objects
     from_user: Optional[Dict[str, Any]] = None
 
@@ -494,7 +495,7 @@ class ContentReportCreate(BaseModel):
     post_id: Optional[int] = None
     comment_id: Optional[int] = None
     user_id: Optional[int] = None
-    
+
     reason: ReportReason
     description: Optional[str] = Field(None, max_length=1000)
 
@@ -502,19 +503,19 @@ class ContentReportCreate(BaseModel):
 class ContentReport(BaseModel):
     id: int
     reporter_id: int
-    
+
     post_id: Optional[int] = None
     comment_id: Optional[int] = None
     user_id: Optional[int] = None
-    
+
     reason: ReportReason
     description: Optional[str] = None
     status: str = "pending"
-    
+
     moderator_id: Optional[int] = None
     moderator_notes: Optional[str] = None
     action_taken: Optional[str] = None
-    
+
     created_at: datetime
     resolved_at: Optional[datetime] = None
 
@@ -527,18 +528,18 @@ class SocialGroupBase(BaseModel):
     name: str = Field(..., max_length=100)
     description: Optional[str] = None
     category: Optional[str] = Field(None, max_length=50)
-    
+
     group_type: str = Field(default="public")
     join_approval_required: bool = False
     allow_member_posts: bool = True
-    
+
     cover_image: Optional[str] = Field(None, max_length=500)
     avatar_image: Optional[str] = Field(None, max_length=500)
 
-    @validator('group_type')
+    @validator("group_type")
     def validate_group_type(cls, v):
-        if v not in ['public', 'private', 'secret']:
-            raise ValueError('Invalid group type')
+        if v not in ["public", "private", "secret"]:
+            raise ValueError("Invalid group type")
         return v
 
 
@@ -550,11 +551,11 @@ class SocialGroupUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = None
     category: Optional[str] = Field(None, max_length=50)
-    
+
     group_type: Optional[str] = None
     join_approval_required: Optional[bool] = None
     allow_member_posts: Optional[bool] = None
-    
+
     cover_image: Optional[str] = Field(None, max_length=500)
     avatar_image: Optional[str] = Field(None, max_length=500)
 
@@ -562,16 +563,16 @@ class SocialGroupUpdate(BaseModel):
 class SocialGroup(SocialGroupBase):
     id: int
     creator_id: int
-    
+
     members_count: int = 1
     posts_count: int = 0
-    
+
     is_active: bool = True
     is_featured: bool = False
-    
+
     created_at: datetime
     updated_at: datetime
-    
+
     # Nested objects
     creator: Optional[Dict[str, Any]] = None
     user_membership: Optional[Dict[str, Any]] = None  # Current user's membership
@@ -589,10 +590,10 @@ class SocialFeedParams(BaseModel):
     page: int = Field(default=1, ge=1)
     size: int = Field(default=20, ge=1, le=100)
 
-    @validator('feed_type')
+    @validator("feed_type")
     def validate_feed_type(cls, v):
-        if v not in ['timeline', 'discover', 'following', 'trending']:
-            raise ValueError('Invalid feed type')
+        if v not in ["timeline", "discover", "following", "trending"]:
+            raise ValueError("Invalid feed type")
         return v
 
 
@@ -603,11 +604,11 @@ class UserSearchParams(BaseModel):
     is_verified: Optional[bool] = None
     is_event_organizer: Optional[bool] = None
     is_venue_owner: Optional[bool] = None
-    
+
     # Connection filters
     connection_status: Optional[ConnectionStatus] = None
     mutual_connections: Optional[bool] = None
-    
+
     page: int = Field(default=1, ge=1)
     size: int = Field(default=20, ge=1, le=100)
 
@@ -621,7 +622,7 @@ class PostSearchParams(BaseModel):
     venue_id: Optional[int] = None
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
-    
+
     page: int = Field(default=1, ge=1)
     size: int = Field(default=20, ge=1, le=100)
 

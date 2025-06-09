@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field, validator
-from datetime import datetime, date
-from typing import Optional, List, Dict, Any
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field, validator
 
 
 class VenueStatus(str, Enum):
@@ -94,38 +95,38 @@ class EnhancedVenueBase(BaseModel):
     address: Optional[str] = None
     city: str = Field(..., max_length=100)
     postal_code: Optional[str] = Field(None, max_length=20)
-    country: str = Field(default='Croatia', max_length=100)
+    country: str = Field(default="Croatia", max_length=100)
     region: Optional[str] = Field(None, max_length=100)
-    
+
     # Geographic data
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
-    
+
     # Venue specifications
     capacity: Optional[int] = Field(None, ge=1)
     max_capacity: Optional[int] = Field(None, ge=1)
     min_capacity: Optional[int] = Field(None, ge=1)
     venue_type: Optional[str] = Field(None, max_length=50)
     venue_status: VenueStatus = VenueStatus.ACTIVE
-    
+
     # Contact information
     website: Optional[str] = Field(None, max_length=500)
     phone: Optional[str] = Field(None, max_length=50)
     email: Optional[str] = Field(None, max_length=255)
     contact_person: Optional[str] = Field(None, max_length=255)
     emergency_contact: Optional[str] = Field(None, max_length=50)
-    
+
     # Business details
     tax_id: Optional[str] = Field(None, max_length=50)
     registration_number: Optional[str] = Field(None, max_length=50)
     business_hours: Optional[Dict[str, Any]] = None
-    
+
     # Venue features
     floor_plan: Optional[str] = None
     virtual_tour_url: Optional[str] = Field(None, max_length=500)
     photos: Optional[List[str]] = None
     videos: Optional[List[str]] = None
-    
+
     # Pricing and policies
     base_price_per_hour: Optional[Decimal] = Field(None, ge=0)
     base_price_per_day: Optional[Decimal] = Field(None, ge=0)
@@ -133,35 +134,37 @@ class EnhancedVenueBase(BaseModel):
     cleaning_fee: Optional[Decimal] = Field(None, ge=0)
     cancellation_policy: Optional[str] = None
     payment_terms: Optional[str] = None
-    
+
     # Operational details
     setup_time_minutes: int = Field(default=60, ge=0)
     breakdown_time_minutes: int = Field(default=60, ge=0)
     minimum_booking_hours: int = Field(default=2, ge=1)
     maximum_booking_days: int = Field(default=30, ge=1)
     advance_booking_days: int = Field(default=90, ge=0)
-    
+
     # Technical specifications
     technical_specs: Optional[Dict[str, Any]] = None
     accessibility_features: Optional[Dict[str, Any]] = None
     safety_certifications: Optional[List[str]] = None
-    
+
     # SEO and search
     search_keywords: Optional[List[str]] = None
     meta_description: Optional[str] = Field(None, max_length=300)
 
-    @validator('max_capacity')
+    @validator("max_capacity")
     def validate_max_capacity(cls, v, values):
-        if v is not None and 'capacity' in values and values['capacity'] is not None:
-            if v < values['capacity']:
-                raise ValueError('max_capacity must be greater than or equal to capacity')
+        if v is not None and "capacity" in values and values["capacity"] is not None:
+            if v < values["capacity"]:
+                raise ValueError(
+                    "max_capacity must be greater than or equal to capacity"
+                )
         return v
 
-    @validator('min_capacity')
+    @validator("min_capacity")
     def validate_min_capacity(cls, v, values):
-        if v is not None and 'capacity' in values and values['capacity'] is not None:
-            if v > values['capacity']:
-                raise ValueError('min_capacity must be less than or equal to capacity')
+        if v is not None and "capacity" in values and values["capacity"] is not None:
+            if v > values["capacity"]:
+                raise ValueError("min_capacity must be less than or equal to capacity")
         return v
 
 
@@ -177,48 +180,48 @@ class EnhancedVenueUpdate(BaseModel):
     postal_code: Optional[str] = Field(None, max_length=20)
     country: Optional[str] = Field(None, max_length=100)
     region: Optional[str] = Field(None, max_length=100)
-    
+
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
-    
+
     capacity: Optional[int] = Field(None, ge=1)
     max_capacity: Optional[int] = Field(None, ge=1)
     min_capacity: Optional[int] = Field(None, ge=1)
     venue_type: Optional[str] = Field(None, max_length=50)
     venue_status: Optional[VenueStatus] = None
-    
+
     website: Optional[str] = Field(None, max_length=500)
     phone: Optional[str] = Field(None, max_length=50)
     email: Optional[str] = Field(None, max_length=255)
     contact_person: Optional[str] = Field(None, max_length=255)
     emergency_contact: Optional[str] = Field(None, max_length=50)
-    
+
     tax_id: Optional[str] = Field(None, max_length=50)
     registration_number: Optional[str] = Field(None, max_length=50)
     business_hours: Optional[Dict[str, Any]] = None
-    
+
     floor_plan: Optional[str] = None
     virtual_tour_url: Optional[str] = Field(None, max_length=500)
     photos: Optional[List[str]] = None
     videos: Optional[List[str]] = None
-    
+
     base_price_per_hour: Optional[Decimal] = Field(None, ge=0)
     base_price_per_day: Optional[Decimal] = Field(None, ge=0)
     security_deposit: Optional[Decimal] = Field(None, ge=0)
     cleaning_fee: Optional[Decimal] = Field(None, ge=0)
     cancellation_policy: Optional[str] = None
     payment_terms: Optional[str] = None
-    
+
     setup_time_minutes: Optional[int] = Field(None, ge=0)
     breakdown_time_minutes: Optional[int] = Field(None, ge=0)
     minimum_booking_hours: Optional[int] = Field(None, ge=1)
     maximum_booking_days: Optional[int] = Field(None, ge=1)
     advance_booking_days: Optional[int] = Field(None, ge=0)
-    
+
     technical_specs: Optional[Dict[str, Any]] = None
     accessibility_features: Optional[Dict[str, Any]] = None
     safety_certifications: Optional[List[str]] = None
-    
+
     search_keywords: Optional[List[str]] = None
     meta_description: Optional[str] = Field(None, max_length=300)
 
@@ -230,18 +233,18 @@ class EnhancedVenue(EnhancedVenueBase):
     manager_id: Optional[int] = None
     is_verified: bool = False
     verification_date: Optional[datetime] = None
-    
+
     # Statistics
     total_bookings: int = 0
     total_revenue: Optional[Decimal] = 0
     average_rating: Optional[Decimal] = None
     total_reviews: int = 0
-    
+
     # Timestamps
     created_at: datetime
     updated_at: datetime
     last_booking_at: Optional[datetime] = None
-    
+
     # Relationships (when needed)
     facilities: Optional[List[VenueFacility]] = None
 
@@ -260,10 +263,10 @@ class VenueAvailabilityBase(BaseModel):
     blocked_reason: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = None
 
-    @validator('end_time')
+    @validator("end_time")
     def validate_end_time(cls, v, values):
-        if 'start_time' in values and v <= values['start_time']:
-            raise ValueError('end_time must be after start_time')
+        if "start_time" in values and v <= values["start_time"]:
+            raise ValueError("end_time must be after start_time")
         return v
 
 
@@ -299,28 +302,28 @@ class VenueBookingBase(BaseModel):
     event_type: Optional[str] = Field(None, max_length=100)
     event_description: Optional[str] = None
     expected_attendance: Optional[int] = Field(None, ge=1)
-    
+
     start_datetime: datetime
     end_datetime: datetime
     setup_start: Optional[datetime] = None
     breakdown_end: Optional[datetime] = None
-    
+
     contact_name: str = Field(..., max_length=255)
     contact_email: str = Field(..., max_length=255)
     contact_phone: Optional[str] = Field(None, max_length=50)
-    
+
     special_requirements: Optional[str] = None
     catering_requirements: Optional[str] = None
     av_requirements: Optional[str] = None
     accessibility_requirements: Optional[str] = None
-    
+
     insurance_certificate: Optional[str] = Field(None, max_length=500)
     liability_acknowledged: bool = False
 
-    @validator('end_datetime')
+    @validator("end_datetime")
     def validate_end_datetime(cls, v, values):
-        if 'start_datetime' in values and v <= values['start_datetime']:
-            raise ValueError('end_datetime must be after start_datetime')
+        if "start_datetime" in values and v <= values["start_datetime"]:
+            raise ValueError("end_datetime must be after start_datetime")
         return v
 
 
@@ -333,24 +336,24 @@ class VenueBookingUpdate(BaseModel):
     event_type: Optional[str] = Field(None, max_length=100)
     event_description: Optional[str] = None
     expected_attendance: Optional[int] = Field(None, ge=1)
-    
+
     start_datetime: Optional[datetime] = None
     end_datetime: Optional[datetime] = None
     setup_start: Optional[datetime] = None
     breakdown_end: Optional[datetime] = None
-    
+
     contact_name: Optional[str] = Field(None, max_length=255)
     contact_email: Optional[str] = Field(None, max_length=255)
     contact_phone: Optional[str] = Field(None, max_length=50)
-    
+
     special_requirements: Optional[str] = None
     catering_requirements: Optional[str] = None
     av_requirements: Optional[str] = None
     accessibility_requirements: Optional[str] = None
-    
+
     insurance_certificate: Optional[str] = Field(None, max_length=500)
     liability_acknowledged: Optional[bool] = None
-    
+
     booking_status: Optional[BookingStatus] = None
     cancellation_reason: Optional[str] = None
 
@@ -361,7 +364,7 @@ class VenueBooking(VenueBookingBase):
     customer_id: Optional[int] = None
     booking_reference: str
     booking_status: BookingStatus
-    
+
     # Pricing details
     base_cost: Decimal
     facility_costs: Decimal = 0
@@ -369,19 +372,19 @@ class VenueBooking(VenueBookingBase):
     discount_amount: Decimal = 0
     tax_amount: Decimal = 0
     total_cost: Decimal
-    
+
     # Payment details
     deposit_amount: Optional[Decimal] = None
     deposit_paid_at: Optional[datetime] = None
     payment_due_date: Optional[datetime] = None
     payment_completed_at: Optional[datetime] = None
-    
+
     # Status dates
     confirmed_at: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
     cancellation_reason: Optional[str] = None
     completed_at: Optional[datetime] = None
-    
+
     # Timestamps
     created_at: datetime
     updated_at: datetime
@@ -395,14 +398,14 @@ class VenueReviewBase(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     title: Optional[str] = Field(None, max_length=200)
     review_text: Optional[str] = None
-    
+
     # Detailed ratings (optional)
     cleanliness_rating: Optional[int] = Field(None, ge=1, le=5)
     staff_rating: Optional[int] = Field(None, ge=1, le=5)
     facilities_rating: Optional[int] = Field(None, ge=1, le=5)
     value_rating: Optional[int] = Field(None, ge=1, le=5)
     location_rating: Optional[int] = Field(None, ge=1, le=5)
-    
+
     is_public: bool = True
 
 
@@ -415,13 +418,13 @@ class VenueReviewUpdate(BaseModel):
     rating: Optional[int] = Field(None, ge=1, le=5)
     title: Optional[str] = Field(None, max_length=200)
     review_text: Optional[str] = None
-    
+
     cleanliness_rating: Optional[int] = Field(None, ge=1, le=5)
     staff_rating: Optional[int] = Field(None, ge=1, le=5)
     facilities_rating: Optional[int] = Field(None, ge=1, le=5)
     value_rating: Optional[int] = Field(None, ge=1, le=5)
     location_rating: Optional[int] = Field(None, ge=1, le=5)
-    
+
     is_public: Optional[bool] = None
     venue_response: Optional[str] = None
 
@@ -431,13 +434,13 @@ class VenueReview(VenueReviewBase):
     venue_id: int
     user_id: Optional[int] = None
     booking_id: Optional[int] = None
-    
+
     is_verified: bool = False
     helpful_votes: int = 0
-    
+
     venue_response: Optional[str] = None
     venue_responded_at: Optional[datetime] = None
-    
+
     created_at: datetime
     updated_at: datetime
 
@@ -490,39 +493,41 @@ class VenueSearchParams(BaseModel):
     region: Optional[str] = None
     venue_type: Optional[str] = None
     venue_status: Optional[VenueStatus] = VenueStatus.ACTIVE
-    
+
     # Capacity filtering
     min_capacity: Optional[int] = Field(None, ge=1)
     max_capacity: Optional[int] = Field(None, ge=1)
-    
+
     # Geographic filtering
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     radius_km: Optional[float] = Field(None, gt=0)
-    
+
     # Pricing filtering
     max_price_per_hour: Optional[Decimal] = Field(None, ge=0)
     max_price_per_day: Optional[Decimal] = Field(None, ge=0)
-    
+
     # Feature filtering
     has_parking: Optional[bool] = None
     has_catering: Optional[bool] = None
     has_av_equipment: Optional[bool] = None
     is_accessible: Optional[bool] = None
-    
+
     # Availability filtering
     available_from: Optional[datetime] = None
     available_to: Optional[datetime] = None
-    
+
     # Rating filtering
     min_rating: Optional[float] = Field(None, ge=0, le=5)
-    
+
     # Pagination
     page: int = Field(default=1, ge=1)
     size: int = Field(default=20, ge=1, le=100)
-    
+
     # Sorting
-    sort_by: Optional[str] = Field(default="name")  # name, rating, price, distance, created_at
+    sort_by: Optional[str] = Field(
+        default="name"
+    )  # name, rating, price, distance, created_at
     sort_order: Optional[str] = Field(default="asc")  # asc, desc
 
 

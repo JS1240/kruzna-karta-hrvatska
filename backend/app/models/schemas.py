@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
 from datetime import date, datetime
-from typing import Optional, List, Dict, Any
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 # Event Category Schemas
@@ -9,7 +10,7 @@ class EventCategoryBase(BaseModel):
     name: str = Field(..., max_length=100)
     slug: str = Field(..., max_length=100)
     description: Optional[str] = None
-    color: Optional[str] = Field(default='#3B82F6', max_length=7)
+    color: Optional[str] = Field(default="#3B82F6", max_length=7)
     icon: Optional[str] = Field(None, max_length=50)
 
 
@@ -38,7 +39,7 @@ class VenueBase(BaseModel):
     name: str = Field(..., max_length=255)
     address: Optional[str] = None
     city: str = Field(..., max_length=100)
-    country: Optional[str] = Field(default='Croatia', max_length=100)
+    country: Optional[str] = Field(default="Croatia", max_length=100)
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
     capacity: Optional[int] = None
@@ -89,9 +90,9 @@ class EventBase(BaseModel):
     venue_id: Optional[int] = None
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
-    source: str = Field(default='manual', max_length=50)
+    source: str = Field(default="manual", max_length=50)
     external_id: Optional[str] = Field(None, max_length=255)
-    event_status: Optional[str] = Field(default='active', max_length=20)
+    event_status: Optional[str] = Field(default="active", max_length=20)
     is_featured: Optional[bool] = Field(default=False)
     is_recurring: Optional[bool] = Field(default=False)
     organizer: Optional[str] = Field(None, max_length=255)
@@ -101,7 +102,7 @@ class EventBase(BaseModel):
     slug: Optional[str] = Field(None, max_length=600)
     end_date: Optional[date] = None
     end_time: Optional[str] = Field(None, max_length=50)
-    timezone: Optional[str] = Field(default='Europe/Zagreb', max_length=50)
+    timezone: Optional[str] = Field(default="Europe/Zagreb", max_length=50)
 
 
 class EventCreate(EventBase):
@@ -143,7 +144,7 @@ class Event(EventBase):
     scrape_hash: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+
     # Nested objects
     category: Optional[EventCategory] = None
     venue: Optional[Venue] = None
@@ -183,7 +184,7 @@ class EventSearchParams(BaseModel):
     date_from: Optional[date] = None
     date_to: Optional[date] = None
     is_featured: Optional[bool] = None
-    event_status: Optional[str] = 'active'
+    event_status: Optional[str] = "active"
     tags: Optional[List[str]] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
