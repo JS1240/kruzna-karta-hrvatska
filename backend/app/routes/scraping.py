@@ -13,6 +13,7 @@ from ..scraping.enhanced_scraper import (
     run_single_source_enhanced_scraping,
 )
 from ..scraping.entrio_scraper import scrape_entrio_events
+from ..scraping.infozagreb_scraper import scrape_infozagreb_events
 
 router = APIRouter(prefix="/scraping", tags=["scraping"])
 
@@ -37,7 +38,7 @@ class EnhancedScrapeRequest(BaseModel):
 
 
 class SingleSourceRequest(BaseModel):
-    source: str  # "entrio" or "croatia"
+    source: str  # "entrio", "croatia", or "infozagreb"
     max_pages: int = 5
     quality_threshold: float = 60.0
 
@@ -160,6 +161,45 @@ async def quick_scrape_croatia(
         )
 
 
+@router.post("/infozagreb", response_model=ScrapeResponse)
+async def scrape_infozagreb(request: ScrapeRequest, background_tasks: BackgroundTasks):
+    """Trigger InfoZagreb.hr event scraping."""
+    try:
+        if request.max_pages <= 2:
+            result = await scrape_infozagreb_events(max_pages=request.max_pages)
+            return ScrapeResponse(**result)
+
+        import uuid
+
+        task_id = str(uuid.uuid4())
+
+        async def run_info_scrape():
+            return await scrape_infozagreb_events(max_pages=request.max_pages)
+
+        background_tasks.add_task(run_info_scrape)
+
+        return ScrapeResponse(
+            status="accepted",
+            message=f"InfoZagreb scraping task started in background for {request.max_pages} pages",
+            task_id=task_id,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start InfoZagreb scraping: {str(e)}")
+
+
+@router.get("/infozagreb/quick", response_model=ScrapeResponse)
+async def quick_scrape_infozagreb(
+    max_pages: int = Query(1, ge=1, le=3, description="Number of pages to scrape (1-3 for quick scraping)")
+):
+    """Quick InfoZagreb.hr scraping."""
+    try:
+        result = await scrape_infozagreb_events(max_pages=max_pages)
+        return ScrapeResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"InfoZagreb scraping failed: {str(e)}")
+
+
 @router.post("/all", response_model=ScrapeResponse)
 async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundTasks):
     """
@@ -183,6 +223,12 @@ async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundT
                     max_pages=request.max_pages
                 )
                 results.append(("Croatia.hr", croatia_result))
+
+                # Scrape InfoZagreb.hr
+                info_result = await scrape_infozagreb_events(
+                    max_pages=request.max_pages
+                )
+                results.append(("InfoZagreb.hr", info_result))
 
                 # Combine results
                 total_scraped = sum(
@@ -242,12 +288,14 @@ async def scraping_status():
     return {
         "status": "operational",
         "config": config,
-        "supported_sites": ["entrio.hr", "croatia.hr"],
+        "supported_sites": ["entrio.hr", "croatia.hr", "infozagreb.hr"],
         "endpoints": {
             "POST /scraping/entrio": "Entrio.hr full scraping with background processing",
             "GET /scraping/entrio/quick": "Entrio.hr quick scraping (1-3 pages)",
             "POST /scraping/croatia": "Croatia.hr full scraping with background processing",
             "GET /scraping/croatia/quick": "Croatia.hr quick scraping (1-3 pages)",
+            "POST /scraping/infozagreb": "InfoZagreb.hr full scraping with background processing",
+            "GET /scraping/infozagreb/quick": "InfoZagreb.hr quick scraping (1-3 pages)",
             "POST /scraping/all": "Scrape all supported sites",
             "POST /scraping/enhanced/pipeline": "Enhanced scraping pipeline with quality validation",
             "POST /scraping/enhanced/single": "Enhanced single source scraping",
@@ -267,7 +315,7 @@ async def enhanced_scraping_pipeline(
     Enhanced scraping pipeline with comprehensive quality validation and duplicate detection.
 
     This endpoint runs the full enhanced pipeline that includes:
-    - Multi-source scraping (Entrio.hr + Croatia.hr)
+    - Multi-source scraping (Entrio.hr + Croatia.hr + InfoZagreb.hr)
     - Data quality validation with configurable thresholds
     - Advanced duplicate detection (batch + database)
     - Comprehensive performance reporting
@@ -350,16 +398,16 @@ async def enhanced_single_source_scraping(
     """
     Enhanced single-source scraping with quality validation.
 
-    Scrape from a single source (entrio or croatia) with full quality pipeline:
+    Scrape from a single source (entrio, croatia, or infozagreb) with full quality pipeline:
     - Advanced data validation and cleaning
     - Duplicate detection against existing database
     - Quality scoring and filtering
     - Detailed performance metrics
     """
     try:
-        if request.source.lower() not in ["entrio", "croatia"]:
+        if request.source.lower() not in ["entrio", "croatia", "infozagreb"]:
             raise HTTPException(
-                status_code=400, detail="Source must be 'entrio' or 'croatia'"
+                status_code=400, detail="Source must be 'entrio', 'croatia', or 'infozagreb'"
             )
 
         import uuid
