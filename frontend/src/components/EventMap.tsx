@@ -337,19 +337,7 @@ const EventMap = () => {
       // Create marker element
       const el = document.createElement("div");
       el.className = "event-marker";
-      el.style.cssText = `
-        width: 40px;
-        height: 40px;
-        background-color: ${config.color};
-        border: 3px solid white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        transition: transform 0.2s;
-      `;
+      el.style.backgroundColor = config.color;
 
       // Add icon
       el.innerHTML = `
