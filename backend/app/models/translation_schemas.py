@@ -1,13 +1,18 @@
-from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 # Language Schemas
 class LanguageBase(BaseModel):
-    code: str = Field(..., max_length=10, description="Language code (e.g., 'hr', 'en')")
+    code: str = Field(
+        ..., max_length=10, description="Language code (e.g., 'hr', 'en')"
+    )
     name: str = Field(..., max_length=100, description="Language name in English")
-    native_name: str = Field(..., max_length=100, description="Language name in native language")
+    native_name: str = Field(
+        ..., max_length=100, description="Language name in native language"
+    )
     flag_emoji: Optional[str] = Field(None, max_length=10, description="Flag emoji")
     rtl: Optional[bool] = Field(default=False, description="Right-to-left language")
 
@@ -39,8 +44,12 @@ class Language(LanguageBase):
 
 # Translation Base Schemas
 class TranslationQuality(BaseModel):
-    translation_quality: str = Field(default='pending', description="Translation quality status")
-    is_machine_translated: bool = Field(default=False, description="Whether translation was machine-generated")
+    translation_quality: str = Field(
+        default="pending", description="Translation quality status"
+    )
+    is_machine_translated: bool = Field(
+        default=False, description="Whether translation was machine-generated"
+    )
     translated_by: Optional[int] = Field(None, description="ID of user who translated")
     reviewed_by: Optional[int] = Field(None, description="ID of user who reviewed")
 
@@ -49,11 +58,21 @@ class TranslationQuality(BaseModel):
 class EventTranslationBase(BaseModel):
     name: str = Field(..., max_length=500, description="Translated event name")
     description: Optional[str] = Field(None, description="Translated event description")
-    location: Optional[str] = Field(None, max_length=500, description="Translated location name")
-    organizer: Optional[str] = Field(None, max_length=255, description="Translated organizer name")
-    slug: Optional[str] = Field(None, max_length=600, description="SEO-friendly URL slug")
-    meta_title: Optional[str] = Field(None, max_length=200, description="SEO meta title")
-    meta_description: Optional[str] = Field(None, max_length=300, description="SEO meta description")
+    location: Optional[str] = Field(
+        None, max_length=500, description="Translated location name"
+    )
+    organizer: Optional[str] = Field(
+        None, max_length=255, description="Translated organizer name"
+    )
+    slug: Optional[str] = Field(
+        None, max_length=600, description="SEO-friendly URL slug"
+    )
+    meta_title: Optional[str] = Field(
+        None, max_length=200, description="SEO meta title"
+    )
+    meta_description: Optional[str] = Field(
+        None, max_length=300, description="SEO meta description"
+    )
 
 
 class EventTranslationCreate(EventTranslationBase):
@@ -69,7 +88,9 @@ class EventTranslationUpdate(BaseModel):
     slug: Optional[str] = Field(None, max_length=600)
     meta_title: Optional[str] = Field(None, max_length=200)
     meta_description: Optional[str] = Field(None, max_length=300)
-    translation_quality: Optional[str] = Field(None, description="pending, reviewed, approved")
+    translation_quality: Optional[str] = Field(
+        None, description="pending, reviewed, approved"
+    )
 
 
 class EventTranslation(EventTranslationBase, TranslationQuality):
@@ -86,7 +107,9 @@ class EventTranslation(EventTranslationBase, TranslationQuality):
 # Category Translation Schemas
 class CategoryTranslationBase(BaseModel):
     name: str = Field(..., max_length=100, description="Translated category name")
-    description: Optional[str] = Field(None, description="Translated category description")
+    description: Optional[str] = Field(
+        None, description="Translated category description"
+    )
     slug: Optional[str] = Field(None, max_length=100, description="Translated URL slug")
 
 
@@ -99,7 +122,9 @@ class CategoryTranslationUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = None
     slug: Optional[str] = Field(None, max_length=100)
-    translation_quality: Optional[str] = Field(None, description="pending, reviewed, approved")
+    translation_quality: Optional[str] = Field(
+        None, description="pending, reviewed, approved"
+    )
 
 
 class CategoryTranslation(CategoryTranslationBase, TranslationQuality):
@@ -129,7 +154,9 @@ class VenueTranslationUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     address: Optional[str] = None
     description: Optional[str] = None
-    translation_quality: Optional[str] = Field(None, description="pending, reviewed, approved")
+    translation_quality: Optional[str] = Field(
+        None, description="pending, reviewed, approved"
+    )
 
 
 class VenueTranslation(VenueTranslationBase, TranslationQuality):
@@ -147,7 +174,9 @@ class VenueTranslation(VenueTranslationBase, TranslationQuality):
 class StaticContentTranslationBase(BaseModel):
     key: str = Field(..., max_length=200, description="Translation key")
     value: str = Field(..., description="Translated content")
-    context: Optional[str] = Field(None, max_length=100, description="Context for translators")
+    context: Optional[str] = Field(
+        None, max_length=100, description="Context for translators"
+    )
 
 
 class StaticContentTranslationCreate(StaticContentTranslationBase):
@@ -158,7 +187,9 @@ class StaticContentTranslationCreate(StaticContentTranslationBase):
 class StaticContentTranslationUpdate(BaseModel):
     value: Optional[str] = None
     context: Optional[str] = Field(None, max_length=100)
-    translation_quality: Optional[str] = Field(None, description="pending, reviewed, approved")
+    translation_quality: Optional[str] = Field(
+        None, description="pending, reviewed, approved"
+    )
 
 
 class StaticContentTranslation(StaticContentTranslationBase, TranslationQuality):
@@ -190,13 +221,14 @@ class BulkTranslationResponse(BaseModel):
 # Response Schemas with Translations
 class TranslatedEvent(BaseModel):
     """Event with applied translations"""
+
     id: int
     name: str
     description: Optional[str] = None
     location: str
     organizer: Optional[str] = None
     slug: Optional[str] = None
-    
+
     # Original fields
     time: str
     date: str
@@ -205,51 +237,53 @@ class TranslatedEvent(BaseModel):
     image: Optional[str] = None
     category_id: Optional[int] = None
     venue_id: Optional[int] = None
-    
+
     # Translation metadata
     translation_quality: Optional[str] = None
     is_machine_translated: Optional[bool] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class TranslatedCategory(BaseModel):
     """Category with applied translations"""
+
     id: int
     name: str
     description: Optional[str] = None
     slug: str
     color: str
     icon: Optional[str] = None
-    
+
     # Translation metadata
     translation_quality: Optional[str] = None
     is_machine_translated: Optional[bool] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class TranslatedVenue(BaseModel):
     """Venue with applied translations"""
+
     id: int
     name: str
     address: Optional[str] = None
     description: Optional[str] = None
     city: str
     country: str
-    
+
     # Original fields
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     capacity: Optional[int] = None
     venue_type: Optional[str] = None
-    
+
     # Translation metadata
     translation_quality: Optional[str] = None
     is_machine_translated: Optional[bool] = None
-    
+
     class Config:
         from_attributes = True
 

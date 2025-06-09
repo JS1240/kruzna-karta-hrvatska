@@ -1,6 +1,15 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, UniqueConstraint
-from sqlalchemy.sql import func
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from ..core.database import Base
 
 
@@ -11,7 +20,7 @@ class Venue(Base):
     name = Column(String(255), nullable=False, index=True)
     address = Column(Text)
     city = Column(String(100), nullable=False, index=True)
-    country = Column(String(100), default='Croatia')
+    country = Column(String(100), default="Croatia")
     latitude = Column(Numeric(10, 8))
     longitude = Column(Numeric(11, 8))
     capacity = Column(Integer)
@@ -20,16 +29,18 @@ class Venue(Base):
     phone = Column(String(50))
     email = Column(String(255))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
     # Relationships
     events = relationship("Event", back_populates="venue")
-    translations = relationship("VenueTranslation", back_populates="venue", cascade="all, delete-orphan")
-    
+    translations = relationship(
+        "VenueTranslation", back_populates="venue", cascade="all, delete-orphan"
+    )
+
     # Social relationships
     social_posts = relationship("SocialPost", back_populates="venue")
-    
+
     # Constraints
-    __table_args__ = (
-        UniqueConstraint('name', 'city', name='_venue_name_city_uc'),
-    )
+    __table_args__ = (UniqueConstraint("name", "city", name="_venue_name_city_uc"),)
