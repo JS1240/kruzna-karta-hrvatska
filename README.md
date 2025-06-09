@@ -333,6 +333,11 @@ The backend provides RESTful API endpoints:
 - `POST /api/scraping/all` - Scrape from all supported sites
 - `GET /api/scraping/status` - Get scraping system status
 
+### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Obtain an access token
+- `POST /api/auth/refresh` - Refresh an existing token
+
 ### API Documentation
 Visit http://localhost:8000/docs for interactive API documentation (Swagger UI).
 
@@ -342,6 +347,8 @@ Visit http://localhost:8000/docs for interactive API documentation (Swagger UI).
 ```env
 DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
 SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 DEBUG=True
 FRONTEND_URL=http://localhost:5173
 

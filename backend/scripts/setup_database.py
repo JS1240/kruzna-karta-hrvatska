@@ -15,7 +15,9 @@ from sqlalchemy import create_engine
 from app.core.config import settings
 from app.core.database import Base
 from app.models.event import Event
+from app.models.user import User
 from app.core.database import SessionLocal
+from app.core.security import get_password_hash
 
 
 def create_tables():
@@ -97,6 +99,13 @@ def insert_sample_data():
 
         db.commit()
         print("Sample data inserted successfully!")
+
+        # Create a default user
+        hashed_password = get_password_hash("password123")
+        user = User(email="demo@example.com", full_name="Demo User", hashed_password=hashed_password)
+        db.add(user)
+        db.commit()
+        print("Created demo user: demo@example.com / password123")
 
     except Exception as e:
         print(f"Error inserting sample data: {e}")

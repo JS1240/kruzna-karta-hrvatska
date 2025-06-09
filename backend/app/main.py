@@ -5,6 +5,7 @@ import os
 
 from .core.config import settings
 from .routes import events_router, scraping_router
+from .routes.auth import router as auth_router
 
 
 @asynccontextmanager
@@ -48,6 +49,7 @@ app.add_middleware(
 # Include routers
 app.include_router(events_router, prefix="/api")
 app.include_router(scraping_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 @app.get("/")
 def read_root():
