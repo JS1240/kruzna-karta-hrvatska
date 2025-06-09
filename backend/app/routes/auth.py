@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
 
+import logging
+
 from ..core.database import get_db
 from ..core.auth import (
     authenticate_user, create_access_token, create_refresh_token,
@@ -19,19 +21,20 @@ from ..models.user_schemas import (
     ResendEmailVerification, AuthResponse, UserResponse, User as UserSchema
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
 def send_verification_email(email: str, token: str):
     """Send email verification email (placeholder for actual email service)."""
     # TODO: Implement actual email sending
-    print(f"Verification email for {email}: {settings.frontend_url}/verify-email?token={token}")
+    logger.info(f"Verification email sent to {email}")
 
 
 def send_password_reset_email(email: str, token: str):
     """Send password reset email (placeholder for actual email service)."""
     # TODO: Implement actual email sending
-    print(f"Password reset email for {email}: {settings.frontend_url}/reset-password?token={token}")
+    logger.info(f"Password reset email sent to {email}")
 
 
 @router.post("/register", response_model=AuthResponse)

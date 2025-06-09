@@ -6,10 +6,12 @@ This script creates the database tables and inserts sample data.
 
 import os
 import sys
+import logging
 from datetime import date
 
 # Add the parent directory to the path to import our app modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import create_engine
 from app.core.config import settings
@@ -20,22 +22,22 @@ from app.core.database import SessionLocal
 
 def create_tables():
     """Create all database tables."""
-    print("Creating database tables...")
+    logger.info("Creating database tables...")
     engine = create_engine(settings.database_url)
     Base.metadata.create_all(bind=engine)
-    print("Tables created successfully!")
+    logger.info("Tables created successfully!")
 
 
 def insert_sample_data():
     """Insert sample events data."""
-    print("Inserting sample data...")
+    logger.info("Inserting sample data...")
     
     db = SessionLocal()
     try:
         # Check if we already have data
         existing_events = db.query(Event).count()
         if existing_events > 0:
-            print(f"Database already contains {existing_events} events. Skipping sample data insertion.")
+            logger.info(f"Database already contains {existing_events} events. Skipping sample data insertion.")
             return
 
         sample_events = [
@@ -93,13 +95,13 @@ def insert_sample_data():
 
         for event in sample_events:
             db.add(event)
-            print(f"Added event: {event.name}")
+            logger.info(f"Added event: {event.name}")
 
         db.commit()
-        print("Sample data inserted successfully!")
+        logger.info("Sample data inserted successfully!")
 
     except Exception as e:
-        print(f"Error inserting sample data: {e}")
+        logger.error(f"Error inserting sample data: {e}")
         db.rollback()
         raise
     finally:
@@ -108,18 +110,18 @@ def insert_sample_data():
 
 def main():
     """Main setup function."""
-    print("Setting up Kruzna Karta Hrvatska database...")
-    print(f"Database URL: {settings.database_url}")
+    logger.info("Setting up Kruzna Karta Hrvatska database...")
+    logger.info(f"Database URL: {settings.database_url}")
     
     try:
         create_tables()
         insert_sample_data()
-        print("\n✅ Database setup completed successfully!")
-        print("\nYou can now start the backend server with:")
-        print("cd backend && uv run uvicorn app.main:app --reload")
+        logger.info("\n✅ Database setup completed successfully!")
+        logger.info("\nYou can now start the backend server with:")
+        logger.info("cd backend && uv run uvicorn app.main:app --reload")
         
     except Exception as e:
-        print(f"\n❌ Database setup failed: {e}")
+        logger.error(f"\n❌ Database setup failed: {e}")
         sys.exit(1)
 
 

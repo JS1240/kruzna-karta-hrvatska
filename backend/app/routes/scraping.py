@@ -2,6 +2,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 from ..scraping.entrio_scraper import scrape_entrio_events
 from ..scraping.croatia_scraper import scrape_croatia_events
@@ -41,10 +44,10 @@ async def run_scraping_task(max_pages: int, task_id: str):
         result = await scrape_entrio_events(max_pages=max_pages)
         # In a real implementation, you'd store this result somewhere
         # accessible by task_id (Redis, database, etc.)
-        print(f"Scraping task {task_id} completed: {result}")
+        logger.info(f"Scraping task {task_id} completed: {result}")
         return result
     except Exception as e:
-        print(f"Scraping task {task_id} failed: {e}")
+        logger.error(f"Scraping task {task_id} failed: {e}")
         return {"status": "error", "message": str(e)}
 
 
@@ -289,11 +292,11 @@ async def enhanced_scraping_pipeline(
                     max_pages_per_source=request.max_pages_per_source,
                     quality_threshold=request.quality_threshold
                 )
-                print(f"Enhanced scraping task {task_id} completed successfully")
-                print(result.get("performance_report", "No performance report available"))
+                logger.info(f"Enhanced scraping task {task_id} completed successfully")
+                logger.info(result.get("performance_report", "No performance report available"))
                 return result
             except Exception as e:
-                print(f"Enhanced scraping task {task_id} failed: {e}")
+                logger.error(f"Enhanced scraping task {task_id} failed: {e}")
                 return {"status": "error", "message": str(e), "task_id": task_id}
         
         background_tasks.add_task(run_enhanced_background_task)
@@ -364,10 +367,10 @@ async def enhanced_single_source_scraping(
                     max_pages=request.max_pages,
                     quality_threshold=request.quality_threshold
                 )
-                print(f"Enhanced {request.source} scraping task {task_id} completed")
+                logger.info(f"Enhanced {request.source} scraping task {task_id} completed")
                 return result
             except Exception as e:
-                print(f"Enhanced {request.source} scraping task {task_id} failed: {e}")
+                logger.error(f"Enhanced {request.source} scraping task {task_id} failed: {e}")
                 return {"status": "error", "message": str(e), "task_id": task_id}
         
         background_tasks.add_task(run_single_source_background_task)
@@ -403,7 +406,7 @@ async def enhanced_scraping_demo(
         if source.lower() not in ["entrio", "croatia"]:
             raise HTTPException(status_code=400, detail="Source must be 'entrio' or 'croatia'")
         
-        print(f"Starting enhanced scraping demo for {source} ({max_pages} pages)")
+        logger.info(f"Starting enhanced scraping demo for {source} ({max_pages} pages)")
         
         result = await run_single_source_enhanced_scraping(
             source=source,
