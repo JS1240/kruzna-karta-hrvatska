@@ -7,12 +7,18 @@ import time
 from datetime import datetime
 from typing import List, Dict, Optional, Any, Tuple
 from sqlalchemy.orm import Session
+import logging
+
+from ..logging_config import configure_logging
 
 from ..core.database import SessionLocal
 from ..core.data_quality import DataQualityService, get_data_quality_service
 from ..models.schemas import EventCreate
 from .entrio_scraper import EntrioScraper
 from .croatia_scraper import CroatiaScraper
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 
 class EnhancedScrapingPipeline:
@@ -26,7 +32,7 @@ class EnhancedScrapingPipeline:
     
     async def scrape_all_sources(self, max_pages_per_source: int = 5) -> Dict[str, Any]:
         """Scrape events from all sources with enhanced quality processing."""
-        print("=== Starting Enhanced Scraping Pipeline ===")
+        logger.info("=== Starting Enhanced Scraping Pipeline ===")
         start_time = datetime.now()
         
         pipeline_results = {
@@ -47,7 +53,7 @@ class EnhancedScrapingPipeline:
         all_scraped_events = []
         
         for source_name, scraper, max_pages in sources_config:
-            print(f"\n--- Scraping {source_name} ---")
+            logger.info(f"\n--- Scraping {source_name} ---")
             source_start = datetime.now()
             
             try:
@@ -65,7 +71,7 @@ class EnhancedScrapingPipeline:
                 }
                 
                 all_scraped_events.extend(events)
-                print(f"✓ {source_name}: {len(events)} events scraped in {source_duration:.2f}s")
+                logger.info(f"✓ {source_name}: {len(events)} events scraped in {source_duration:.2f}s")
                 
             except Exception as e:
                 source_end = datetime.now()
@@ -79,10 +85,10 @@ class EnhancedScrapingPipeline:
                     "events": []
                 }
                 
-                print(f"✗ {source_name}: Failed after {source_duration:.2f}s - {e}")
+                logger.error(f"✗ {source_name}: Failed after {source_duration:.2f}s - {e}")
         
-        print(f"\n--- Combined Scraping Results ---")
-        print(f"Total events scraped: {len(all_scraped_events)}")
+        logger.info(f"\n--- Combined Scraping Results ---")
+        logger.info(f"Total events scraped: {len(all_scraped_events)}")
         
         # Process events with quality validation and duplicate detection
         if all_scraped_events:
@@ -100,15 +106,15 @@ class EnhancedScrapingPipeline:
         pipeline_results["total_processing_time"] = (end_time - start_time).total_seconds()
         pipeline_results["pipeline_end"] = end_time
         
-        print(f"\n=== Pipeline Complete ===")
-        print(f"Total processing time: {pipeline_results['total_processing_time']:.2f}s")
-        print(f"Events saved: {pipeline_results['saved_events']}")
+        logger.info(f"\n=== Pipeline Complete ===")
+        logger.info(f"Total processing time: {pipeline_results['total_processing_time']:.2f}s")
+        logger.info(f"Events saved: {pipeline_results['saved_events']}")
         
         return pipeline_results
     
     async def _process_events_with_quality_check(self, events: List[EventCreate]) -> Dict[str, Any]:
         """Process events with comprehensive quality validation."""
-        print(f"\n--- Quality Processing Pipeline ---")
+        logger.info(f"\n--- Quality Processing Pipeline ---")
         processing_start = datetime.now()
         
         db = SessionLocal()
@@ -117,7 +123,7 @@ class EnhancedScrapingPipeline:
             quality_service = DataQualityService(db)
             
             # Process events with quality validation and duplicate detection
-            print("Running quality validation and duplicate detection...")
+            logger.info("Running quality validation and duplicate detection...")
             processed_results = quality_service.process_scraped_events(
                 events=events,
                 quality_threshold=self.quality_threshold,
@@ -130,11 +136,11 @@ class EnhancedScrapingPipeline:
             
             # Save valid events to database
             if processed_results["valid_events"]:
-                print(f"Saving {len(processed_results['valid_events'])} valid events to database...")
+                logger.info(f"Saving {len(processed_results['valid_events'])} valid events to database...")
                 saved_count = quality_service.save_processed_events(processed_results)
                 processed_results["saved_events"] = saved_count
             else:
-                print("No valid events to save")
+                logger.info("No valid events to save")
                 processed_results["saved_events"] = 0
             
             processing_end = datetime.now()
@@ -147,7 +153,7 @@ class EnhancedScrapingPipeline:
             return processed_results
             
         except Exception as e:
-            print(f"Error in quality processing: {e}")
+            logger.error(f"Error in quality processing: {e}")
             db.rollback()
             raise
         finally:
@@ -158,40 +164,40 @@ class EnhancedScrapingPipeline:
         summary = processed_results["processing_summary"]
         report = processed_results.get("quality_report", {})
         
-        print(f"\n--- Quality Processing Summary ---")
-        print(f"📊 Original events: {summary['original_count']}")
-        print(f"✅ Valid events: {summary['valid_count']}")
-        print(f"⚠️  Low quality events: {summary['low_quality_count']}")
-        print(f"❌ Invalid events: {summary['invalid_count']}")
-        print(f"🔄 Batch duplicates removed: {summary['batch_duplicates_count']}")
-        print(f"🔍 Database duplicates found: {summary['db_duplicates_count']}")
-        print(f"💾 Final events saved: {summary['final_processable_count']}")
+        logger.info(f"\n--- Quality Processing Summary ---")
+        logger.info(f"📊 Original events: {summary['original_count']}")
+        logger.info(f"✅ Valid events: {summary['valid_count']}")
+        logger.info(f"⚠️  Low quality events: {summary['low_quality_count']}")
+        logger.info(f"❌ Invalid events: {summary['invalid_count']}")
+        logger.info(f"🔄 Batch duplicates removed: {summary['batch_duplicates_count']}")
+        logger.info(f"🔍 Database duplicates found: {summary['db_duplicates_count']}")
+        logger.info(f"💾 Final events saved: {summary['final_processable_count']}")
         
         if report:
-            print(f"\n--- Quality Metrics ---")
-            print(f"📈 Success rate: {report['success_rate']}%")
-            print(f"⭐ Average quality score: {report['quality_metrics']['average_quality_score']}")
-            print(f"🔁 Duplicate rate: {report['duplicate_analysis']['duplicate_rate']}%")
+            logger.info(f"\n--- Quality Metrics ---")
+            logger.info(f"📈 Success rate: {report['success_rate']}%")
+            logger.info(f"⭐ Average quality score: {report['quality_metrics']['average_quality_score']}")
+            logger.info(f"🔁 Duplicate rate: {report['duplicate_analysis']['duplicate_rate']}%")
             
             # Print quality distribution
             dist = report['quality_metrics']['quality_distribution']
-            print(f"🎯 Quality distribution: High({dist['high']}) Medium({dist['medium']}) Low({dist['low']})")
+            logger.info(f"🎯 Quality distribution: High({dist['high']}) Medium({dist['medium']}) Low({dist['low']})")
             
             # Print common issues
             if report['quality_metrics']['common_issues']:
-                print(f"\n--- Most Common Issues ---")
+                logger.info(f"\n--- Most Common Issues ---")
                 for i, (issue, count) in enumerate(report['quality_metrics']['common_issues'][:5], 1):
-                    print(f"{i}. {issue} ({count} times)")
+                    logger.info(f"{i}. {issue} ({count} times)")
             
             # Print recommendations
             if report['recommendations']:
-                print(f"\n--- Recommendations ---")
+                logger.info(f"\n--- Recommendations ---")
                 for i, rec in enumerate(report['recommendations'], 1):
-                    print(f"{i}. {rec}")
+                    logger.info(f"{i}. {rec}")
     
     async def scrape_single_source(self, source: str, max_pages: int = 5) -> Dict[str, Any]:
         """Scrape events from a single source with quality processing."""
-        print(f"=== Scraping {source} with Enhanced Pipeline ===")
+        logger.info(f"=== Scraping {source} with Enhanced Pipeline ===")
         start_time = datetime.now()
         
         # Select scraper
@@ -205,7 +211,7 @@ class EnhancedScrapingPipeline:
         # Scrape events
         try:
             events = await scraper.scrape_events(max_pages=max_pages)
-            print(f"Scraped {len(events)} events from {source}")
+            logger.info(f"Scraped {len(events)} events from {source}")
             
             # Process with quality validation
             if events:

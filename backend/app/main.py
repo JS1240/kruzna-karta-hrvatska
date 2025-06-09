@@ -2,6 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
+import logging
+
+from .logging_config import configure_logging
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 from .core.config import settings
 from .core.cors_middleware import CustomCORSMiddleware
@@ -14,7 +20,7 @@ from fastapi import Request, Response
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
-    print("Starting Kruzna Karta Hrvatska API...")
+    logger.info("Starting Kruzna Karta Hrvatska API...")
     
     # Start scheduler if enabled
     enable_scheduler = os.getenv("ENABLE_SCHEDULER", "false").lower() == "true"
@@ -29,7 +35,7 @@ async def lifespan(app: FastAPI):
     if enable_scheduler:
         from .tasks.scheduler import stop_scheduler
         stop_scheduler()
-    print("Shutting down Kruzna Karta Hrvatska API...")
+    logger.info("Shutting down Kruzna Karta Hrvatska API...")
 
 app = FastAPI(
     title="Kruzna Karta Hrvatska API",

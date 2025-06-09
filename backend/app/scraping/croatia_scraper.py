@@ -15,6 +15,9 @@ import requests
 from bs4 import BeautifulSoup, Tag
 import pandas as pd
 from sqlalchemy.orm import Session
+import logging
+
+from ..logging_config import configure_logging
 
 from ..core.config import settings
 from ..core.database import SessionLocal
@@ -33,6 +36,9 @@ BRD_WSS = f"wss://{USER}:{PASSWORD}@brd.superproxy.io:9222"
 USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
 USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
 USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "1") == "1"
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -236,7 +242,7 @@ class CroatiaEventDataTransformer:
             )
         
         except Exception as e:
-            print(f"Error transforming Croatia.hr event data: {e}")
+            logger.error(f"Error transforming Croatia.hr event data: {e}")
             return None
 
 
@@ -259,11 +265,11 @@ class CroatiaPlaywrightScraper:
             page = await browser.new_page()
             
             try:
-                print(f"→ Fetching Croatia.hr events from {start_url}")
+                logger.info(f"→ Fetching Croatia.hr events from {start_url}")
                 await page.goto(start_url, wait_until="domcontentloaded", timeout=90000)
                 
                 # Wait for Vue.js to load and render content
-                print("Waiting for Vue.js content to load...")
+                logger.info("Waiting for Vue.js content to load...")
                 await page.wait_for_timeout(5000)
                 
                 # Try to wait for event containers to appear
@@ -272,7 +278,7 @@ class CroatiaPlaywrightScraper:
                 page_count = 0
                 while page_count < max_pages:
                     page_count += 1
-                    print(f"Scraping page {page_count}...")
+                    logger.info(f"Scraping page {page_count}...")
                     
                     # Wait a bit more for dynamic content
                     await page.wait_for_timeout(3000)
@@ -420,7 +426,7 @@ class CroatiaPlaywrightScraper:
                     valid_events = [event for event in events_data if event.get('title') or event.get('link')]
                     all_events.extend(valid_events)
                     
-                    print(f"Page {page_count}: Found {len(valid_events)} events (Total: {len(all_events)})")
+                    logger.info(f"Page {page_count}: Found {len(valid_events)} events (Total: {len(all_events)})")
                     
                     # Try to find pagination or load more button
                     has_more = False
@@ -442,13 +448,13 @@ class CroatiaPlaywrightScraper:
                             if load_more:
                                 is_enabled = await load_more.is_enabled()
                                 if is_enabled:
-                                    print(f"Found load more button: {selector}")
+                                    logger.info(f"Found load more button: {selector}")
                                     await load_more.click()
                                     await page.wait_for_timeout(3000)  # Wait for new content
                                     has_more = True
                                     break
                         except Exception as e:
-                            print(f"Error clicking load more button: {e}")
+                            logger.error(f"Error clicking load more button: {e}")
                             continue
                     
                     # If no "load more" found, try scrolling to trigger infinite scroll
@@ -462,17 +468,17 @@ class CroatiaPlaywrightScraper:
                             new_events_data = await page.evaluate("document.querySelectorAll('a[href*=\"/dogadanja/\"], [class*=\"event\"]').length")
                             if new_events_data > len(eventElements if 'eventElements' in locals() else []):
                                 has_more = True
-                                print("Infinite scroll detected more content")
+                                logger.info("Infinite scroll detected more content")
                             
                         except Exception as e:
-                            print(f"Error with infinite scroll: {e}")
+                            logger.error(f"Error with infinite scroll: {e}")
                     
                     if not has_more or len(valid_events) == 0:
-                        print("No more pages found or no events on current page")
+                        logger.info("No more pages found or no events on current page")
                         break
                 
             except Exception as e:
-                print(f"Error during scraping: {e}")
+                logger.error(f"Error during scraping: {e}")
             
             finally:
                 await browser.close()
@@ -489,12 +495,12 @@ class CroatiaScraper:
     
     async def scrape_events(self, max_pages: int = 5) -> List[EventCreate]:
         """Scrape events and return as EventCreate objects."""
-        print(f"Starting Croatia.hr scraper (max_pages: {max_pages})")
+        logger.info(f"Starting Croatia.hr scraper (max_pages: {max_pages})")
         
         # Scrape raw data using Playwright (required for Vue.js content)
         raw_events = await self.playwright_scraper.scrape_with_playwright(max_pages=max_pages)
         
-        print(f"Scraped {len(raw_events)} raw events from Croatia.hr")
+        logger.info(f"Scraped {len(raw_events)} raw events from Croatia.hr")
         
         # Transform to EventCreate objects
         events = []
@@ -503,7 +509,7 @@ class CroatiaScraper:
             if event:
                 events.append(event)
         
-        print(f"Transformed {len(events)} valid events for Croatia.hr")
+        logger.info(f"Transformed {len(events)} valid events for Croatia.hr")
         return events
     
     def save_events_to_database(self, events: List[EventCreate]) -> int:
@@ -527,13 +533,13 @@ class CroatiaScraper:
                     db.add(db_event)
                     saved_count += 1
                 else:
-                    print(f"Event already exists: {event_data.name}")
+                    logger.info(f"Event already exists: {event_data.name}")
             
             db.commit()
-            print(f"Saved {saved_count} new events to database from Croatia.hr")
+            logger.info(f"Saved {saved_count} new events to database from Croatia.hr")
             
         except Exception as e:
-            print(f"Error saving Croatia.hr events to database: {e}")
+            logger.error(f"Error saving Croatia.hr events to database: {e}")
             db.rollback()
             raise
         finally:

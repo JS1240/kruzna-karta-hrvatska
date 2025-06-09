@@ -15,6 +15,9 @@ import requests
 from bs4 import BeautifulSoup, Tag
 import pandas as pd
 from sqlalchemy.orm import Session
+import logging
+
+from ..logging_config import configure_logging
 
 from ..core.config import settings
 from ..core.database import SessionLocal
@@ -34,6 +37,9 @@ CATEGORY_URL = os.getenv("CATEGORY_URL", "https://www.entrio.hr/hr/")
 USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
 USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
 USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "1") == "1"
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 HEADERS = {
     "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0"
@@ -170,7 +176,7 @@ class EventDataTransformer:
             )
         
         except Exception as e:
-            print(f"Error transforming event data: {e}")
+            logger.error(f"Error transforming event data: {e}")
             return None
 
 
@@ -206,7 +212,7 @@ class EntrioRequestsScraper:
             resp.raise_for_status()
             return resp
         except requests.exceptions.RequestException as e:
-            print(f"[ERROR] Request failed for {url}: {e}")
+            logger.error(f"[ERROR] Request failed for {url}: {e}")
             raise
     
     def parse_event_from_element(self, event_element: Tag) -> Dict:
@@ -288,13 +294,13 @@ class EntrioRequestsScraper:
                         break
         
         except Exception as e:
-            print(f"Error parsing event element: {e}")
+            logger.error(f"Error parsing event element: {e}")
         
         return event_data
     
     def scrape_events_page(self, url: str) -> Tuple[List[Dict], Optional[str]]:
         """Scrape events from a single page."""
-        print(f"→ Fetching {url}")
+        logger.info(f"→ Fetching {url}")
         resp = self.fetch(url)
         soup = BeautifulSoup(resp.text, 'html.parser')
         
@@ -311,7 +317,7 @@ class EntrioRequestsScraper:
         for selector in event_selectors:
             elements = soup.select(selector)
             if len(elements) > 0:
-                print(f"Found {len(elements)} events using selector: {selector}")
+                logger.info(f"Found {len(elements)} events using selector: {selector}")
                 event_elements = elements
                 break
         
@@ -336,7 +342,7 @@ class EntrioRequestsScraper:
                     next_page_url = urljoin(url, href)
                     break
         
-        print(f"Extracted {len(events)} events from page")
+        logger.info(f"Extracted {len(events)} events from page")
         return events, next_page_url
     
     def scrape_all_events(self, start_url: str = "https://entrio.hr/events", max_pages: int = 5) -> List[Dict]:
@@ -351,7 +357,7 @@ class EntrioRequestsScraper:
                 all_events.extend(events)
                 
                 page_count += 1
-                print(f"Page {page_count}: Found {len(events)} events (Total: {len(all_events)})")
+                logger.info(f"Page {page_count}: Found {len(events)} events (Total: {len(all_events)})")
                 
                 if not events:
                     break
@@ -360,7 +366,7 @@ class EntrioRequestsScraper:
                 time.sleep(1)  # Be respectful
                 
             except Exception as e:
-                print(f"Failed to scrape page {current_url}: {e}")
+                logger.error(f"Failed to scrape page {current_url}: {e}")
                 break
         
         return all_events
@@ -387,7 +393,7 @@ class EntrioPlaywrightScraper:
             
             while current_url and page_count < max_pages:
                 try:
-                    print(f"→ Fetching {current_url}")
+                    logger.info(f"→ Fetching {current_url}")
                     await page.goto(current_url, wait_until="domcontentloaded", timeout=90000)
                     
                     # Wait for content to load
@@ -463,7 +469,7 @@ class EntrioPlaywrightScraper:
                     
                     all_events.extend(events_data)
                     page_count += 1
-                    print(f"Page {page_count}: Found {len(events_data)} events (Total: {len(all_events)})")
+                    logger.info(f"Page {page_count}: Found {len(events_data)} events (Total: {len(all_events)})")
                     
                     if not events_data:
                         break
@@ -482,7 +488,7 @@ class EntrioPlaywrightScraper:
                     await asyncio.sleep(2)
                 
                 except Exception as e:
-                    print(f"Failed to scrape page {current_url}: {e}")
+                    logger.error(f"Failed to scrape page {current_url}: {e}")
                     break
             
             await browser.close()
@@ -503,7 +509,7 @@ class EntrioScraper:
         if use_playwright is None:
             use_playwright = USE_PLAYWRIGHT
         
-        print(f"Starting Entrio.hr scraper (Playwright: {use_playwright})")
+        logger.info(f"Starting Entrio.hr scraper (Playwright: {use_playwright})")
         
         # Scrape raw data
         if use_playwright:
@@ -511,7 +517,7 @@ class EntrioScraper:
         else:
             raw_events = self.requests_scraper.scrape_all_events(max_pages=max_pages)
         
-        print(f"Scraped {len(raw_events)} raw events")
+        logger.info(f"Scraped {len(raw_events)} raw events")
         
         # Transform to EventCreate objects
         events = []
@@ -520,7 +526,7 @@ class EntrioScraper:
             if event:
                 events.append(event)
         
-        print(f"Transformed {len(events)} valid events")
+        logger.info(f"Transformed {len(events)} valid events")
         return events
     
     def save_events_to_database(self, events: List[EventCreate]) -> int:
@@ -544,13 +550,13 @@ class EntrioScraper:
                     db.add(db_event)
                     saved_count += 1
                 else:
-                    print(f"Event already exists: {event_data.name}")
+                    logger.info(f"Event already exists: {event_data.name}")
             
             db.commit()
-            print(f"Saved {saved_count} new events to database")
+            logger.info(f"Saved {saved_count} new events to database")
             
         except Exception as e:
-            print(f"Error saving events to database: {e}")
+            logger.error(f"Error saving events to database: {e}")
             db.rollback()
             raise
         finally:

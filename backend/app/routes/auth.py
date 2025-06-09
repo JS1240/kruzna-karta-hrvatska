@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
+import logging
+
+from ..logging_config import configure_logging
 
 from ..core.database import get_db
 from ..core.auth import (
@@ -21,17 +24,20 @@ from ..models.user_schemas import (
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
+configure_logging()
+logger = logging.getLogger(__name__)
+
 
 def send_verification_email(email: str, token: str):
     """Send email verification email (placeholder for actual email service)."""
     # TODO: Implement actual email sending
-    print(f"Verification email for {email}: {settings.frontend_url}/verify-email?token={token}")
+    logger.debug("Verification email sent to %s", email)
 
 
 def send_password_reset_email(email: str, token: str):
     """Send password reset email (placeholder for actual email service)."""
     # TODO: Implement actual email sending
-    print(f"Password reset email for {email}: {settings.frontend_url}/reset-password?token={token}")
+    logger.debug("Password reset email sent to %s", email)
 
 
 @router.post("/register", response_model=AuthResponse)
