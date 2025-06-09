@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, validator
 from sqlalchemy.orm import Session, joinedload
 
 from ..core.auth import get_current_superuser, get_current_user
+from ..core.permissions import require_event_creator
 from ..core.database import get_db
 from ..models.booking import TicketType
 from ..models.category import EventCategory
@@ -95,11 +96,6 @@ class EventApprovalUpdate(BaseModel):
 
 
 # Helper functions
-def can_user_create_events(user: User) -> bool:
-    """Check if user can create events"""
-    return user.venue_owner or user.venue_manager or user.is_superuser
-
-
 def generate_event_slug(title: str, event_id: int) -> str:
     """Generate a URL-friendly slug for the event"""
     import re
@@ -118,12 +114,10 @@ def create_user_event(
 ):
     """Create a new user-generated event."""
     try:
-        # Check if user can create events
-        if not can_user_create_events(current_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You need to be a venue owner or manager to create events. Please contact support to upgrade your account.",
-            )
+        require_event_creator(
+            current_user,
+            "You need to be a venue owner or manager to create events. Please contact support to upgrade your account.",
+        )
 
         # Validate category exists
         category = (
@@ -646,10 +640,7 @@ def get_organizer_stats(
 ):
     """Get statistics for the current organizer."""
     try:
-        if not can_user_create_events(current_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_event_creator(current_user)
 
         # Get event statistics
         total_events = (
@@ -735,10 +726,7 @@ def get_revenue_trends(
 ):
     """Get revenue trends over time for the organizer."""
     try:
-        if not can_user_create_events(current_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_event_creator(current_user)
 
         from sqlalchemy import extract, func
 
@@ -807,10 +795,7 @@ def get_event_performance(
 ):
     """Get performance breakdown by event for the organizer."""
     try:
-        if not can_user_create_events(current_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_event_creator(current_user)
 
         from sqlalchemy import func
 
@@ -876,10 +861,7 @@ def get_ticket_type_analytics(
 ):
     """Get analytics breakdown by ticket types for the organizer."""
     try:
-        if not can_user_create_events(current_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_event_creator(current_user)
 
         from sqlalchemy import func
 
@@ -942,10 +924,7 @@ def get_booking_conversion_metrics(
 ):
     """Get booking conversion metrics for the organizer."""
     try:
-        if not can_user_create_events(current_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_event_creator(current_user)
 
         from sqlalchemy import func
 
@@ -1018,10 +997,7 @@ def get_geographic_revenue(
 ):
     """Get revenue distribution by location for the organizer."""
     try:
-        if not can_user_create_events(current_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_event_creator(current_user)
 
         from sqlalchemy import func
 

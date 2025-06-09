@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..core.auth import get_current_active_user
+from ..core.permissions import require_admin
 from ..core.cache import get_cache_service
 from ..core.database import get_db, get_db_pool_status, health_check_db
 from ..core.performance import get_performance_service
@@ -49,8 +50,7 @@ def get_performance_stats(
 ):
     """Get detailed performance statistics (admin only)."""
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(current_user)
 
     performance_service = get_performance_service(db)
     stats = performance_service.get_performance_stats()
@@ -62,8 +62,7 @@ def get_performance_stats(
 def get_cache_stats(current_user: User = Depends(get_current_active_user)):
     """Get cache performance statistics (admin only)."""
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(current_user)
 
     cache_service = get_cache_service()
     return cache_service.get_stats()
@@ -79,8 +78,7 @@ def invalidate_cache_namespace(
 ):
     """Invalidate cache namespace (admin only)."""
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(current_user)
 
     cache_service = get_cache_service()
 
@@ -120,8 +118,7 @@ def flush_cache_namespace(
 ):
     """Flush entire cache namespace (admin only)."""
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(current_user)
 
     cache_service = get_cache_service()
     deleted_count = cache_service.flush_namespace(namespace)
@@ -137,8 +134,7 @@ def flush_cache_namespace(
 def get_database_pool_stats(current_user: User = Depends(get_current_active_user)):
     """Get database connection pool statistics (admin only)."""
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(current_user)
 
     pool_stats = get_db_pool_status()
 
@@ -157,8 +153,7 @@ def get_performance_summary(
 ):
     """Get performance summary (admin only)."""
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(current_user)
 
     summary = {"timestamp": datetime.now().isoformat(), "system_status": "healthy"}
 
@@ -203,8 +198,7 @@ def warm_up_cache(
 ):
     """Warm up frequently accessed cache data (admin only)."""
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(current_user)
 
     performance_service = get_performance_service(db)
     warmed_caches = []
@@ -246,8 +240,7 @@ def get_performance_recommendations(
 ):
     """Get performance optimization recommendations (admin only)."""
 
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(current_user)
 
     recommendations = []
 

@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..core.auth import get_current_user
+from ..core.permissions import require_owner_or_admin
 from ..core.database import get_db
 from ..core.recurring_events import (
     RecurringEventsServiceError,
@@ -141,10 +142,7 @@ def get_event_series(
             )
 
         # Check if user has access (organizer or admin)
-        if series.organizer_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_owner_or_admin(series.organizer_id, current_user)
 
         return {
             "id": series.id,
@@ -246,10 +244,7 @@ def update_event_series(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Event series not found"
             )
 
-        if series.organizer_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_owner_or_admin(series.organizer_id, current_user)
 
         recurring_service = get_recurring_events_service()
 
@@ -309,10 +304,7 @@ def get_series_instances(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Event series not found"
             )
 
-        if series.organizer_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_owner_or_admin(series.organizer_id, current_user)
 
         recurring_service = get_recurring_events_service()
 
@@ -365,13 +357,7 @@ def modify_event_instance(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Event instance not found"
             )
 
-        if (
-            instance.series.organizer_id != current_user.id
-            and not current_user.is_admin
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_owner_or_admin(instance.series.organizer_id, current_user)
 
         recurring_service = get_recurring_events_service()
 
@@ -421,13 +407,7 @@ def cancel_event_instance(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Event instance not found"
             )
 
-        if (
-            instance.series.organizer_id != current_user.id
-            and not current_user.is_admin
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_owner_or_admin(instance.series.organizer_id, current_user)
 
         recurring_service = get_recurring_events_service()
 
@@ -473,13 +453,7 @@ def publish_event_instance(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Event instance not found"
             )
 
-        if (
-            instance.series.organizer_id != current_user.id
-            and not current_user.is_admin
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_owner_or_admin(instance.series.organizer_id, current_user)
 
         if instance.instance_status != EventInstanceStatus.SCHEDULED:
             raise HTTPException(
@@ -651,10 +625,7 @@ def get_series_statistics(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Event series not found"
             )
 
-        if series.organizer_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+        require_owner_or_admin(series.organizer_id, current_user)
 
         recurring_service = get_recurring_events_service()
 
