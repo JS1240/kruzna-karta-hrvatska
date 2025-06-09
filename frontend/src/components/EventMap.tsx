@@ -7,7 +7,6 @@ import {
   Users,
   CalendarDays,
   PartyPopper,
-  MapPin,
   Loader2,
   AlertCircle,
 } from "lucide-react";
@@ -18,38 +17,17 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { DateRange } from "react-day-picker";
+import MapFilters from "./MapFilters";
+import { useMapFilters } from "@/hooks/useMapFilters";
 import { useEvents } from "@/hooks/useEvents";
-import { Event, MapFilters } from "@/lib/api";
+import { Event, MapFilters as ApiMapFilters } from "@/lib/api";
 import {
   getCoordinatesForLocation,
   addCoordinateJitter,
   Coordinates,
 } from "@/lib/geocoding";
 import { logger } from "@/lib/logger";
-
-// Croatian counties and their cities
-const countiesWithCities = {
-  "Split-Dalmatia": ["Split", "Makarska", "Trogir", "Omiš", "Hvar"],
-  Zagreb: ["Zagreb", "Velika Gorica", "Samobor", "Zaprešić"],
-  "Dubrovnik-Neretva": ["Dubrovnik", "Metković", "Ploče", "Korčula"],
-  "Primorje-Gorski Kotar": ["Rijeka", "Opatija", "Crikvenica", "Krk"],
-  Zadar: ["Zadar", "Biograd", "Pag", "Nin"],
-  Istria: ["Pula", "Rovinj", "Poreč", "Umag"],
-  "Lika-Senj": ["Gospić", "Senj", "Otočac", "Novalja"],
-};
 
 // Event category mapping and icons
 const categoryConfig = {
@@ -76,58 +54,12 @@ const EventMap = () => {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [selectedCounty, setSelectedCounty] = useState<string | null>(null);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [selectedPrice, setSelectedPrice] = useState<[number, number] | null>(
-    null,
-  );
-  const [selectedDateRange, setSelectedDateRange] = useState<string | null>(
-    null,
-  );
-  const [selectedDateRangeObj, setSelectedDateRangeObj] = useState<
-    DateRange | undefined
-  >(undefined);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const filters = useMapFilters();
 
-  // API filters based on current selections
-  const apiFilters = useMemo(() => {
-    const filters: MapFilters = {};
-
-    if (searchTerm) {
-      filters.search = searchTerm;
-    }
-
-    if (selectedCity) {
-      filters.location = selectedCity;
-    } else if (selectedCounty) {
-      filters.location = selectedCounty;
-    }
-
-    // Date filtering
-    const dateRange = getDateRangeFromSelection(selectedDateRange);
-    if (dateRange) {
-      filters.date_from = dateRange[0].toISOString().split("T")[0];
-      filters.date_to = dateRange[1].toISOString().split("T")[0];
-    } else if (selectedDateRangeObj?.from) {
-      filters.date_from = selectedDateRangeObj.from.toISOString().split("T")[0];
-      if (selectedDateRangeObj.to) {
-        filters.date_to = selectedDateRangeObj.to.toISOString().split("T")[0];
-      }
-    }
-
-    return filters;
-  }, [
-    searchTerm,
-    selectedCity,
-    selectedCounty,
-    selectedDateRange,
-    selectedDateRangeObj,
-  ]);
+  const apiFilters = filters.apiFilters;
 
   // Fetch events from API
-  const { events, loading, error, total, refetch } = useEvents<MapFilters>({
+  const { events, loading, error, total, refetch } = useEvents<ApiMapFilters>({
     filters: apiFilters,
     autoFetch: true,
   });
@@ -163,71 +95,27 @@ const EventMap = () => {
   const filteredEvents = useMemo(() => {
     return mapEvents.filter((event) => {
       // Category filter
-      if (activeCategory) {
+      if (filters.activeCategory) {
         const eventCategory = inferEventCategory(
           event.name,
           event.description || "",
         );
-        if (eventCategory !== activeCategory) return false;
+        if (eventCategory !== filters.activeCategory) return false;
       }
 
       // Price filter
-      if (selectedPrice) {
+      if (filters.selectedPrice) {
         const eventPrice = extractPriceValue(event.price || "");
         if (eventPrice !== null) {
-          const [minPrice, maxPrice] = selectedPrice;
+          const [minPrice, maxPrice] = filters.selectedPrice;
           if (eventPrice < minPrice || eventPrice > maxPrice) return false;
         }
       }
 
       return true;
     });
-  }, [mapEvents, activeCategory, selectedPrice]);
+  }, [mapEvents, filters.activeCategory, filters.selectedPrice]);
 
-  // Get date ranges based on selection
-  const getDateRangeFromSelection = (
-    selection: string | null,
-  ): [Date, Date] | null => {
-    if (!selection) return null;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const thisWeekend = new Date(today);
-    const dayOfWeek = today.getDay();
-    const daysUntilWeekend =
-      dayOfWeek === 0 || dayOfWeek === 6 ? 0 : 6 - dayOfWeek;
-    thisWeekend.setDate(today.getDate() + daysUntilWeekend);
-
-    const nextWeekend = new Date(thisWeekend);
-    nextWeekend.setDate(nextWeekend.getDate() + 7);
-
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-    switch (selection) {
-      case "today":
-        return [today, today];
-      case "tomorrow":
-        return [tomorrow, tomorrow];
-      case "this-weekend": {
-        const weekendEnd = new Date(thisWeekend);
-        weekendEnd.setDate(thisWeekend.getDate() + 1);
-        return [thisWeekend, weekendEnd];
-      }
-      case "next-weekend": {
-        const nextWeekendEnd = new Date(nextWeekend);
-        nextWeekendEnd.setDate(nextWeekend.getDate() + 1);
-        return [nextWeekend, nextWeekendEnd];
-      }
-      case "this-month":
-        return [today, endOfMonth];
-      default:
-        return null;
-    }
-  };
 
   // Infer event category from name and description
   const inferEventCategory = (name: string, description: string): string => {
@@ -407,46 +295,6 @@ const EventMap = () => {
     });
   }, [mapLoaded, filteredEvents]);
 
-  // Functions to handle filter changes
-  const handleCategoryChange = (category: string | null) => {
-    setActiveCategory(category === activeCategory ? null : category);
-  };
-
-  const handleDateRangeChange = (value: string) => {
-    setSelectedDateRange(value === selectedDateRange ? null : value);
-    setSelectedDateRangeObj(undefined);
-  };
-
-  const handleCountyChange = (county: string) => {
-    setSelectedCounty(county === selectedCounty ? "" : county);
-    setSelectedCity(null);
-  };
-
-  const handleCityChange = (city: string) => {
-    setSelectedCity(city === selectedCity ? "" : city);
-  };
-
-  const handlePriceRangeChange = (values: number[]) => {
-    setSelectedPrice([values[0], values[1]]);
-  };
-
-  const clearAllFilters = () => {
-    setActiveCategory(null);
-    setSelectedCounty(null);
-    setSelectedCity(null);
-    setSelectedPrice(null);
-    setSelectedDateRange(null);
-    setSelectedDateRangeObj(undefined);
-    setSearchTerm("");
-  };
-
-  const getAvailableCities = () => {
-    if (!selectedCounty) return [];
-    return (
-      countiesWithCities[selectedCounty as keyof typeof countiesWithCities] ||
-      []
-    );
-  };
 
   return (
     <div className="relative w-full h-screen">
@@ -484,144 +332,12 @@ const EventMap = () => {
       )}
 
       {/* Controls Panel */}
-      <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 space-y-4 max-w-sm z-40">
-        {/* Search */}
-        <div>
-          <Label htmlFor="search">Search Events</Label>
-          <Input
-            id="search"
-            placeholder="Search by name or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Event Categories */}
-        <div>
-          <Label>Event Categories</Label>
-          <ToggleGroup
-            type="single"
-            value={activeCategory || ""}
-            onValueChange={handleCategoryChange}
-          >
-            {Object.entries(categoryConfig).map(([key, config]) => {
-              const IconComponent = config.icon;
-              return (
-                <ToggleGroupItem
-                  key={key}
-                  value={key}
-                  aria-label={config.label}
-                >
-                  <IconComponent
-                    className="h-4 w-4"
-                    style={{ color: config.color }}
-                  />
-                </ToggleGroupItem>
-              );
-            })}
-          </ToggleGroup>
-        </div>
-
-        {/* Location Filters */}
-        <div className="space-y-2">
-          <Label>Location</Label>
-          <Select
-            value={selectedCounty || ""}
-            onValueChange={handleCountyChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select County" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(countiesWithCities).map((county) => (
-                <SelectItem key={county} value={county}>
-                  {county}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {selectedCounty && (
-            <Select value={selectedCity || ""} onValueChange={handleCityChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select City" />
-              </SelectTrigger>
-              <SelectContent>
-                {getAvailableCities().map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        {/* Date Range Filter */}
-        <div>
-          <Label>Date Range</Label>
-          <ToggleGroup
-            type="single"
-            value={selectedDateRange || ""}
-            onValueChange={handleDateRangeChange}
-          >
-            <ToggleGroupItem value="today">Today</ToggleGroupItem>
-            <ToggleGroupItem value="tomorrow">Tomorrow</ToggleGroupItem>
-            <ToggleGroupItem value="this-weekend">Weekend</ToggleGroupItem>
-            <ToggleGroupItem value="this-month">This Month</ToggleGroupItem>
-          </ToggleGroup>
-
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full mt-2">
-                {selectedDateRangeObj?.from
-                  ? selectedDateRangeObj.to
-                    ? `${selectedDateRangeObj.from.toLocaleDateString()} - ${selectedDateRangeObj.to.toLocaleDateString()}`
-                    : selectedDateRangeObj.from.toLocaleDateString()
-                  : "Pick custom dates"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={selectedDateRangeObj?.from}
-                selected={selectedDateRangeObj}
-                onSelect={setSelectedDateRangeObj}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Price Range Filter */}
-        <div>
-          <Label>Price Range (EUR)</Label>
-          <div className="px-2 py-4">
-            <Slider
-              defaultValue={[0, 200]}
-              max={500}
-              step={10}
-              value={selectedPrice || [0, 500]}
-              onValueChange={handlePriceRangeChange}
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{selectedPrice?.[0] || 0}€</span>
-              <span>{selectedPrice?.[1] || 500}€</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Clear Filters */}
-        <Button variant="outline" onClick={clearAllFilters} className="w-full">
-          Clear All Filters
-        </Button>
-
-        {/* Event Count */}
-        <div className="text-sm text-gray-600 text-center">
-          Showing {filteredEvents.length} of {total} events
-        </div>
-      </div>
+      <MapFilters
+        filters={filters}
+        filteredCount={filteredEvents.length}
+        total={total}
+        error={error}
+      />
 
       {/* Legend */}
       <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 z-40">

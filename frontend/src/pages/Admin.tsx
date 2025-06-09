@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import ScrapeSiteCard from "@/components/ScrapeSiteCard";
 import {
   Loader2,
   Download,
@@ -245,171 +246,31 @@ const Admin = () => {
 
             {/* Scraping Controls */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Entrio.hr */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Entrio.hr</span>
-                    {results["entrio"] &&
-                      getStatusBadge(results["entrio"].status)}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    Croatia's leading event ticketing platform
-                  </p>
+              <ScrapeSiteCard
+                title="Entrio.hr"
+                description="Croatia's leading event ticketing platform"
+                loadingQuick={!!loading["entrio-quick"]}
+                loadingFull={!!loading["entrio"]}
+                resultQuick={results["entrio-quick"]}
+                resultFull={results["entrio"]}
+                onQuick={() => quickScrape("entrio", "entrio")}
+                onFull={() => triggerScraping("entrio", "entrio")}
+                getStatusIcon={getStatusIcon}
+                getStatusBadge={getStatusBadge}
+              />
 
-                  <div className="flex space-x-2">
-                    <Button
-                      onClick={() => quickScrape("entrio", "entrio")}
-                      disabled={loading["entrio-quick"]}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      {loading["entrio-quick"] ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      Quick Test
-                    </Button>
-
-                    <Button
-                      onClick={() => triggerScraping("entrio", "entrio")}
-                      disabled={loading["entrio"]}
-                      className="flex-1"
-                    >
-                      {loading["entrio"] ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Database className="h-4 w-4 mr-2" />
-                      )}
-                      Full Scrape
-                    </Button>
-                  </div>
-
-                  {results["entrio-quick"] && (
-                    <Alert>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(results["entrio-quick"].status)}
-                        <AlertDescription>
-                          <strong>Quick Test:</strong>{" "}
-                          {results["entrio-quick"].message}
-                          {results["entrio-quick"].scraped_events !==
-                            undefined && (
-                            <span className="block mt-1">
-                              Found {results["entrio-quick"].scraped_events}{" "}
-                              events, saved{" "}
-                              {results["entrio-quick"].saved_events} new ones
-                            </span>
-                          )}
-                        </AlertDescription>
-                      </div>
-                    </Alert>
-                  )}
-
-                  {results["entrio"] && (
-                    <Alert>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(results["entrio"].status)}
-                        <AlertDescription>
-                          <strong>Full Scrape:</strong>{" "}
-                          {results["entrio"].message}
-                          {results["entrio"].scraped_events !== undefined && (
-                            <span className="block mt-1">
-                              Found {results["entrio"].scraped_events} events,
-                              saved {results["entrio"].saved_events} new ones
-                            </span>
-                          )}
-                        </AlertDescription>
-                      </div>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Croatia.hr */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Croatia.hr</span>
-                    {results["croatia"] &&
-                      getStatusBadge(results["croatia"].status)}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    Official Croatian tourism events portal
-                  </p>
-
-                  <div className="flex space-x-2">
-                    <Button
-                      onClick={() => quickScrape("croatia", "croatia")}
-                      disabled={loading["croatia-quick"]}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      {loading["croatia-quick"] ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      Quick Test
-                    </Button>
-
-                    <Button
-                      onClick={() => triggerScraping("croatia", "croatia")}
-                      disabled={loading["croatia"]}
-                      className="flex-1"
-                    >
-                      {loading["croatia"] ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Database className="h-4 w-4 mr-2" />
-                      )}
-                      Full Scrape
-                    </Button>
-                  </div>
-
-                  {results["croatia-quick"] && (
-                    <Alert>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(results["croatia-quick"].status)}
-                        <AlertDescription>
-                          <strong>Quick Test:</strong>{" "}
-                          {results["croatia-quick"].message}
-                          {results["croatia-quick"].scraped_events !==
-                            undefined && (
-                            <span className="block mt-1">
-                              Found {results["croatia-quick"].scraped_events}{" "}
-                              events, saved{" "}
-                              {results["croatia-quick"].saved_events} new ones
-                            </span>
-                          )}
-                        </AlertDescription>
-                      </div>
-                    </Alert>
-                  )}
-
-                  {results["croatia"] && (
-                    <Alert>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(results["croatia"].status)}
-                        <AlertDescription>
-                          <strong>Full Scrape:</strong>{" "}
-                          {results["croatia"].message}
-                          {results["croatia"].scraped_events !== undefined && (
-                            <span className="block mt-1">
-                              Found {results["croatia"].scraped_events} events,
-                              saved {results["croatia"].saved_events} new ones
-                            </span>
-                          )}
-                        </AlertDescription>
-                      </div>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
+              <ScrapeSiteCard
+                title="Croatia.hr"
+                description="Official Croatian tourism events portal"
+                loadingQuick={!!loading["croatia-quick"]}
+                loadingFull={!!loading["croatia"]}
+                resultQuick={results["croatia-quick"]}
+                resultFull={results["croatia"]}
+                onQuick={() => quickScrape("croatia", "croatia")}
+                onFull={() => triggerScraping("croatia", "croatia")}
+                getStatusIcon={getStatusIcon}
+                getStatusBadge={getStatusBadge}
+              />
             </div>
 
             {/* Combined Scraping */}
