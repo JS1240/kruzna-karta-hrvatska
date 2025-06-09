@@ -66,6 +66,8 @@ docker-compose down -v && docker-compose up --build
 ├─────────────────┤
 │   Backend API   │ :8000 (FastAPI + Python)
 ├─────────────────┤
+│   Celery Worker │ (Background tasks)
+├─────────────────┤
 │   PostgreSQL    │ :5432 (Database)
 ├─────────────────┤
 │   Redis         │ :6379 (Cache)
@@ -75,6 +77,7 @@ docker-compose down -v && docker-compose up --build
 ### Services
 - **Frontend**: React + TypeScript + Vite served by Nginx
 - **Backend**: FastAPI + SQLAlchemy + Python with uv
+- **Celery**: Background worker for scraping tasks
 - **Database**: PostgreSQL 15 with sample Croatian events
 - **Cache**: Redis 7 for caching and task queues
 - **Proxy**: Nginx reverse proxy with load balancing
@@ -210,6 +213,7 @@ The backend includes an integrated web scraping system that automatically collec
 - **Automatic Data Processing**: Transforms scraped data to match database schema
 - **Duplicate Prevention**: Automatically detects and prevents duplicate events
 - **Scheduled Tasks**: Optional automatic scraping at configurable intervals
+- **Celery Queue**: Heavy scraping jobs run in a Celery worker using Redis
 
 ### Usage
 
@@ -353,6 +357,9 @@ USE_PLAYWRIGHT=true
 # BrightData (optional, for proxy scraping)
 BRIGHTDATA_USER=your-brightdata-user
 BRIGHTDATA_PASSWORD=your-brightdata-password
+# Celery
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
 
 ### Frontend (`.env`)

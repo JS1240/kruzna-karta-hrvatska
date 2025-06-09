@@ -68,6 +68,29 @@ services:
     networks:
       - diidemo-network
 
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: diidemo-celery
+    command: celery -A app.celery_app.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://postgres:diidemo2024@postgres:5432/kruzna_karta_hrvatska
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=diidemo-secret-key-2024
+      - DEBUG=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/app:/app/app
+    networks:
+      - diidemo-network
+
   # Frontend
   frontend:
     build:
