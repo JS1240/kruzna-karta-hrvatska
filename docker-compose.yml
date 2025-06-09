@@ -5,10 +5,9 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: diidemo-postgres
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: kruzna_karta_hrvatska
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: diidemo2024
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -27,6 +26,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: diidemo-redis
+    env_file:
+      - .env
     ports:
       - "6379:6379"
     volumes:
@@ -41,16 +42,12 @@ services:
 
   # Backend API
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: diidemo-backend
-    environment:
-      - DATABASE_URL=postgresql://postgres:diidemo2024@postgres:5432/kruzna_karta_hrvatska
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=diidemo-secret-key-2024
-      - DEBUG=false
-      - FRONTEND_URL=http://localhost:3000
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     depends_on:
@@ -74,13 +71,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: diidemo-frontend
+    env_file:
+      - .env
     ports:
       - "3000:80"
     depends_on:
       - backend
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8000/api
-      - VITE_MAPBOX_ACCESS_TOKEN=pk.demo-token
     networks:
       - diidemo-network
 
