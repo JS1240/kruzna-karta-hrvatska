@@ -300,7 +300,6 @@ class CroatiaPlaywrightScraper:
                             for (const selector of eventSelectors) {
                                 const elements = document.querySelectorAll(selector);
                                 if (elements.length > 0) {
-                                    console.log(`Found ${elements.length} elements with selector: ${selector}`);
                                     // Filter for actual event links
                                     eventElements = Array.from(elements).filter(el => {
                                         const href = el.href || el.querySelector('a')?.href;
@@ -309,8 +308,6 @@ class CroatiaPlaywrightScraper:
                                     if (eventElements.length > 0) break;
                                 }
                             }
-                            
-                            console.log(`Processing ${eventElements.length} event elements`);
                             
                             eventElements.forEach((element, index) => {
                                 try {
@@ -405,7 +402,6 @@ class CroatiaPlaywrightScraper:
                                     
                                     // Only add if we have meaningful data
                                     if (data.title || data.link) {
-                                        console.log(`Event ${index + 1}: ${data.title || data.link}`);
                                         events.push(data);
                                     }
                                 } catch (error) {
