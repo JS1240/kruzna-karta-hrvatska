@@ -15,6 +15,7 @@ import schedule
 from ..scraping.croatia_scraper import scrape_croatia_events
 from ..scraping.enhanced_scraper import run_enhanced_scraping_pipeline
 from ..scraping.entrio_scraper import scrape_entrio_events
+from ..scraping.ulaznice_scraper import scrape_ulaznice_events
 from .analytics_tasks import analytics_scheduler
 
 logger = logging.getLogger(__name__)
@@ -206,6 +207,15 @@ class SimpleScheduler:
         except Exception as e:
             logger.error(f"Croatia.hr scraping failed: {e}")
             results.append(("Croatia.hr", {"status": "error", "message": str(e)}))
+
+        # Scrape Ulaznice.hr
+        try:
+            ulaznice_result = await scrape_ulaznice_events(max_pages=max_pages)
+            results.append(("Ulaznice.hr", ulaznice_result))
+            logger.info(f"Ulaznice.hr scraping completed: {ulaznice_result}")
+        except Exception as e:
+            logger.error(f"Ulaznice.hr scraping failed: {e}")
+            results.append(("Ulaznice.hr", {"status": "error", "message": str(e)}))
 
         # Summary
         total_scraped = sum(

@@ -14,6 +14,7 @@ from ..core.database import SessionLocal
 from ..models.schemas import EventCreate
 from .croatia_scraper import CroatiaScraper
 from .entrio_scraper import EntrioScraper
+from .ulaznice_scraper import UlazniceScraper
 
 
 class EnhancedScrapingPipeline:
@@ -26,6 +27,7 @@ class EnhancedScrapingPipeline:
         self.enable_duplicate_detection = enable_duplicate_detection
         self.entrio_scraper = EntrioScraper()
         self.croatia_scraper = CroatiaScraper()
+        self.ulaznice_scraper = UlazniceScraper()
 
     async def scrape_all_sources(self, max_pages_per_source: int = 5) -> Dict[str, Any]:
         """Scrape events from all sources with enhanced quality processing."""
@@ -45,6 +47,7 @@ class EnhancedScrapingPipeline:
         sources_config = [
             ("entrio.hr", self.entrio_scraper, max_pages_per_source),
             ("croatia.hr", self.croatia_scraper, max_pages_per_source),
+            ("ulaznice.hr", self.ulaznice_scraper, max_pages_per_source),
         ]
 
         all_scraped_events = []
@@ -224,6 +227,8 @@ class EnhancedScrapingPipeline:
             scraper = self.entrio_scraper
         elif source.lower() == "croatia":
             scraper = self.croatia_scraper
+        elif source.lower() == "ulaznice":
+            scraper = self.ulaznice_scraper
         else:
             raise ValueError(f"Unknown source: {source}")
 

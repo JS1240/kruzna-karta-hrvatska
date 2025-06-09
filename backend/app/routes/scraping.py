@@ -13,6 +13,7 @@ from ..scraping.enhanced_scraper import (
     run_single_source_enhanced_scraping,
 )
 from ..scraping.entrio_scraper import scrape_entrio_events
+from ..scraping.ulaznice_scraper import scrape_ulaznice_events
 
 router = APIRouter(prefix="/scraping", tags=["scraping"])
 
@@ -37,7 +38,7 @@ class EnhancedScrapeRequest(BaseModel):
 
 
 class SingleSourceRequest(BaseModel):
-    source: str  # "entrio" or "croatia"
+    source: str  # "entrio", "croatia" or "ulaznice"
     max_pages: int = 5
     quality_threshold: float = 60.0
 
@@ -106,6 +107,50 @@ async def quick_scrape_entrio(
         raise HTTPException(status_code=500, detail=f"Scraping failed: {str(e)}")
 
 
+@router.post("/ulaznice", response_model=ScrapeResponse)
+async def scrape_ulaznice(request: ScrapeRequest, background_tasks: BackgroundTasks):
+    """Trigger Ulaznice.hr event scraping."""
+    try:
+        if request.max_pages <= 2:
+            result = await scrape_ulaznice_events(max_pages=request.max_pages)
+            return ScrapeResponse(**result)
+
+        import uuid
+
+        task_id = str(uuid.uuid4())
+
+        async def run_ulaznice_task():
+            return await scrape_ulaznice_events(max_pages=request.max_pages)
+
+        background_tasks.add_task(run_ulaznice_task)
+
+        return ScrapeResponse(
+            status="accepted",
+            message=f"Ulaznice.hr scraping task started in background for {request.max_pages} pages",
+            task_id=task_id,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to start Ulaznice.hr scraping: {str(e)}"
+        )
+
+
+@router.get("/ulaznice/quick", response_model=ScrapeResponse)
+async def quick_scrape_ulaznice(
+    max_pages: int = Query(
+        1, ge=1, le=3, description="Number of pages to scrape (1-3 for quick scraping)"
+    )
+):
+    """Quick Ulaznice.hr scraping for immediate results."""
+    try:
+        result = await scrape_ulaznice_events(max_pages=max_pages)
+        return ScrapeResponse(**result)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Ulaznice.hr scraping failed: {str(e)}"
+        )
+
+
 @router.post("/croatia", response_model=ScrapeResponse)
 async def scrape_croatia(request: ScrapeRequest, background_tasks: BackgroundTasks):
     """
@@ -163,8 +208,8 @@ async def quick_scrape_croatia(
 @router.post("/all", response_model=ScrapeResponse)
 async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundTasks):
     """
-    Trigger scraping from all supported sites (Entrio.hr and Croatia.hr).
-    This will scrape events from both sites and save them to the database.
+    Trigger scraping from all supported sites (Entrio.hr, Croatia.hr and Ulaznice.hr).
+    This will scrape events from all sites and save them to the database.
     """
     try:
         import uuid
@@ -183,6 +228,12 @@ async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundT
                     max_pages=request.max_pages
                 )
                 results.append(("Croatia.hr", croatia_result))
+
+                # Scrape Ulaznice.hr
+                ulaznice_result = await scrape_ulaznice_events(
+                    max_pages=request.max_pages
+                )
+                results.append(("Ulaznice.hr", ulaznice_result))
 
                 # Combine results
                 total_scraped = sum(
@@ -242,12 +293,14 @@ async def scraping_status():
     return {
         "status": "operational",
         "config": config,
-        "supported_sites": ["entrio.hr", "croatia.hr"],
+        "supported_sites": ["entrio.hr", "croatia.hr", "ulaznice.hr"],
         "endpoints": {
             "POST /scraping/entrio": "Entrio.hr full scraping with background processing",
             "GET /scraping/entrio/quick": "Entrio.hr quick scraping (1-3 pages)",
             "POST /scraping/croatia": "Croatia.hr full scraping with background processing",
             "GET /scraping/croatia/quick": "Croatia.hr quick scraping (1-3 pages)",
+            "POST /scraping/ulaznice": "Ulaznice.hr full scraping with background processing",
+            "GET /scraping/ulaznice/quick": "Ulaznice.hr quick scraping (1-3 pages)",
             "POST /scraping/all": "Scrape all supported sites",
             "POST /scraping/enhanced/pipeline": "Enhanced scraping pipeline with quality validation",
             "POST /scraping/enhanced/single": "Enhanced single source scraping",
@@ -267,7 +320,7 @@ async def enhanced_scraping_pipeline(
     Enhanced scraping pipeline with comprehensive quality validation and duplicate detection.
 
     This endpoint runs the full enhanced pipeline that includes:
-    - Multi-source scraping (Entrio.hr + Croatia.hr)
+    - Multi-source scraping (Entrio.hr + Croatia.hr + Ulaznice.hr)
     - Data quality validation with configurable thresholds
     - Advanced duplicate detection (batch + database)
     - Comprehensive performance reporting
@@ -357,9 +410,10 @@ async def enhanced_single_source_scraping(
     - Detailed performance metrics
     """
     try:
-        if request.source.lower() not in ["entrio", "croatia"]:
+        if request.source.lower() not in ["entrio", "croatia", "ulaznice"]:
             raise HTTPException(
-                status_code=400, detail="Source must be 'entrio' or 'croatia'"
+                status_code=400,
+                detail="Source must be 'entrio', 'croatia' or 'ulaznice'",
             )
 
         import uuid
@@ -441,9 +495,10 @@ async def enhanced_scraping_demo(
     - Detailed quality report
     """
     try:
-        if source.lower() not in ["entrio", "croatia"]:
+        if source.lower() not in ["entrio", "croatia", "ulaznice"]:
             raise HTTPException(
-                status_code=400, detail="Source must be 'entrio' or 'croatia'"
+                status_code=400,
+                detail="Source must be 'entrio', 'croatia' or 'ulaznice'",
             )
 
         logger.info(f"Starting enhanced scraping demo for {source} ({max_pages} pages)")
