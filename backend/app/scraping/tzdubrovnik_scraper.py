@@ -1,4 +1,4 @@
-"""InfoZagreb.hr events scraper."""
+"""Scraper for events from tzdubrovnik.hr with optional Bright Data proxy."""
 
 from __future__ import annotations
 
@@ -14,14 +14,7 @@ from bs4 import BeautifulSoup, Tag
 
 from ..models.schemas import EventCreate
 
-BASE_URL = "https://www.infozagreb.hr"
-EVENTS_URL = f"{BASE_URL}/en/events"
-
-HEADERS = {
-    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0",
-}
-
-# Bright Data / proxy configuration (shared across scrapers)
+# Bright Data configuration (shared with other scrapers)
 USER = os.getenv("BRIGHTDATA_USER", "demo_user")
 PASSWORD = os.getenv("BRIGHTDATA_PASSWORD", "demo_password")
 BRIGHTDATA_HOST_RES = "brd.superproxy.io"
@@ -32,8 +25,15 @@ PROXY = f"http://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
 USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
 USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
 
+BASE_URL = "https://tzdubrovnik.hr"
+EVENTS_URL = f"{BASE_URL}/en/events"
 
-class InfoZagrebEventDataTransformer:
+HEADERS = {
+    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0",
+}
+
+
+class DubrovnikEventDataTransformer:
     """Transform raw event data to :class:`EventCreate`."""
 
     CRO_MONTHS = {
@@ -53,17 +53,14 @@ class InfoZagrebEventDataTransformer:
 
     @staticmethod
     def parse_date(date_str: str) -> Optional[date]:
-        """Parse a variety of date formats commonly found on InfoZagreb."""
         if not date_str:
             return None
-
         date_str = date_str.strip()
         patterns = [
             r"(\d{1,2})\.(\d{1,2})\.(\d{4})",
             r"(\d{4})-(\d{1,2})-(\d{1,2})",
             r"(\d{1,2})\s+(\w+)\s*(\d{4})",
         ]
-
         for pattern in patterns:
             m = re.search(pattern, date_str, re.IGNORECASE)
             if m:
@@ -72,7 +69,7 @@ class InfoZagrebEventDataTransformer:
                         day, month, year = m.groups()
                         if month.isdigit():
                             return date(int(year), int(month), int(day))
-                        month_num = InfoZagrebEventDataTransformer.CRO_MONTHS.get(
+                        month_num = DubrovnikEventDataTransformer.CRO_MONTHS.get(
                             month.lower()
                         )
                         if month_num:
@@ -92,7 +89,6 @@ class InfoZagrebEventDataTransformer:
 
     @staticmethod
     def parse_time(time_str: str) -> str:
-        """Return time in HH:MM format."""
         if not time_str:
             return "20:00"
         m = re.search(r"(\d{1,2}):(\d{2})", time_str)
@@ -113,7 +109,7 @@ class InfoZagrebEventDataTransformer:
     def transform(cls, data: Dict) -> Optional[EventCreate]:
         try:
             name = cls.clean_text(data.get("title", ""))
-            location = cls.clean_text(data.get("location", "Zagreb"))
+            location = cls.clean_text(data.get("location", "Dubrovnik"))
             description = cls.clean_text(data.get("description", ""))
             price = cls.clean_text(data.get("price", ""))
 
@@ -140,7 +136,7 @@ class InfoZagrebEventDataTransformer:
                 name=name,
                 time=parsed_time,
                 date=parsed_date,
-                location=location or "Zagreb",
+                location=location or "Dubrovnik",
                 description=description or f"Event: {name}",
                 price=price or "Check website",
                 image=image,
@@ -150,8 +146,8 @@ class InfoZagrebEventDataTransformer:
             return None
 
 
-class InfoZagrebRequestsScraper:
-    """Scraper using httpx and BeautifulSoup."""
+class DubrovnikRequestsScraper:
+    """Scraper using httpx and BeautifulSoup with optional Bright Data proxy."""
 
     def __init__(self) -> None:
         self.client: Optional[httpx.AsyncClient] = None
@@ -243,7 +239,7 @@ class InfoZagrebRequestsScraper:
         soup = BeautifulSoup(resp.text, "html.parser")
 
         events: List[Dict] = []
-        containers = []
+        containers: List[Tag] = []
         selectors = [
             "li.event-item",
             "div.event-item",
@@ -295,12 +291,12 @@ class InfoZagrebRequestsScraper:
             await self.client.aclose()
 
 
-class InfoZagrebScraper:
-    """High level scraper for InfoZagreb.hr."""
+class DubrovnikScraper:
+    """High-level scraper for tzdubrovnik.hr."""
 
     def __init__(self) -> None:
-        self.requests_scraper = InfoZagrebRequestsScraper()
-        self.transformer = InfoZagrebEventDataTransformer()
+        self.requests_scraper = DubrovnikRequestsScraper()
+        self.transformer = DubrovnikEventDataTransformer()
 
     async def scrape_events(self, max_pages: int = 5) -> List[EventCreate]:
         raw = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
@@ -350,8 +346,8 @@ class InfoZagrebScraper:
             db.close()
 
 
-async def scrape_infozagreb_events(max_pages: int = 5) -> Dict:
-    scraper = InfoZagrebScraper()
+async def scrape_tzdubrovnik_events(max_pages: int = 5) -> Dict:
+    scraper = DubrovnikScraper()
     try:
         events = await scraper.scrape_events(max_pages=max_pages)
         saved = scraper.save_events_to_database(events)
@@ -359,7 +355,7 @@ async def scrape_infozagreb_events(max_pages: int = 5) -> Dict:
             "status": "success",
             "scraped_events": len(events),
             "saved_events": saved,
-            "message": f"Scraped {len(events)} events from InfoZagreb.hr, saved {saved} new events",
+            "message": f"Scraped {len(events)} events from tzdubrovnik.hr, saved {saved} new events",
         }
     except Exception as e:
-        return {"status": "error", "message": f"InfoZagreb scraping failed: {e}"}
+        return {"status": "error", "message": f"tzdubrovnik scraping failed: {e}"}

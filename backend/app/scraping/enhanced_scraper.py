@@ -15,6 +15,7 @@ from ..models.schemas import EventCreate
 from .croatia_scraper import CroatiaScraper
 from .entrio_scraper import EntrioScraper
 from .infozagreb_scraper import InfoZagrebScraper
+from .tzdubrovnik_scraper import DubrovnikScraper
 from .ulaznice_scraper import UlazniceScraper
 
 
@@ -29,6 +30,7 @@ class EnhancedScrapingPipeline:
         self.entrio_scraper = EntrioScraper()
         self.croatia_scraper = CroatiaScraper()
         self.infozagreb_scraper = InfoZagrebScraper()
+        self.tzdubrovnik_scraper = DubrovnikScraper()
         self.ulaznice_scraper = UlazniceScraper()
 
     async def scrape_all_sources(self, max_pages_per_source: int = 5) -> Dict[str, Any]:
@@ -50,6 +52,7 @@ class EnhancedScrapingPipeline:
             ("entrio.hr", self.entrio_scraper, max_pages_per_source),
             ("croatia.hr", self.croatia_scraper, max_pages_per_source),
             ("infozagreb.hr", self.infozagreb_scraper, max_pages_per_source),
+            ("tzdubrovnik.hr", self.tzdubrovnik_scraper, max_pages_per_source),
             ("ulaznice.hr", self.ulaznice_scraper, max_pages_per_source),
         ]
 
@@ -232,6 +235,8 @@ class EnhancedScrapingPipeline:
             scraper = self.croatia_scraper
         elif source.lower() == "infozagreb":
             scraper = self.infozagreb_scraper
+        elif source.lower() == "tzdubrovnik":
+            scraper = self.tzdubrovnik_scraper
         elif source.lower() == "ulaznice":
             scraper = self.ulaznice_scraper
         else:
