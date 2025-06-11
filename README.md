@@ -204,6 +204,7 @@ The backend includes an integrated web scraping system that automatically collec
 - **Entrio.hr** - Croatia's leading event ticketing platform
 - **Croatia.hr** - Official Croatian tourism events portal
 - **InfoZagreb.hr** - Zagreb tourist board event listings
+- **VisitRijeka.hr** - Rijeka tourist board events
 
 ### Features
 - **Dual Scraping Approach**: Uses both requests/BeautifulSoup and Playwright for maximum compatibility
@@ -225,6 +226,9 @@ curl -X GET "http://localhost:8000/api/scraping/croatia/quick?max_pages=2"
 # Quick scraping from InfoZagreb.hr (1-3 pages)
 curl -X GET "http://localhost:8000/api/scraping/infozagreb/quick?max_pages=2"
 
+# Quick scraping from VisitRijeka.hr (1-3 pages)
+curl -X GET "http://localhost:8000/api/scraping/visitrijeka/quick?max_pages=2"
+
 # Full scraping from specific site (background task)
 curl -X POST "http://localhost:8000/api/scraping/entrio" \
   -H "Content-Type: application/json" \
@@ -232,6 +236,11 @@ curl -X POST "http://localhost:8000/api/scraping/entrio" \
 
 # Full scraping from InfoZagreb.hr
 curl -X POST "http://localhost:8000/api/scraping/infozagreb" \
+  -H "Content-Type: application/json" \
+  -d '{"max_pages": 5}'
+
+# Full scraping from VisitRijeka.hr
+curl -X POST "http://localhost:8000/api/scraping/visitrijeka" \
   -H "Content-Type: application/json" \
   -d '{"max_pages": 5}'
 
@@ -253,7 +262,7 @@ ENABLE_SCHEDULER=true
 **Schedules:**
 - **Production**: Daily at 02:00 (10 pages per site)
 - **Development**: Hourly (2 pages per site)
-- **Sites**: Entrio.hr, Croatia.hr and InfoZagreb.hr
+- **Sites**: Entrio.hr, Croatia.hr, InfoZagreb.hr and VisitRijeka.hr
 
 ### Configuration
 
@@ -341,6 +350,8 @@ The backend provides RESTful API endpoints:
 - `GET /api/scraping/croatia/quick` - Quick Croatia.hr scraping (1-3 pages)
 - `POST /api/scraping/infozagreb` - Trigger full InfoZagreb.hr scraping
 - `GET /api/scraping/infozagreb/quick` - Quick InfoZagreb.hr scraping (1-3 pages)
+- `POST /api/scraping/visitrijeka` - Trigger full VisitRijeka.hr scraping
+- `GET /api/scraping/visitrijeka/quick` - Quick VisitRijeka.hr scraping (1-3 pages)
 - `POST /api/scraping/all` - Scrape from all supported sites
 - `GET /api/scraping/status` - Get scraping system status
 
