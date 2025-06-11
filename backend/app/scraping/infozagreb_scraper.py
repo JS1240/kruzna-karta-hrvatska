@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup, Tag
+import os
 
 from ..models.schemas import EventCreate
 
@@ -19,6 +20,19 @@ EVENTS_URL = f"{BASE_URL}/en/events"
 HEADERS = {
     "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0",
 }
+
+# BrightData configuration (shared with other scrapers)
+USER = os.getenv("BRIGHTDATA_USER", "demo_user")
+PASSWORD = os.getenv("BRIGHTDATA_PASSWORD", "demo_password")
+BRIGHTDATA_HOST_RES = "brd.superproxy.io"
+BRIGHTDATA_PORT = int(os.getenv("BRIGHTDATA_PORT", 22225))
+SCRAPING_BROWSER_EP = f"https://brd.superproxy.io:{BRIGHTDATA_PORT}"
+PROXY = f"http://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
+BRD_WSS = f"wss://{USER}:{PASSWORD}@brd.superproxy.io:9222"
+
+USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
+USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
+USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "1") == "1"
 
 
 class InfoZagrebEventDataTransformer:
@@ -140,12 +154,38 @@ class InfoZagrebRequestsScraper:
     """Scraper using httpx and BeautifulSoup."""
 
     def __init__(self) -> None:
-        self.client = httpx.AsyncClient(headers=HEADERS)
+        pass
 
     async def fetch(self, url: str) -> httpx.Response:
-        resp = await self.client.get(url, timeout=30)
-        resp.raise_for_status()
-        return resp
+        try:
+            if USE_SB and USE_PROXY:
+                params = {"url": url}
+                async with httpx.AsyncClient(
+                    headers=HEADERS,
+                    auth=(USER, PASSWORD),
+                    verify=False,
+                ) as client:
+                    resp = await client.get(
+                        SCRAPING_BROWSER_EP,
+                        params=params,
+                        timeout=30,
+                    )
+            elif USE_PROXY:
+                async with httpx.AsyncClient(
+                    headers=HEADERS,
+                    proxies={"http": PROXY, "https": PROXY},
+                    verify=False,
+                ) as client:
+                    resp = await client.get(url, timeout=30)
+            else:
+                async with httpx.AsyncClient(headers=HEADERS) as client:
+                    resp = await client.get(url, timeout=30)
+
+            resp.raise_for_status()
+            return resp
+        except httpx.HTTPError as e:
+            print(f"Request failed for {url}: {e}")
+            raise
 
     async def parse_event_detail(self, url: str) -> Dict:
         resp = await self.fetch(url)
@@ -253,7 +293,87 @@ class InfoZagrebRequestsScraper:
         return all_events
 
     async def close(self) -> None:
-        await self.client.aclose()
+        pass
+
+
+class InfoZagrebPlaywrightScraper:
+    """Scraper using Playwright and optional BrightData proxy."""
+
+    async def scrape_with_playwright(
+        self, start_url: str = EVENTS_URL, max_pages: int = 5
+    ) -> List[Dict]:
+        from playwright.async_api import async_playwright
+
+        all_events: List[Dict] = []
+        page_count = 0
+
+        async with async_playwright() as p:
+            if USE_PROXY:
+                browser = await p.chromium.connect_over_cdp(BRD_WSS)
+            else:
+                browser = await p.chromium.launch()
+
+            page = await browser.new_page()
+
+            current_url = start_url
+
+            try:
+                while current_url and page_count < max_pages:
+                    await page.goto(current_url, wait_until="domcontentloaded", timeout=90000)
+                    await page.wait_for_timeout(3000)
+
+                    events_data = await page.evaluate(
+                        """
+                        () => {
+                            const events = [];
+                            const selectors = ['li.event-item','div.event-item','article','.events-list li'];
+                            let containers = [];
+                            for (const sel of selectors) {
+                                const found = document.querySelectorAll(sel);
+                                if (found.length) { containers = Array.from(found); break; }
+                            }
+                            containers.forEach(el => {
+                                const data = {};
+                                const linkEl = el.querySelector('a');
+                                if (linkEl && linkEl.href) {
+                                    data.link = linkEl.href;
+                                    data.title = linkEl.textContent.trim();
+                                }
+                                const dateEl = el.querySelector('.date, time');
+                                if (dateEl) data.date = dateEl.textContent.trim();
+                                const imgEl = el.querySelector('img');
+                                if (imgEl) data.image = imgEl.src || imgEl.getAttribute('data-src');
+                                const locEl = el.querySelector('.location, .venue, .place');
+                                if (locEl) data.location = locEl.textContent.trim();
+                                if (Object.keys(data).length) events.push(data);
+                            });
+                            return events;
+                        }
+                        """
+                    )
+
+                    all_events.extend(events_data)
+
+                    next_url = await page.evaluate(
+                        """
+                        () => {
+                            const link = document.querySelector('a[rel="next"], .pagination-next a, a.next');
+                            return link ? link.href : null;
+                        }
+                        """
+                    )
+
+                    if next_url:
+                        current_url = next_url
+                        page_count += 1
+                    else:
+                        break
+
+                    await page.wait_for_timeout(1000)
+            finally:
+                await browser.close()
+
+        return all_events
 
 
 class InfoZagrebScraper:
@@ -261,16 +381,27 @@ class InfoZagrebScraper:
 
     def __init__(self) -> None:
         self.requests_scraper = InfoZagrebRequestsScraper()
+        self.playwright_scraper = InfoZagrebPlaywrightScraper()
         self.transformer = InfoZagrebEventDataTransformer()
 
-    async def scrape_events(self, max_pages: int = 5) -> List[EventCreate]:
-        raw = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
+    async def scrape_events(
+        self, max_pages: int = 5, use_playwright: bool | None = None
+    ) -> List[EventCreate]:
+        if use_playwright is None:
+            use_playwright = USE_PLAYWRIGHT
+
+        if use_playwright:
+            raw = await self.playwright_scraper.scrape_with_playwright(
+                max_pages=max_pages
+            )
+        else:
+            raw = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
+
         events: List[EventCreate] = []
         for item in raw:
             event = self.transformer.transform(item)
             if event:
                 events.append(event)
-        await self.requests_scraper.close()
         return events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
