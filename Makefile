@@ -224,8 +224,12 @@ scrape-croatia: ## Quick scrape from Croatia.hr
         @curl -X GET "http://localhost:8000/api/scraping/croatia/quick?max_pages=2"
 
 scrape-infozagreb: ## Quick scrape from InfoZagreb.hr
-        @echo "$(YELLOW)Scraping events from InfoZagreb.hr...$(NC)"
-        @curl -X GET "http://localhost:8000/api/scraping/infozagreb/quick?max_pages=2"
+@echo "$(YELLOW)Scraping events from InfoZagreb.hr...$(NC)"
+@curl -X GET "http://localhost:8000/api/scraping/infozagreb/quick?max_pages=2"
+
+scrape-visitrijeka: ## Quick scrape from VisitRijeka.hr
+@echo "$(YELLOW)Scraping events from VisitRijeka.hr...$(NC)"
+@curl -X GET "http://localhost:8000/api/scraping/visitrijeka/quick?max_pages=2"
 
 scrape-all: ## Scrape from all sources
 	@echo "$(YELLOW)Scraping events from all sources...$(NC)"
