@@ -52,7 +52,7 @@ from ..models.social_schemas import (
     UserSocialProfileCreate,
     UserSocialProfileUpdate,
 )
-from ..models.user import User
+from ..models.user import User, UserProfile
 from ..models.venue import Venue
 
 logger = logging.getLogger(__name__)

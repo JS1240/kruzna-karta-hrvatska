@@ -424,7 +424,6 @@ class SimpleScheduler:
         """Update Croatian holidays cache."""
         logger.info(f"Starting Croatian holidays cache update at {datetime.now()}")
         try:
-            from datetime import datetime
 
             from ..core.croatian import get_croatian_holiday_service
 
