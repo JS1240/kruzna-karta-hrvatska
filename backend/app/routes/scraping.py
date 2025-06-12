@@ -20,6 +20,7 @@ from ..scraping.vukovar_scraper import scrape_vukovar_events
 from ..scraping.visitkarlovac_scraper import scrape_visitkarlovac_events
 from ..scraping.visitsplit_scraper import scrape_visitsplit_events
 from ..scraping.zadar_scraper import scrape_zadar_events
+from ..scraping.tzdubrovnik_scraper import scrape_tzdubrovnik_events
 
 router = APIRouter(prefix="/scraping", tags=["scraping"])
 
@@ -44,7 +45,7 @@ class EnhancedScrapeRequest(BaseModel):
 
 
 class SingleSourceRequest(BaseModel):
-    source: str  # "entrio", "croatia", "ulaznice", "infozagreb", "vukovar", "visitrijeka", "visitkarlovac", "visitsplit" or "zadar"
+    source: str  # "entrio", "croatia", "ulaznice", "infozagreb", "vukovar", "visitrijeka", "visitkarlovac", "visitsplit", "zadar" or "tzdubrovnik"
 
 
     max_pages: int = 5
@@ -437,11 +438,49 @@ async def quick_scrape_zadar(
         raise HTTPException(status_code=500, detail=f"Zadar scraping failed: {str(e)}")
 
 
+@router.post("/tzdubrovnik", response_model=ScrapeResponse)
+async def scrape_tzdubrovnik(request: ScrapeRequest, background_tasks: BackgroundTasks):
+    """Trigger TzDubrovnik.hr event scraping."""
+    try:
+        if request.max_pages <= 2:
+            result = await scrape_tzdubrovnik_events(max_pages=request.max_pages)
+            return ScrapeResponse(**result)
+
+        import uuid
+
+        task_id = str(uuid.uuid4())
+
+        async def run_dbk_scrape():
+            return await scrape_tzdubrovnik_events(max_pages=request.max_pages)
+
+        background_tasks.add_task(run_dbk_scrape)
+
+        return ScrapeResponse(
+            status="accepted",
+            message=f"TzDubrovnik.hr scraping task started in background for {request.max_pages} pages",
+            task_id=task_id,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start TzDubrovnik scraping: {str(e)}")
+
+
+@router.get("/tzdubrovnik/quick", response_model=ScrapeResponse)
+async def quick_scrape_tzdubrovnik(
+    max_pages: int = Query(1, ge=1, le=3, description="Number of pages to scrape (1-3 for quick scraping)")
+):
+    """Quick TzDubrovnik.hr scraping."""
+    try:
+        result = await scrape_tzdubrovnik_events(max_pages=max_pages)
+        return ScrapeResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TzDubrovnik scraping failed: {str(e)}")
+
+
 
 @router.post("/all", response_model=ScrapeResponse)
 async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundTasks):
     """
-    Trigger scraping from all supported sites (Entrio.hr, Croatia.hr, InfoZagreb.hr, Ulaznice.hr, VisitKarlovac.hr, VisitRijeka.hr, VisitSplit.com, TurizamVukovar.hr and Zadar Travel).
+    Trigger scraping from all supported sites (Entrio.hr, Croatia.hr, InfoZagreb.hr, Ulaznice.hr, VisitKarlovac.hr, VisitRijeka.hr, VisitSplit.com, TurizamVukovar.hr, Zadar Travel and TzDubrovnik.hr).
     This will scrape events from all sites and save them to the database.
     """
     try:
@@ -504,6 +543,12 @@ async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundT
                     max_pages=request.max_pages
                 )
                 results.append(("Zadar Travel", zadar_result))
+
+                # Scrape TzDubrovnik.hr
+                dubrovnik_result = await scrape_tzdubrovnik_events(
+                    max_pages=request.max_pages
+                )
+                results.append(("TzDubrovnik.hr", dubrovnik_result))
 
                 # Combine results
                 total_scraped = sum(
@@ -573,6 +618,7 @@ async def scraping_status():
             "visitrijeka.hr",
             "visitsplit.com",
             "zadar.travel",
+            "tzdubrovnik.hr",
         ],
         "endpoints": {
             "POST /scraping/entrio": "Entrio.hr full scraping with background processing",
@@ -593,6 +639,8 @@ async def scraping_status():
             "GET /scraping/visitsplit/quick": "VisitSplit.com quick scraping (1-3 pages)",
             "POST /scraping/zadar": "Zadar Travel full scraping with background processing",
             "GET /scraping/zadar/quick": "Zadar Travel quick scraping (1-3 pages)",
+            "POST /scraping/tzdubrovnik": "TzDubrovnik.hr full scraping with background processing",
+            "GET /scraping/tzdubrovnik/quick": "TzDubrovnik.hr quick scraping (1-3 pages)",
             "POST /scraping/all": "Scrape all supported sites",
             "POST /scraping/enhanced/pipeline": "Enhanced scraping pipeline with quality validation",
             "POST /scraping/enhanced/single": "Enhanced single source scraping",
@@ -694,18 +742,17 @@ async def enhanced_single_source_scraping(
 ):
     """
     Enhanced single-source scraping with quality validation.
-
-    Scrape from a single source (entrio, croatia, ulaznice, infozagreb, vukovar, visitkarlovac, visitrijeka, visitsplit or zadar) with full quality pipeline:
+    Scrape from a single source (entrio, croatia, ulaznice, infozagreb, vukovar, visitkarlovac, visitrijeka, visitsplit, zadar or tzdubrovnik) with full quality pipeline:
     - Advanced data validation and cleaning
     - Duplicate detection against existing database
     - Quality scoring and filtering
     - Detailed performance metrics
     """
     try:
-        if request.source.lower() not in ["entrio", "croatia", "ulaznice", "infozagreb", "vukovar", "visitkarlovac", "visitrijeka", "visitsplit", "zadar"]:
+        if request.source.lower() not in ["entrio", "croatia", "ulaznice", "infozagreb", "vukovar", "visitkarlovac", "visitrijeka", "visitsplit", "zadar", "tzdubrovnik"]:
             raise HTTPException(
                 status_code=400,
-                detail="Source must be 'entrio', 'croatia', 'ulaznice', 'infozagreb', 'vukovar', 'visitkarlovac', 'visitrijeka' or 'visitsplit' or 'zadar'"
+                detail='Source must be 'entrio', 'croatia', 'ulaznice', 'infozagreb', 'vukovar', 'visitkarlovac', 'visitrijeka', 'visitsplit', 'zadar' or 'tzdubrovnik'
 
 
         import uuid
