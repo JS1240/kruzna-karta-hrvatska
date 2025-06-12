@@ -1,8 +1,9 @@
-"""InfoZagreb.hr events scraper."""
+"""InfoZagreb.hr events scraper with Bright Data support."""
 
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 from datetime import date
 from typing import Dict, List, Optional, Tuple
@@ -12,7 +13,6 @@ import httpx
 from bs4 import BeautifulSoup, Tag
 
 from ..models.schemas import EventCreate
-import os
 
 BASE_URL = "https://www.infozagreb.hr"
 EVENTS_URL = f"{BASE_URL}/en/events"
@@ -30,7 +30,7 @@ SCRAPING_BROWSER_EP = f"https://brd.superproxy.io:{BRIGHTDATA_PORT}"
 PROXY = f"http://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
 
 USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
-USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
+USE_PROXY = os.getenv("USE_PROXY", "1") == "1"
 
 
 class InfoZagrebEventDataTransformer:
@@ -72,7 +72,9 @@ class InfoZagrebEventDataTransformer:
                         day, month, year = m.groups()
                         if month.isdigit():
                             return date(int(year), int(month), int(day))
-                        month_num = InfoZagrebEventDataTransformer.CRO_MONTHS.get(month.lower())
+                        month_num = InfoZagrebEventDataTransformer.CRO_MONTHS.get(
+                            month.lower()
+                        )
                         if month_num:
                             return date(int(year), month_num, int(day))
                     elif pattern.startswith("(\\d{4})"):
@@ -230,6 +232,7 @@ class InfoZagrebRequestsScraper:
         return data
 
     async def scrape_events_page(self, url: str) -> Tuple[List[Dict], Optional[str]]:
+        """Scrape a single events page and follow pagination."""
         resp = await self.fetch(url)
         soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -247,27 +250,39 @@ class InfoZagrebRequestsScraper:
                 containers = found
                 break
 
+        # Parse listing elements first
+        listings: List[Dict] = []
+        detail_tasks = []
         for el in containers:
             if isinstance(el, Tag):
                 data = self.parse_listing_element(el)
                 link = data.get("link")
                 if link:
-                    try:
-                        detail = await self.parse_event_detail(link)
-                        data.update({k: v for k, v in detail.items() if v})
-                    except Exception:
-                        pass
-                if data:
-                    events.append(data)
+                    detail_tasks.append(
+                        asyncio.create_task(self.parse_event_detail(link))
+                    )
+                listings.append(data)
+
+        if detail_tasks:
+            details = await asyncio.gather(*detail_tasks, return_exceptions=True)
+            for listing, detail in zip(listings, details):
+                if isinstance(detail, dict):
+                    listing.update({k: v for k, v in detail.items() if v})
+
+        for data in listings:
+            if data:
+                events.append(data)
 
         next_url = None
-        next_link = soup.select_one('a[rel="next"], .pagination-next a, a.next')
+        next_link = soup.select_one(
+            'a[rel="next"], .pagination-next a, a.next, a.load-more, button.load-more'
+        )
         if next_link and next_link.get("href"):
             next_url = urljoin(url, next_link.get("href"))
 
         return events, next_url
 
-    async def scrape_all_events(self, max_pages: int = 5) -> List[Dict]:
+    async def scrape_all_events(self, max_pages: int = 10) -> List[Dict]:
         all_events: List[Dict] = []
         current_url = EVENTS_URL
         page = 0
@@ -292,7 +307,7 @@ class InfoZagrebScraper:
         self.requests_scraper = InfoZagrebRequestsScraper()
         self.transformer = InfoZagrebEventDataTransformer()
 
-    async def scrape_events(self, max_pages: int = 5) -> List[EventCreate]:
+    async def scrape_events(self, max_pages: int = 10) -> List[EventCreate]:
         raw = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
         events: List[EventCreate] = []
         for item in raw:
@@ -317,10 +332,14 @@ class InfoZagrebScraper:
             event_dicts = [e.model_dump() for e in events]
             pairs = [(e["name"], e["date"]) for e in event_dicts]
             existing = db.execute(
-                select(Event.name, Event.date).where(tuple_(Event.name, Event.date).in_(pairs))
+                select(Event.name, Event.date).where(
+                    tuple_(Event.name, Event.date).in_(pairs)
+                )
             ).all()
             existing_pairs = set(existing)
-            to_insert = [e for e in event_dicts if (e["name"], e["date"]) not in existing_pairs]
+            to_insert = [
+                e for e in event_dicts if (e["name"], e["date"]) not in existing_pairs
+            ]
             if to_insert:
                 stmt = insert(Event).values(to_insert)
                 stmt = stmt.on_conflict_do_nothing(index_elements=["name", "date"])
@@ -336,7 +355,7 @@ class InfoZagrebScraper:
             db.close()
 
 
-async def scrape_infozagreb_events(max_pages: int = 5) -> Dict:
+async def scrape_infozagreb_events(max_pages: int = 10) -> Dict:
     scraper = InfoZagrebScraper()
     try:
         events = await scraper.scrape_events(max_pages=max_pages)
@@ -349,4 +368,3 @@ async def scrape_infozagreb_events(max_pages: int = 5) -> Dict:
         }
     except Exception as e:
         return {"status": "error", "message": f"InfoZagreb scraping failed: {e}"}
-
