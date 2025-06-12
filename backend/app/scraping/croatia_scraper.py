@@ -498,9 +498,7 @@ class CroatiaPlaywrightScraper:
                             new_events_data = await page.evaluate(
                                 'document.querySelectorAll(\'a[href*="/dogadanja/"], [class*="event"]\').length'
                             )
-                            if new_events_data > len(
-                                eventElements if "eventElements" in locals() else []
-                            ):
+                            if new_events_data > previous_events_count:
                                 has_more = True
                                 print("Infinite scroll detected more content")
 

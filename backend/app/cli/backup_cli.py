@@ -4,7 +4,6 @@ Command line interface for database backup operations.
 """
 
 import argparse
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -25,7 +24,7 @@ def cmd_create_full_backup(args):
     try:
         backup_service = create_backup_service()
 
-        print(f"Starting full backup...")
+        print("Starting full backup...")
         print(f"Include analytics: {args.include_analytics}")
         if args.filename:
             print(f"Custom filename: {args.filename}")
@@ -34,7 +33,7 @@ def cmd_create_full_backup(args):
             custom_filename=args.filename, include_analytics=args.include_analytics
         )
 
-        print(f"✓ Full backup completed successfully!")
+        print("✓ Full backup completed successfully!")
         print(f"  Backup ID: {metadata.backup_id}")
         print(f"  File: {metadata.file_path}")
         print(f"  Size: {metadata.file_size:,} bytes")
@@ -60,7 +59,7 @@ def cmd_create_schema_backup(args):
 
         metadata = backup_service.create_schema_backup()
 
-        print(f"✓ Schema backup completed successfully!")
+        print("✓ Schema backup completed successfully!")
         print(f"  Backup ID: {metadata.backup_id}")
         print(f"  File: {metadata.file_path}")
         print(f"  Size: {metadata.file_size:,} bytes")
@@ -231,7 +230,7 @@ def cmd_status(args):
         if status.get("latest_backup"):
             latest = status["latest_backup"]
             created_at = datetime.fromisoformat(latest["created_at"])
-            print(f"\nLatest Backup:")
+            print("\nLatest Backup:")
             print(f"  ID: {latest['backup_id']}")
             print(f"  Type: {latest['backup_type']}")
             print(f"  Created: {created_at.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -239,7 +238,7 @@ def cmd_status(args):
 
         # Disk usage
         disk = status["disk_usage"]
-        print(f"\nDisk Usage:")
+        print("\nDisk Usage:")
         print(f"  Total: {disk['total_bytes']:,} bytes")
         print(f"  Used: {disk['used_bytes']:,} bytes")
         print(f"  Free: {disk['free_bytes']:,} bytes")
