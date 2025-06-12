@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Header from "@/components/Header";
-import EventMapDemo from "@/components/EventMapDemo";
+import EventMap from "@/components/EventMap";
 import FeaturedEvents from "@/components/FeaturedEvents";
 import LatestNews from "@/components/LatestNews";
 import AboutCroatia from "@/components/AboutCroatia";
@@ -130,7 +130,7 @@ const Index = () => {
               {t("home.map.title")}
             </h2>
 
-            <EventMapDemo />
+            <EventMap className="h-[600px]" />
           </section>
 
           <FeaturedEvents />

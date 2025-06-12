@@ -28,6 +28,7 @@ import {
   Coordinates,
 } from "@/lib/geocoding";
 import { logger } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 
 // Event category mapping and icons
 const categoryConfig = {
@@ -48,7 +49,11 @@ interface MapEvent extends Event {
   coordinates?: Coordinates;
 }
 
-const EventMap = () => {
+interface EventMapProps {
+  className?: string;
+}
+
+const EventMap: React.FC<EventMapProps> = ({ className }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -297,7 +302,7 @@ const EventMap = () => {
 
 
   return (
-    <div className="relative w-full h-screen">
+    <div className={cn("relative w-full h-screen", className)}>
       {/* Map Container */}
       <div ref={mapContainer} className="w-full h-full" />
 
