@@ -19,6 +19,7 @@ from .ulaznice_scraper import UlazniceScraper
 from .visitrijeka_scraper import VisitRijekaScraper
 from .vukovar_scraper import VukovarScraper
 from .visitsplit_scraper import VisitSplitScraper
+from .zadar_scraper import ZadarScraper
 
 
 
@@ -37,6 +38,7 @@ class EnhancedScrapingPipeline:
         self.visitrijeka_scraper = VisitRijekaScraper()
         self.vukovar_scraper = VukovarScraper()
         self.visitsplit_scraper = VisitSplitScraper()
+        self.zadar_scraper = ZadarScraper()
 
     async def scrape_all_sources(self, max_pages_per_source: int = 5) -> Dict[str, Any]:
         """Scrape events from all sources with enhanced quality processing."""
@@ -61,6 +63,7 @@ class EnhancedScrapingPipeline:
             ("visitrijeka.hr", self.visitrijeka_scraper, max_pages_per_source),
             ("turizamvukovar.hr", self.vukovar_scraper, max_pages_per_source),
             ("visitsplit.com", self.visitsplit_scraper, max_pages_per_source),
+            ("zadar.travel", self.zadar_scraper, max_pages_per_source),
         ]
 
         all_scraped_events = []
@@ -250,6 +253,8 @@ class EnhancedScrapingPipeline:
             scraper = self.vukovar_scraper
         elif source.lower() == "visitsplit":
             scraper = self.visitsplit_scraper
+        elif source.lower() == "zadar":
+            scraper = self.zadar_scraper
         else:
             raise ValueError(f"Unknown source: {source}")
 
