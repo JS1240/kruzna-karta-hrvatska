@@ -79,5 +79,6 @@
   "common.location": "Location",
   "common.price": "Price",
   "common.details": "View Details",
-  "common.free": "Free"
+  "common.free": "Free",
+  "common.back_to_top": "Back to Top"
 }

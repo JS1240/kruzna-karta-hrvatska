@@ -7,6 +7,7 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import FaviconSwitcher from "./components/FaviconSwitcher";
 import AppContent from "./components/AppContent";
+import BackToTopButton from "./components/BackToTopButton";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AppContent />
+            <BackToTopButton />
           </BrowserRouter>
         </TooltipProvider>
       </LanguageProvider>

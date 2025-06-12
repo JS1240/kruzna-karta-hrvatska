@@ -79,5 +79,6 @@
   "common.location": "Lokacija",
   "common.price": "Cijena",
   "common.details": "Pogledaj Detalje",
-  "common.free": "Besplatno"
+  "common.free": "Besplatno",
+  "common.back_to_top": "Na vrh"
 }
