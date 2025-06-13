@@ -369,6 +369,7 @@ The backend provides RESTful API endpoints:
 - `POST /api/events` - Create new event
 - `PUT /api/events/{id}` - Update event
 - `DELETE /api/events/{id}` - Delete event
+- `POST /api/user-events/create` - Submit a user-generated event (authentication required; new events are marked as pending until reviewed)
 
 ### Scraping
 - `POST /api/scraping/entrio` - Trigger full Entrio.hr scraping

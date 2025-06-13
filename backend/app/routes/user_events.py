@@ -114,10 +114,8 @@ def create_user_event(
 ):
     """Create a new user-generated event."""
     try:
-        require_event_creator(
-            current_user,
-            "You need to be a venue owner or manager to create events. Please contact support to upgrade your account.",
-        )
+        # Any authenticated user can submit events. The event will be marked as
+        # user generated and require admin approval before it becomes public.
 
         # Validate category exists
         category = (
