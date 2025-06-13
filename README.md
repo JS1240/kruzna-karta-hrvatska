@@ -215,6 +215,7 @@ The backend includes an integrated web scraping system that automatically collec
 - **Automatic Data Processing**: Transforms scraped data to match database schema
 - **Duplicate Prevention**: Automatically detects and prevents duplicate events
 - **Scheduled Tasks**: Optional automatic scraping at configurable intervals
+- **Personalized Recommendations**: Suggests events based on user history
 
 ### Usage
 

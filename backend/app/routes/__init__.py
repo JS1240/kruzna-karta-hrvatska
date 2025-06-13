@@ -12,6 +12,7 @@ from .recurring_events import router as recurring_events_router
 from .scraping import router as scraping_router
 from .social import router as social_router
 from .system_test import router as system_test_router
+from .recommendations import router as recommendations_router
 from .translations import router as translations_router
 from .user_events import router as user_events_router
 from .users import router as users_router
@@ -38,4 +39,5 @@ __all__ = [
     "social_router",
     "user_events_router",
     "system_test_router",
+    "recommendations_router",
 ]
