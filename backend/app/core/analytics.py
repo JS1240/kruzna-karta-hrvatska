@@ -2,8 +2,12 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends
-from sqlalchemy import and_, desc, func, or_, text
+from sqlalchemy import and_, case, desc, func, or_, text
 from sqlalchemy.orm import Session
+
+import pandas as pd
+from sklearn.cluster import DBSCAN, KMeans
+from sklearn.preprocessing import StandardScaler
 
 from ..core.database import get_db
 from ..models.analytics import (
@@ -579,6 +583,106 @@ class AnalyticsService:
                 for query, count, avg_results in popular_queries
             ],
         }
+
+    def segment_users(
+        self,
+        algorithm: str = "kmeans",
+        n_clusters: int = 3,
+    ) -> Dict[int, List[int]]:
+        """Cluster users into segments based on interaction metrics."""
+
+        views_subq = (
+            self.db.query(
+                EventView.user_id.label("user_id"),
+                func.count(EventView.id).label("views"),
+            )
+            .filter(EventView.user_id.isnot(None))
+            .group_by(EventView.user_id)
+            .subquery()
+        )
+
+        interactions_subq = (
+            self.db.query(
+                UserInteraction.user_id.label("user_id"),
+                func.sum(
+                    case(
+                        (UserInteraction.interaction_type == "favorite", 1),
+                        else_=0,
+                    )
+                ).label("favorites"),
+                func.sum(
+                    case(
+                        (UserInteraction.interaction_type == "share", 1),
+                        else_=0,
+                    )
+                ).label("shares"),
+                func.count(UserInteraction.id).label("interactions"),
+            )
+            .filter(UserInteraction.user_id.isnot(None))
+            .group_by(UserInteraction.user_id)
+            .subquery()
+        )
+
+        searches_subq = (
+            self.db.query(
+                SearchLog.user_id.label("user_id"),
+                func.count(SearchLog.id).label("searches"),
+            )
+            .filter(SearchLog.user_id.isnot(None))
+            .group_by(SearchLog.user_id)
+            .subquery()
+        )
+
+        rows = (
+            self.db.query(
+                User.id.label("user_id"),
+                func.coalesce(views_subq.c.views, 0).label("views"),
+                func.coalesce(interactions_subq.c.favorites, 0).label("favorites"),
+                func.coalesce(interactions_subq.c.shares, 0).label("shares"),
+                func.coalesce(interactions_subq.c.interactions, 0).label(
+                    "interactions"
+                ),
+                func.coalesce(searches_subq.c.searches, 0).label("searches"),
+            )
+            .outerjoin(views_subq, views_subq.c.user_id == User.id)
+            .outerjoin(interactions_subq, interactions_subq.c.user_id == User.id)
+            .outerjoin(searches_subq, searches_subq.c.user_id == User.id)
+            .all()
+        )
+
+        if not rows:
+            return {}
+
+        df = pd.DataFrame(
+            rows,
+            columns=[
+                "user_id",
+                "views",
+                "favorites",
+                "shares",
+                "interactions",
+                "searches",
+            ],
+        )
+
+        features = df.drop("user_id", axis=1).fillna(0)
+        scaler = StandardScaler()
+        data = scaler.fit_transform(features)
+
+        if algorithm == "dbscan":
+            model = DBSCAN(eps=0.5, min_samples=5)
+            labels = model.fit_predict(data)
+        else:
+            model = KMeans(n_clusters=n_clusters, n_init=10)
+            labels = model.fit_predict(data)
+
+        df["segment"] = labels
+
+        segments: Dict[int, List[int]] = {}
+        for user_id, label in df[["user_id", "segment"]].itertuples(index=False):
+            segments.setdefault(int(label), []).append(int(user_id))
+
+        return segments
 
 
 def get_analytics_service(db: Session = Depends(get_db)) -> AnalyticsService:
