@@ -458,6 +458,18 @@ docker run -d -p 80:80 --env-file .env kruzna-karta-prod
 The container exposes port `80` and serves both the API and the UI. Adjust the
 `.env` file for your production settings before building the image.
 
+Alternatively you can run the full stack with `docker compose`. This will
+launch PostgreSQL, Redis and the application behind Nginx using the provided
+compose definitions:
+
+```bash
+# Production stack with TLS
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+```
+
+For HTTPS support place your certificate files (`fullchain.pem` and
+`privkey.pem`) inside the `ssl/` directory before starting the containers.
+
 ## 🛠️ Development
 
 ### Adding New Features
