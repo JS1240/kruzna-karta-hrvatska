@@ -1,0 +1,13 @@
+# Ignore node and python caches
+node_modules
+frontend/node_modules
+backend/.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+dist
+frontend/dist
+coverage

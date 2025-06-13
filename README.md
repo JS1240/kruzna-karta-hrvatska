@@ -443,6 +443,21 @@ npm run build
 # Serve the dist/ directory with your preferred web server
 ```
 
+### Docker Deployment
+
+Build a single image that bundles the frontend, backend and nginx:
+
+```bash
+# Build the production image
+docker build -t kruzna-karta-prod -f docker-prod/Dockerfile .
+
+# Run the container
+docker run -d -p 80:80 --env-file .env kruzna-karta-prod
+```
+
+The container exposes port `80` and serves both the API and the UI. Adjust the
+`.env` file for your production settings before building the image.
+
 ## 🛠️ Development
 
 ### Adding New Features
