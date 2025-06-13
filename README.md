@@ -496,6 +496,10 @@ uv run alembic upgrade head
 2. Add the language code to the `Language` type in `frontend/src/contexts/LanguageContext.tsx`.
 3. Provide a UI option for switching to the new language.
 
+## 📈 Premium Analytics for Paid Users
+
+We plan to introduce advanced analytics and event organisation tools for organisers on a paid subscription. See [docs/premium-analytics-plan.md](docs/premium-analytics-plan.md) for details.
+
 ## 🤝 Contributing
 
 1. Fork the repository
