@@ -15,6 +15,7 @@ This document proposes a high level plan for enabling paid users to access advan
 - **Engagement Metrics**: Display page views, search analytics and user interactions for each event.
 - **Conversion Analytics**: Track views-to-bookings ratios and highlight high performing events.
 - **Geographic Breakdown**: Summarise revenue and bookings by location using Mapbox visualisations.
+- **Recommendation Engine**: Suggest relevant upcoming events based on attendee behaviour.
 
 ### 2. Event Organisation Tools
 - **Schedule Planner**: Calendar view of all upcoming events with drag-and-drop rescheduling.
