@@ -357,3 +357,20 @@ def trigger_daily_aggregation(
         "date": target_date,
         "message": f"Daily metrics aggregated for {target_date}",
     }
+
+
+@router.get("/user-segmentation")
+def get_user_segmentation(
+    algorithm: str = Query("kmeans", pattern="^(kmeans|dbscan)$"),
+    n_clusters: int = Query(3, ge=1, le=20),
+    db: Session = Depends(get_db),
+    analytics: AnalyticsService = Depends(get_analytics_service),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Cluster users based on interaction metrics."""
+
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    segments = analytics.segment_users(algorithm=algorithm, n_clusters=n_clusters)
+    return {"algorithm": algorithm, "segments": segments}
