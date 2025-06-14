@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     currency: str = "EUR"
     payment_methods: list[str] = ["card", "sepa_debit"]  # Supported payment methods
 
+    # Third-party API keys (comma separated)
+    third_party_api_keys: Optional[str] = None
+
     class Config:
         env_file = ".env"
         case_sensitive = False

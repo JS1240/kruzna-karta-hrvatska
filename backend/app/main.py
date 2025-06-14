@@ -30,6 +30,7 @@ from .routes import (
     social_router,
     system_test_router,
     recommendations_router,
+    third_party_router,
     translations_router,
     user_events_router,
     users_router,
@@ -108,6 +109,7 @@ app.include_router(social_router, prefix="/api")
 app.include_router(user_events_router, prefix="/api")
 app.include_router(system_test_router, prefix="/api")
 app.include_router(recommendations_router, prefix="/api")
+app.include_router(third_party_router, prefix="/api")
 app.include_router(stripe_webhooks_router, prefix="/api")
 
 
