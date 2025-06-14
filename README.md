@@ -518,6 +518,10 @@ via `aggregate_platform_metrics` so historical reports include these events.
 
 We plan to introduce advanced analytics and event organisation tools for organisers on a paid subscription. See [docs/premium-analytics-plan.md](docs/premium-analytics-plan.md) for details.
 
+## 🗃️ Paid API & Data Export
+
+Third parties such as travel agencies can access curated event data and analytics through a subscription-based API. See [docs/third-party-data-access-plan.md](docs/third-party-data-access-plan.md) for the proposed design.
+
 ## 🤝 Contributing
 
 1. Fork the repository
