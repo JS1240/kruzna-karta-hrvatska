@@ -17,6 +17,7 @@ from ..scraping.enhanced_scraper import run_enhanced_scraping_pipeline
 from ..scraping.entrio_scraper import scrape_entrio_events
 from ..scraping.ulaznice_scraper import scrape_ulaznice_events
 from .analytics_tasks import analytics_scheduler
+from ..core.realtime import RealTimeAnalyticsService
 
 logger = logging.getLogger(__name__)
 
@@ -111,9 +112,13 @@ class SimpleScheduler:
         # Check alerts every 2 minutes
         schedule.every(2).minutes.do(self._check_monitoring_alerts_job)
 
+        # Real-time analytics processing every minute
+        schedule.every().minute.do(self._real_time_analytics_job)
+
         logger.info("Scheduled monitoring tasks:")
         logger.info("- Metrics update every 30 seconds")
         logger.info("- Alert checking every 2 minutes")
+        logger.info("- Real-time analytics every minute")
 
     def schedule_gdpr_tasks(self):
         """Schedule automated GDPR compliance tasks."""
@@ -383,6 +388,17 @@ class SimpleScheduler:
 
         except Exception as e:
             logger.error(f"Monitoring alerts check failed: {e}")
+
+    def _real_time_analytics_job(self):
+        """Process real-time analytics and anomaly detection."""
+        logger.info(f"Running real-time analytics at {datetime.now()}")
+        try:
+            with analytics_scheduler.get_db_session() as db:
+                service = RealTimeAnalyticsService(db)
+                service.run()
+            logger.info("Real-time analytics processed")
+        except Exception as e:
+            logger.error(f"Real-time analytics failed: {e}")
 
     def _gdpr_data_retention_cleanup_job(self):
         """GDPR data retention cleanup job."""
