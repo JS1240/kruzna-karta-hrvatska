@@ -497,6 +497,14 @@ uv run alembic upgrade head
 2. Add the language code to the `Language` type in `frontend/src/contexts/LanguageContext.tsx`.
 3. Provide a UI option for switching to the new language.
 
+
+## 💵 Platform Commission on Bookings
+
+Every ticket purchase processed through the platform includes a small
+commission fee. The percentage is configurable via the `platform_commission_rate`
+setting in `.env` (default is **5%**). The backend calculates this commission
+for each booking and passes the amount to Stripe during payment processing.
+
 ## ⏱️ Real-Time Analytics and Anomaly Detection
 
 The scheduler now runs a **RealTimeAnalyticsService** every minute. It processes
@@ -504,6 +512,7 @@ the latest event views and compares them with the previous hour to detect sudden
 traffic spikes or abnormal bounce rates. When an anomaly is found, a
 `MetricAlert` is stored and a warning is logged. Aggregated values are persisted
 via `aggregate_platform_metrics` so historical reports include these events.
+
 
 ## 📈 Premium Analytics for Paid Users
 

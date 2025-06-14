@@ -105,10 +105,12 @@ class BookingService:
             unit_price = ticket_type.price
             total_price = unit_price * quantity
 
-            # Get commission rate for user-generated events
-            commission_rate = Decimal("0.0")  # Default no commission
-            if ticket_type.event.is_user_generated:
-                commission_rate = ticket_type.event.platform_commission_rate / 100
+            # Determine commission rate (event value overrides global setting)
+            event_rate = ticket_type.event.platform_commission_rate
+            if event_rate is None:
+                event_rate = settings.platform_commission_rate
+
+            commission_rate = Decimal(str(event_rate)) / Decimal("100")
 
             platform_commission = total_price * commission_rate
             organizer_revenue = total_price - platform_commission
