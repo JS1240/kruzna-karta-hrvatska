@@ -497,6 +497,14 @@ uv run alembic upgrade head
 2. Add the language code to the `Language` type in `frontend/src/contexts/LanguageContext.tsx`.
 3. Provide a UI option for switching to the new language.
 
+## ⏱️ Real-Time Analytics and Anomaly Detection
+
+The scheduler now runs a **RealTimeAnalyticsService** every minute. It processes
+the latest event views and compares them with the previous hour to detect sudden
+traffic spikes or abnormal bounce rates. When an anomaly is found, a
+`MetricAlert` is stored and a warning is logged. Aggregated values are persisted
+via `aggregate_platform_metrics` so historical reports include these events.
+
 ## 📈 Premium Analytics for Paid Users
 
 We plan to introduce advanced analytics and event organisation tools for organisers on a paid subscription. See [docs/premium-analytics-plan.md](docs/premium-analytics-plan.md) for details.
