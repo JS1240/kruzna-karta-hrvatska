@@ -497,6 +497,13 @@ uv run alembic upgrade head
 2. Add the language code to the `Language` type in `frontend/src/contexts/LanguageContext.tsx`.
 3. Provide a UI option for switching to the new language.
 
+## 💵 Platform Commission on Bookings
+
+Every ticket purchase processed through the platform includes a small
+commission fee. The percentage is configurable via the `platform_commission_rate`
+setting in `.env` (default is **5%**). The backend calculates this commission
+for each booking and passes the amount to Stripe during payment processing.
+
 ## 📈 Premium Analytics for Paid Users
 
 We plan to introduce advanced analytics and event organisation tools for organisers on a paid subscription. See [docs/premium-analytics-plan.md](docs/premium-analytics-plan.md) for details.
