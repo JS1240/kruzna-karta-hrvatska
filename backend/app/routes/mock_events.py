@@ -9,7 +9,7 @@ router = APIRouter()
 
 class MockEvent(BaseModel):
     id: int
-    name: str
+    title: str
     time: str
     date: date
     location: str
@@ -28,7 +28,7 @@ class MockEventsResponse(BaseModel):
 MOCK_EVENTS = [
     MockEvent(
         id=1,
-        name="Zagreb Music Festival",
+        title="Zagreb Music Festival",
         time="20:00",
         date=date(2025, 6, 15),
         location="Zagreb",
@@ -39,7 +39,7 @@ MOCK_EVENTS = [
     ),
     MockEvent(
         id=2,
-        name="Split Summer Concert",
+        title="Split Summer Concert",
         time="19:30",
         date=date(2025, 6, 20),
         location="Split",
@@ -50,7 +50,7 @@ MOCK_EVENTS = [
     ),
     MockEvent(
         id=3,
-        name="Dubrovnik Cultural Evening",
+        title="Dubrovnik Cultural Evening",
         time="18:00",
         date=date(2025, 6, 25),
         location="Dubrovnik",
@@ -61,7 +61,7 @@ MOCK_EVENTS = [
     ),
     MockEvent(
         id=4,
-        name="Rijeka Tech Conference",
+        title="Rijeka Tech Conference",
         time="09:00",
         date=date(2025, 6, 18),
         location="Rijeka",
@@ -72,7 +72,7 @@ MOCK_EVENTS = [
     ),
     MockEvent(
         id=5,
-        name="Zadar Sunset Festival",
+        title="Zadar Sunset Festival",
         time="17:00",
         date=date(2025, 6, 22),
         location="Zadar",
@@ -83,7 +83,7 @@ MOCK_EVENTS = [
     ),
     MockEvent(
         id=6,
-        name="Pula Film Screening",
+        title="Pula Film Screening",
         time="21:00",
         date=date(2025, 6, 16),
         location="Pula",
@@ -94,7 +94,7 @@ MOCK_EVENTS = [
     ),
     MockEvent(
         id=7,
-        name="Makarska Beach Party",
+        title="Makarska Beach Party",
         time="22:00",
         date=date(2025, 6, 19),
         location="Makarska",
@@ -105,7 +105,7 @@ MOCK_EVENTS = [
     ),
     MockEvent(
         id=8,
-        name="Osijek Food Festival",
+        title="Osijek Food Festival",
         time="12:00",
         date=date(2025, 6, 21),
         location="Osijek",

@@ -78,7 +78,7 @@ class Venue(VenueBase):
 
 # Event Schemas
 class EventBase(BaseModel):
-    name: str = Field(..., max_length=500)
+    title: str = Field(..., max_length=500)
     time: str = Field(..., max_length=50)
     date: date
     price: Optional[str] = Field(None, max_length=100)
@@ -110,7 +110,7 @@ class EventCreate(EventBase):
 
 
 class EventUpdate(BaseModel):
-    name: Optional[str] = Field(None, max_length=500)
+    title: Optional[str] = Field(None, max_length=500)
     time: Optional[str] = Field(None, max_length=50)
     date: Optional[date] = None
     price: Optional[str] = Field(None, max_length=100)

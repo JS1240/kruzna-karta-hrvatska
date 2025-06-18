@@ -35,9 +35,6 @@ class Venue(Base):
 
     # Relationships
     events = relationship("Event", back_populates="venue")
-    translations = relationship(
-        "VenueTranslation", back_populates="venue", cascade="all, delete-orphan"
-    )
 
     # Social relationships
     social_posts = relationship("SocialPost", back_populates="venue")

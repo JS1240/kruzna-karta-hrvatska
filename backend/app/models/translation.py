@@ -70,7 +70,7 @@ class EventTranslation(Base):
     )
 
     # Relationships
-    event = relationship("Event", back_populates="translations")
+    event = relationship("Event")
     language = relationship("Language")
     translator = relationship("User", foreign_keys=[translated_by])
     reviewer = relationship("User", foreign_keys=[reviewed_by])
@@ -106,7 +106,7 @@ class CategoryTranslation(Base):
     )
 
     # Relationships
-    category = relationship("EventCategory", back_populates="translations")
+    category = relationship("EventCategory")
     language = relationship("Language")
     translator = relationship("User", foreign_keys=[translated_by])
     reviewer = relationship("User", foreign_keys=[reviewed_by])
@@ -142,7 +142,7 @@ class VenueTranslation(Base):
     )
 
     # Relationships
-    venue = relationship("Venue", back_populates="translations")
+    venue = relationship("Venue")
     language = relationship("Language")
     translator = relationship("User", foreign_keys=[translated_by])
     reviewer = relationship("User", foreign_keys=[reviewed_by])

@@ -56,7 +56,7 @@ class TranslationQuality(BaseModel):
 
 # Event Translation Schemas
 class EventTranslationBase(BaseModel):
-    name: str = Field(..., max_length=500, description="Translated event name")
+    title: str = Field(..., max_length=500, description="Translated event title")
     description: Optional[str] = Field(None, description="Translated event description")
     location: Optional[str] = Field(
         None, max_length=500, description="Translated location name"
@@ -81,7 +81,7 @@ class EventTranslationCreate(EventTranslationBase):
 
 
 class EventTranslationUpdate(BaseModel):
-    name: Optional[str] = Field(None, max_length=500)
+    title: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = None
     location: Optional[str] = Field(None, max_length=500)
     organizer: Optional[str] = Field(None, max_length=255)
@@ -223,7 +223,7 @@ class TranslatedEvent(BaseModel):
     """Event with applied translations"""
 
     id: int
-    name: str
+    title: str
     description: Optional[str] = None
     location: str
     organizer: Optional[str] = None

@@ -226,7 +226,7 @@ class SocialPost(Base):
 
     # Relationships
     user = relationship("User", back_populates="social_posts")
-    event = relationship("Event", back_populates="social_posts")
+    event = relationship("Event")
     venue = relationship("Venue", back_populates="social_posts")
     comments = relationship(
         "PostComment", back_populates="post", cascade="all, delete-orphan"
@@ -240,6 +240,7 @@ class SocialPost(Base):
     reports = relationship(
         "ContentReport", back_populates="post", cascade="all, delete-orphan"
     )
+    notifications = relationship("SocialNotification", back_populates="post")
 
 
 class PostComment(Base):
@@ -399,9 +400,9 @@ class EventReview(Base):
     )
 
     # Relationships
-    event = relationship("Event", back_populates="reviews")
+    event = relationship("Event")
     user = relationship("User", back_populates="event_reviews")
-    booking = relationship("Booking", back_populates="review")
+    # booking = relationship("Booking", back_populates="review")
 
     # Constraints
     __table_args__ = (
@@ -545,7 +546,7 @@ class EventAttendance(Base):
     )
 
     # Relationships
-    event = relationship("Event", back_populates="attendances")
+    event = relationship("Event")
     user = relationship("User", back_populates="event_attendances")
 
     # Constraints

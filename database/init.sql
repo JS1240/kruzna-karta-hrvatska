@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS events (
     id SERIAL PRIMARY KEY,
     
     -- Core event information (as requested)
-    name VARCHAR(500) NOT NULL, -- Increased length for longer event names
+    title VARCHAR(500) NOT NULL, -- Increased length for longer event names (renamed from 'name')
     time VARCHAR(50) NOT NULL, -- Could be "19:00", "19:00-23:00", "TBA", etc.
     date DATE NOT NULL,
     price VARCHAR(100), -- "50 HRK", "Free", "50-100 HRK", "From 25 EUR"
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS events (
 -- Create comprehensive indexes for performance
 CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);
 CREATE INDEX IF NOT EXISTS idx_events_location ON events(location);
-CREATE INDEX IF NOT EXISTS idx_events_name ON events(name);
+CREATE INDEX IF NOT EXISTS idx_events_title ON events(title);
 CREATE INDEX IF NOT EXISTS idx_events_category ON events(category_id);
 CREATE INDEX IF NOT EXISTS idx_events_venue ON events(venue_id);
 CREATE INDEX IF NOT EXISTS idx_events_source ON events(source);
@@ -153,7 +153,7 @@ INSERT INTO venues (name, address, city, latitude, longitude, capacity, venue_ty
 ON CONFLICT (name, city) DO NOTHING;
 
 -- Insert sample Croatian events data with enhanced schema
-INSERT INTO events (name, time, date, location, description, price, image, link, category_id, venue_id, source, latitude, longitude, organizer, tags, slug, is_featured) VALUES
+INSERT INTO events (title, time, date, location, description, price, image, link, category_id, venue_id, source, latitude, longitude, organizer, tags, slug, is_featured) VALUES
 ('Zagreb Music Festival', '20:00', '2025-06-15', 'Zagreb', 'Annual music festival featuring Croatian and international artists in the heart of Zagreb', '150 HRK', 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400', 'https://example.com/zagreb-music', 1, 2, 'manual', 45.8003, 15.9375, 'Zagreb Events Ltd.', ARRAY['music', 'festival', 'international'], 'zagreb-music-festival-2025', true),
 ('Split Summer Concert', '19:30', '2025-06-20', 'Split', 'Open-air concert by the beautiful Adriatic Sea with stunning sunset views', '100 HRK', 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400', 'https://example.com/split-concert', 1, 5, 'manual', 43.5081, 16.4402, 'Split Tourism Board', ARRAY['music', 'outdoor', 'sunset'], 'split-summer-concert-2025', false),
 ('Dubrovnik Cultural Evening', '18:00', '2025-06-25', 'Dubrovnik', 'Traditional Croatian cultural performance in the historic Old Town walls', '80 HRK', 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400', 'https://example.com/dubrovnik-culture', 3, 6, 'manual', 42.6414, 18.1111, 'Dubrovnik Summer Festival', ARRAY['culture', 'traditional', 'heritage'], 'dubrovnik-cultural-evening-2025', true),
@@ -181,7 +181,7 @@ CREATE OR REPLACE FUNCTION update_search_vector()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.search_vector := to_tsvector('english', 
-        COALESCE(NEW.name, '') || ' ' ||
+        COALESCE(NEW.title, '') || ' ' ||
         COALESCE(NEW.description, '') || ' ' ||
         COALESCE(NEW.location, '') || ' ' ||
         COALESCE(NEW.organizer, '') || ' ' ||

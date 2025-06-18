@@ -127,8 +127,8 @@ const EventMapDemo = () => {
           <h3 className="text-xl font-semibold mb-2">{t("demo.map.title")}</h3>
           <p className="text-gray-600 mb-4">{t("demo.map.description")}</p>
           <Button
-            onClick={() => (window.location.href = "/map")}
-            className="mb-3"
+            disabled
+            className="mb-3 opacity-50 cursor-not-allowed"
           >
             {t("demo.map.button")}
           </Button>

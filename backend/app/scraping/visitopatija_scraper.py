@@ -26,7 +26,7 @@ USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
 USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
 
 BASE_URL = "https://www.visitopatija.com"
-EVENTS_URL = f"{BASE_URL}/en/events"  # Assumed events page
+EVENTS_URL = f"{BASE_URL}/kalendar-dogadjanja"  # Croatian events calendar page
 
 HEADERS = {
     "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0",
@@ -56,29 +56,43 @@ class VisitOpatijaTransformer:
         if not date_str:
             return None
         date_str = date_str.strip()
+        
+        # Handle Croatian date formats
         patterns = [
-            r"(\d{1,2})\.(\d{1,2})\.(\d{4})",
-            r"(\d{4})-(\d{1,2})-(\d{1,2})",
-            r"(\d{1,2})\s+(\w+)\s*(\d{4})",
+            r"(\d{1,2})\.(\d{1,2})\.(\d{4})",  # DD.MM.YYYY
+            r"(\d{4})-(\d{1,2})-(\d{1,2})",   # YYYY-MM-DD
+            r"(\d{1,2})\s+(\w+)\s*(\d{4})",   # DD Month YYYY
+            r"(\d{1,2})\.(\d{1,2})\.",        # DD.MM. (current year)
         ]
+        
         for pattern in patterns:
             m = re.search(pattern, date_str, re.IGNORECASE)
             if m:
                 try:
-                    if pattern.startswith("("):
+                    if pattern.endswith(r"\.(\d{4})"):  # Full date DD.MM.YYYY
                         day, month, year = m.groups()
-                        if month.isdigit():
-                            return date(int(year), int(month), int(day))
-                        month_num = VisitOpatijaTransformer.CRO_MONTHS.get(
-                            month.lower()
-                        )
-                        if month_num:
-                            return date(int(year), month_num, int(day))
-                    elif pattern.startswith("(\d{4})"):
+                        return date(int(year), int(month), int(day))
+                    elif pattern.startswith(r"(\d{4})"):  # YYYY-MM-DD
                         year, month, day = m.groups()
                         return date(int(year), int(month), int(day))
+                    elif pattern.endswith(r"(\d{4})"):  # DD Month YYYY
+                        day, month_name, year = m.groups()
+                        month_num = VisitOpatijaTransformer.CRO_MONTHS.get(month_name.lower())
+                        if month_num:
+                            return date(int(year), month_num, int(day))
+                    elif pattern.endswith(r"\."):  # DD.MM. (assume current year)
+                        day, month = m.groups()
+                        from datetime import date as date_obj
+                        current_year = date_obj.today().year
+                        parsed_date = date(current_year, int(month), int(day))
+                        # If date is in the past, assume next year
+                        if parsed_date < date_obj.today():
+                            parsed_date = date(current_year + 1, int(month), int(day))
+                        return parsed_date
                 except (ValueError, TypeError):
                     continue
+        
+        # Fallback: try to extract year and assume January 1st
         year_match = re.search(r"(\d{4})", date_str)
         if year_match:
             try:
@@ -133,7 +147,7 @@ class VisitOpatijaTransformer:
                 return None
 
             return EventCreate(
-                name=name,
+                title=name,
                 time=parsed_time,
                 date=parsed_date,
                 location=location or "Opatija",
@@ -141,6 +155,8 @@ class VisitOpatijaTransformer:
                 price=price or "Check website",
                 image=image,
                 link=link,
+                source="visitopatija",
+                tags=[]  # Initialize tags as empty list to avoid ARRAY type issues
             )
         except Exception:
             return None
@@ -214,27 +230,95 @@ class VisitOpatijaRequestsScraper:
 
     def parse_listing_element(self, el: Tag) -> Dict:
         data: Dict[str, str] = {}
-        link_el = el.select_one("a")
-        if link_el and link_el.get("href"):
-            data["link"] = urljoin(BASE_URL, link_el.get("href"))
-            if link_el.get_text(strip=True):
-                data["title"] = link_el.get_text(strip=True)
-
-        date_el = el.select_one(".date, time")
-        if date_el and date_el.get_text(strip=True):
-            data["date"] = date_el.get_text(strip=True)
-
+        
+        # Get the raw text content
+        full_text = el.get_text(separator=" ", strip=True)
+        
+        # Extract event title - look for patterns after event type keywords
+        event_keywords = ["Manifestacija", "Koncert", "Festival", "Predstava", "Izložba", "Događaj"]
+        title = ""
+        
+        for keyword in event_keywords:
+            if keyword in full_text:
+                # Try to extract title after the keyword and date
+                import re
+                pattern = rf"{keyword}[\d\.\-\s]*([A-ZŠĐČĆŽ][^:]+?)(?=Održavanje|Lokacija|$)"
+                match = re.search(pattern, full_text)
+                if match:
+                    title = match.group(1).strip()
+                    break
+        
+        # Fallback: look for capitalized words near the beginning
+        if not title or len(title) < 3:
+            import re
+            # Look for capitalized phrases after dates
+            date_pattern = r"[\d\.\-]+\s*([A-ZŠĐČĆŽ][^:]+?)(?=\s*\d|\s*Održavanje|\s*Lokacija|$)"
+            match = re.search(date_pattern, full_text)
+            if match:
+                title = match.group(1).strip()
+        
+        # Final fallback: take first meaningful text
+        if not title or len(title) < 3:
+            words = full_text.split()
+            meaningful_words = [w for w in words if len(w) > 2 and not w.isdigit() and "." not in w]
+            if meaningful_words:
+                title = " ".join(meaningful_words[:4])
+        
+        if title and "opširnije" not in title.lower():
+            data["title"] = title
+        
+        # Extract dates using regex
+        import re
+        date_matches = re.findall(r'\d{1,2}\.\d{1,2}\.(?:\d{4})?', full_text)
+        if date_matches:
+            # Take the first complete date
+            for date_match in date_matches:
+                if len(date_match) >= 6:  # Has year
+                    data["date"] = date_match
+                    break
+            if "date" not in data and date_matches:
+                # Use first date and assume current year
+                from datetime import date as date_obj
+                current_year = date_obj.today().year
+                data["date"] = f"{date_matches[0]}{current_year}"
+        
+        # Extract link - prefer non-"opširnije" links first
+        links = el.select("a[href]")
+        for link_el in links:
+            href = link_el.get("href")
+            link_text = link_el.get_text(strip=True)
+            if href and "opširnije" not in link_text.lower():
+                data["link"] = urljoin(BASE_URL, href)
+                break
+        
+        # If no good link found, take any link
+        if "link" not in data and links:
+            href = links[0].get("href")
+            if href:
+                data["link"] = urljoin(BASE_URL, href)
+        
+        # Extract location from text patterns
+        location_patterns = [
+            r"Lokacija:([^O]+?)(?=Organizator|$)",
+            r"(?:u\s+|@\s+)([A-ZŠĐČĆŽ][^,\n]+?)(?=\s|$)",
+        ]
+        for pattern in location_patterns:
+            match = re.search(pattern, full_text)
+            if match:
+                location = match.group(1).strip()
+                if location and len(location) > 2:
+                    data["location"] = location
+                    break
+        
+        # Extract time
+        time_match = re.search(r'(\d{1,2}:\d{2})', full_text)
+        if time_match:
+            data["time"] = time_match.group(1)
+        
+        # Extract image
         img_el = el.select_one("img")
         if img_el and img_el.get("src"):
             data["image"] = img_el.get("src")
-
-        loc_el = el.select_one(".location, .venue, .place")
-        if loc_el:
-            data["location"] = loc_el.get_text(strip=True)
-
-        price_el = el.select_one(".price")
-        if price_el:
-            data["price"] = price_el.get_text(strip=True)
 
         return data
 
@@ -244,11 +328,13 @@ class VisitOpatijaRequestsScraper:
 
         events: List[Dict] = []
         containers: List[Tag] = []
-        selectors = ["li.event-item", "div.event-item", "article", ".events-list li"]
+        # Target the specific article structure found on Visit Opatija calendar page
+        selectors = ["article.media-small.cnt-box", "article.cnt-box", "article"]
         for sel in selectors:
             found = soup.select(sel)
             if found:
                 containers = found
+                print(f"Found {len(found)} events using selector: {sel}")
                 break
 
         for el in containers:
@@ -307,37 +393,64 @@ class VisitOpatijaScraper:
         return events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
-        from sqlalchemy import select, tuple_
-        from sqlalchemy.dialects.postgresql import insert
-
-        from ..core.database import SessionLocal
-        from ..models.event import Event
-
+        """Insert events using individual Event creation and return number of new rows."""
         if not events:
             return 0
 
+        from ..core.database import SessionLocal
+        from ..models.event import Event
+        from sqlalchemy import select, tuple_
+
         db = SessionLocal()
+
         try:
-            event_dicts = [e.model_dump() for e in events]
-            pairs = [(e["name"], e["date"]) for e in event_dicts]
+            # Prepare incoming data for database
+            event_dicts = []
+            for e in events:
+                event_dict = e.model_dump()
+                # Remove id field as it's auto-generated by database
+                event_dict.pop("id", None)
+                event_dicts.append(event_dict)
+            
+            pairs = [(e["title"], e["date"]) for e in event_dicts]
+
+            # Fetch all existing events for these (title, date) pairs
             existing = db.execute(
-                select(Event.name, Event.date).where(
-                    tuple_(Event.name, Event.date).in_(pairs)
+                select(Event.title, Event.date).where(
+                    tuple_(Event.title, Event.date).in_(pairs)
                 )
             ).all()
             existing_pairs = set(existing)
+
+            # Filter to only new events
             to_insert = [
-                e for e in event_dicts if (e["name"], e["date"]) not in existing_pairs
+                e for e in event_dicts if (e["title"], e["date"]) not in existing_pairs
             ]
+
             if to_insert:
-                stmt = insert(Event).values(to_insert)
-                stmt = stmt.on_conflict_do_nothing(index_elements=["name", "date"])
-                db.execute(stmt)
+                # Insert each event individually to avoid bulk insert mapping issues
+                saved_count = 0
+                for event_data in to_insert:
+                    try:
+                        # Create Event object directly
+                        event = Event(**event_data)
+                        db.add(event)
+                        db.flush()  # Get the ID without committing
+                        saved_count += 1
+                    except Exception as e:
+                        # Skip duplicate or invalid events
+                        db.rollback()
+                        print(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
+                        continue
+                
                 db.commit()
-                return len(to_insert)
+                return saved_count
+
             db.commit()
             return 0
-        except Exception:
+
+        except Exception as e:
+            print(f"Error saving events to database: {e}")
             db.rollback()
             raise
         finally:

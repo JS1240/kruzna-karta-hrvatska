@@ -27,7 +27,6 @@ if "postgresql" in settings.database_url:
         "application_name": "kruzna_karta_hrvatska",
         # Performance optimizations
         "connect_timeout": 10,
-        "command_timeout": 60,
     }
 
 engine = create_engine(settings.database_url, **engine_kwargs)

@@ -50,7 +50,7 @@ class Event(Base):
     # Additional event details
     organizer = Column(String(255))
     age_restriction = Column(String(50))
-    ticket_info = Column(JSONB)  # Renamed to avoid conflict with relationship
+    ticket_types = Column(JSONB)  # Ticket information storage
     tags = Column(ARRAY(Text))
 
     # User-generated event fields
@@ -65,7 +65,7 @@ class Event(Base):
 
     # SEO and search
     slug = Column(String(600), unique=True)
-    search_vector = Column(TSVECTOR)
+    search_vector = Column(TSVECTOR)  # Re-enabled after fixing trigger
 
     # Date/time management
     end_date = Column(Date)
@@ -89,26 +89,8 @@ class Event(Base):
     favorited_by = relationship(
         "User", secondary="user_favorites", back_populates="favorite_events"
     )
-    translations = relationship(
-        "EventTranslation", back_populates="event", cascade="all, delete-orphan"
-    )
-    ticket_types = relationship(
-        "TicketType", back_populates="event", cascade="all, delete-orphan"
-    )
-    bookings = relationship("Booking", back_populates="event")
-    instance = relationship("EventInstance", back_populates="event", uselist=False)
-
-    # Social relationships
-    social_posts = relationship("SocialPost", back_populates="event")
-    reviews = relationship(
-        "EventReview", back_populates="event", cascade="all, delete-orphan"
-    )
-    attendances = relationship(
-        "EventAttendance", back_populates="event", cascade="all, delete-orphan"
-    )
-    notifications = relationship("SocialNotification", back_populates="event")
-
-    # User-generated event relationships
+    
+    # User-generated event relationships  
     event_organizer = relationship(
         "User", foreign_keys=[organizer_id], back_populates="organized_events"
     )

@@ -75,8 +75,8 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
-    bookings = relationship("Booking", back_populates="user")
-    tickets = relationship("Ticket", back_populates="user")
+    # bookings = relationship("Booking", back_populates="user")
+    # tickets = relationship("Ticket", back_populates="user")
     venue_bookings = relationship("VenueBooking", back_populates="customer")
     venue_reviews = relationship("VenueReview", back_populates="user")
     owned_venues = relationship(
@@ -89,6 +89,9 @@ class User(Base):
     )
 
     # Social relationships
+    social_profile = relationship(
+        "UserSocialProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
     social_posts = relationship(
         "SocialPost", back_populates="user", cascade="all, delete-orphan"
     )

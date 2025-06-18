@@ -159,8 +159,9 @@ class EventDataTransformer:
             date_str = scraped_data.get("date", "")
             parsed_date = EventDataTransformer.parse_date(date_str)
             if not parsed_date:
-                # Skip events without valid dates
-                return None
+                # Use default date for events without dates (upcoming events)
+                from datetime import date, timedelta
+                parsed_date = date.today() + timedelta(days=7)  # Default to next week
 
             # Parse time
             time_str = scraped_data.get("time", "") or scraped_data.get("date", "")
@@ -176,7 +177,23 @@ class EventDataTransformer:
             if link and not link.startswith("http"):
                 link = urljoin("https://entrio.hr", link)
 
-            # Validate required fields
+            # Try to extract title from URL if name is empty
+            if not name or len(name) < 3:
+                link = scraped_data.get("link", "")
+                if link:
+                    # Extract event name from URL (e.g., "jim-jefferies-live-in-zagreb" from URL)
+                    import re
+                    url_match = re.search(r'/event/([^/?]+)', link)
+                    if url_match:
+                        url_name = url_match.group(1)
+                        # Clean up the URL name
+                        name = url_name.replace('-', ' ').replace('_', ' ')
+                        # Remove numbers at the end (like "25641")
+                        name = re.sub(r'\s+\d+$', '', name)
+                        # Capitalize words
+                        name = ' '.join(word.capitalize() for word in name.split())
+                        
+            # Final validation
             if not name or len(name) < 3:
                 return None
 
@@ -184,7 +201,7 @@ class EventDataTransformer:
                 location = "Zagreb, Croatia"  # Default location
 
             return EventCreate(
-                name=name,
+                title=name,
                 time=parsed_time,
                 date=parsed_date,
                 location=location,
@@ -192,6 +209,8 @@ class EventDataTransformer:
                 price=price or "Contact organizer",
                 image=image_url,
                 link=link,
+                source="entrio",
+                tags=[]  # Initialize tags as empty list to avoid ARRAY type issues
             )
 
         except Exception as e:
@@ -461,134 +480,480 @@ class EntrioPlaywrightScraper:
     """Scraper using Playwright for JavaScript-heavy pages."""
 
     async def scrape_with_playwright(
-        self, start_url: str = "https://entrio.hr/events", max_pages: int = 3
+        self, start_url: str = "https://entrio.hr/", max_pages: int = 5
     ) -> List[Dict]:
-        """Scrape events using Playwright."""
+        """Scrape events using Playwright with anti-detection."""
         from playwright.async_api import async_playwright
+        import random
 
         all_events = []
-        current_url = start_url
-        page_count = 0
+        
+        # Better user agents
+        user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
+        ]
 
         async with async_playwright() as p:
+            # Launch with maximum anti-detection
             if USE_PROXY:
                 browser = await p.chromium.connect_over_cdp(BRD_WSS)
             else:
-                browser = await p.chromium.launch()
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-blink-features=AutomationControlled',
+                        '--disable-dev-shm-usage',
+                        '--disable-web-security',
+                        '--disable-features=VizDisplayCompositor',
+                        '--disable-background-timer-throttling',
+                        '--disable-backgrounding-occluded-windows',
+                        '--disable-renderer-backgrounding',
+                        '--disable-field-trial-config',
+                        '--disable-back-forward-cache',
+                        '--disable-ipc-flooding-protection',
+                        '--no-first-run',
+                        '--no-default-browser-check',
+                        '--no-pings',
+                        '--password-store=basic',
+                        '--use-mock-keychain'
+                    ]
+                )
 
-            page = await browser.new_page()
+            # Create realistic browser context
+            context = await browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                user_agent=random.choice(user_agents),
+                locale='hr-HR',
+                timezone_id='Europe/Zagreb',
+                geolocation={'latitude': 45.8150, 'longitude': 15.9819},  # Zagreb coordinates
+                permissions=['geolocation'],
+                extra_http_headers={
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Accept-Language': 'hr-HR,hr;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'DNT': '1',
+                    'Connection': 'keep-alive',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1'
+                }
+            )
+            
+            page = await context.new_page()
+            
+            # Add stealth script
+            await page.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined,
+                });
+            """)
 
-            while current_url and page_count < max_pages:
-                try:
-                    print(f"→ Fetching {current_url}")
-                    await page.goto(
-                        current_url, wait_until="domcontentloaded", timeout=90000
-                    )
+            # Try to access the main page first 
+            try:
+                print(f"→ Fetching {start_url}")
+                await page.goto(start_url, wait_until="domcontentloaded", timeout=30000)
+                await page.wait_for_timeout(3000)
 
-                    # Wait for content to load
-                    await page.wait_for_timeout(3000)
-
-                    # Extract events using JavaScript evaluation
-                    events_data = await page.evaluate(
-                        """
-                        () => {
-                            const events = [];
-                            const eventSelectors = [
-                                'a[href*="/event/"]:not([href*="/my_events"])',
-                                'div[class*="event-card"]',
-                                'div[class*="event-item"]',
-                                'article[class*="event"]'
-                            ];
+                # Extract events from homepage first
+                homepage_events = await page.evaluate("""
+                    () => {
+                        const events = [];
+                        const eventLinks = Array.from(document.querySelectorAll('a[href]'))
+                            .filter(link => link.href.includes('/event/') && !link.href.includes('my_event'))
+                            .slice(0, 20);
+                        
+                        eventLinks.forEach(linkEl => {
+                            const data = {};
+                            data.link = linkEl.href;
+                            data.title = linkEl.textContent?.trim() || linkEl.getAttribute('title') || '';
                             
-                            let eventElements = [];
-                            for (const selector of eventSelectors) {
-                                const elements = document.querySelectorAll(selector);
-                                if (elements.length > 0) {
-                                    eventElements = Array.from(elements);
-                                    break;
-                                }
+                            const imgEl = linkEl.querySelector('img');
+                            if (imgEl && imgEl.src) {
+                                data.image_url = imgEl.src;
                             }
                             
-                            eventElements.forEach(element => {
-                                const data = {};
-                                
-                                // Extract link
-                                const linkEl = element.querySelector('a') || element;
-                                if (linkEl && linkEl.href) {
-                                    data.link = linkEl.href;
-                                }
-                                
-                                // Extract title
-                                const titleEl = element.querySelector('.event-title, .title, h1, h2, h3, h4, h5, h6');
-                                if (titleEl) {
-                                    data.title = titleEl.textContent.trim();
-                                }
-                                
-                                // Extract date
-                                const dateEl = element.querySelector('.date, .event-date, time');
-                                if (dateEl) {
-                                    data.date = dateEl.textContent.trim();
-                                }
-                                
-                                // Extract venue
-                                const venueEl = element.querySelector('.venue, .location, .event-venue');
-                                if (venueEl) {
-                                    data.venue = venueEl.textContent.trim();
-                                }
-                                
-                                // Extract image
-                                const imgEl = element.querySelector('img');
-                                if (imgEl && imgEl.src) {
-                                    data.image_url = imgEl.src;
-                                }
-                                
-                                // Extract price
-                                const priceEl = element.querySelector('.price, .event-price');
-                                if (priceEl) {
-                                    data.price = priceEl.textContent.trim();
-                                }
-                                
-                                if (data.title || data.link) {
-                                    events.push(data);
-                                }
-                            });
-                            
-                            return events;
-                        }
-                    """
-                    )
+                            events.push(data);
+                        });
+                        
+                        return events;
+                    }
+                """)
+                
+                print(f"Found {len(homepage_events)} events on homepage")
+                all_events.extend(homepage_events)
+                
+                # Now try to access events page with advanced Cloudflare bypass
+                await self.access_events_page_with_bypass(page, all_events, max_pages)
 
-                    all_events.extend(events_data)
-                    page_count += 1
-                    print(
-                        f"Page {page_count}: Found {len(events_data)} events (Total: {len(all_events)})"
-                    )
-
-                    if not events_data:
-                        break
-
-                    # Try to find next page
-                    next_link = await page.query_selector(
-                        'a[class*="next"], a[aria-label*="Next"]'
-                    )
-                    if next_link:
-                        current_url = await next_link.get_attribute("href")
-                        if current_url:
-                            current_url = urljoin(start_url, current_url)
-                        else:
-                            break
-                    else:
-                        break
-
-                    await asyncio.sleep(2)
-
-                except Exception as e:
-                    print(f"Failed to scrape page {current_url}: {e}")
-                    break
+                print(f"Total events found: {len(all_events)}")
+                
+                if not all_events:
+                    print("No events found on any page")
+                    
+            except Exception as e:
+                print(f"Failed to scrape page {start_url}: {e}")
 
             await browser.close()
 
         return all_events
+
+    async def access_events_page_with_bypass(self, page, all_events, max_pages):
+        """Advanced Cloudflare bypass to access events page."""
+        import random
+        
+        print("Attempting to access events page with advanced bypass...")
+        
+        # Method 1: Handle cookie acceptance and human simulation
+        try:
+            print("Step 1: Handling cookie acceptance and overlays...")
+            
+            # Look for and handle cookie acceptance
+            await self.handle_cookie_acceptance(page)
+            
+            # Advanced human simulation
+            await self.simulate_human_behavior(page)
+            
+            # Wait and try to find events link
+            await page.wait_for_timeout(2000)
+            
+            # Try multiple selectors for events link
+            events_selectors = [
+                'a[href*="/events"]:not([href*="my_events"])',
+                'a[href="/events"]',
+                'a[href="https://www.entrio.hr/events"]',
+                'a:text("Događaji")',
+                'a:text("Events")',
+                'a:text("Svi događaji")',
+                'nav a[href*="events"]'
+            ]
+            
+            events_link = None
+            for selector in events_selectors:
+                try:
+                    events_link = await page.query_selector(selector)
+                    if events_link:
+                        print(f"Found events link with selector: {selector}")
+                        break
+                except:
+                    continue
+            
+            if events_link:
+                print("Attempting natural click on events link...")
+                
+                # Scroll to element smoothly
+                await events_link.scroll_into_view_if_needed()
+                await page.wait_for_timeout(1000)
+                
+                # Try clicking with force if needed
+                try:
+                    await events_link.click(force=True)
+                    await page.wait_for_timeout(8000)  # Wait longer for page load
+                    
+                    page_title = await page.title()
+                    page_url = page.url
+                    print(f"After click - URL: {page_url}, Title: {page_title}")
+                    
+                    if "/events" in page_url and "Cloudflare" not in page_title and "Attention Required" not in page_title:
+                        print(f"✅ Successfully accessed events page: {page_title}")
+                        await self.extract_events_from_current_page(page, all_events, max_pages)
+                        return
+                    else:
+                        print("⚠️ Events page click was blocked or redirected")
+                        
+                except Exception as click_error:
+                    print(f"Click failed: {click_error}")
+            
+        except Exception as e:
+            print(f"Method 1 failed: {e}")
+
+    async def handle_cookie_acceptance(self, page):
+        """Handle cookie acceptance overlays and popups."""
+        try:
+            # Wait a bit for any overlays to appear
+            await page.wait_for_timeout(2000)
+            
+            # Look for cookie acceptance buttons/overlays
+            cookie_selectors = [
+                '.accept__overlay',
+                '.js-accept-overlay',
+                '.cookie-accept',
+                '.cookie-consent button',
+                'button:text("Accept")',
+                'button:text("Prihvati")',
+                'button:text("OK")',
+                '.accept-cookies',
+                '[class*="cookie"] button',
+                '[class*="accept"] button'
+            ]
+            
+            for selector in cookie_selectors:
+                try:
+                    element = await page.query_selector(selector)
+                    if element:
+                        print(f"Found cookie element: {selector}")
+                        # Try to remove overlay or click accept
+                        if 'overlay' in selector:
+                            await page.evaluate(f'document.querySelector("{selector}")?.remove()')
+                        else:
+                            await element.click()
+                        await page.wait_for_timeout(1000)
+                        print(f"Handled cookie element: {selector}")
+                        break
+                except:
+                    continue
+                    
+        except Exception as e:
+            print(f"Cookie handling failed: {e}")
+
+    async def simulate_human_behavior(self, page):
+        """Simulate realistic human browsing behavior."""
+        import random
+        
+        try:
+            # Simulate realistic mouse movements
+            for _ in range(3):
+                x = random.randint(100, 1000)
+                y = random.randint(100, 600)
+                await page.mouse.move(x, y)
+                await page.wait_for_timeout(random.randint(200, 800))
+            
+            # Simulate scrolling
+            await page.evaluate("""
+                () => {
+                    const scrollAmount = Math.random() * 500 + 200;
+                    window.scrollTo({
+                        top: scrollAmount,
+                        behavior: 'smooth'
+                    });
+                }
+            """)
+            
+            await page.wait_for_timeout(random.randint(1000, 3000))
+            
+            # Scroll back up
+            await page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })")
+            await page.wait_for_timeout(random.randint(1000, 2000))
+            
+        except Exception as e:
+            print(f"Human simulation failed: {e}")
+        
+        # Method 2: Enhanced direct URL bypass with stealth techniques
+        print("Step 2: Trying advanced direct URL bypass...")
+        
+        events_urls = [
+            "https://www.entrio.hr/events",
+            "https://entrio.hr/events", 
+            "https://www.entrio.hr/events?time=upcoming",
+            "https://www.entrio.hr/events?sort=date_asc",
+            "https://www.entrio.hr/events?category=music",
+            "https://www.entrio.hr/events/zagreb"
+        ]
+        
+        for attempt, url in enumerate(events_urls):
+            try:
+                print(f"Attempt {attempt + 1}: Trying {url}")
+                
+                # Wait with human-like delay
+                await page.wait_for_timeout(random.randint(5000, 10000))
+                
+                # Simulate coming from Google search
+                await page.set_extra_http_headers({
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                    'Accept-Language': 'hr-HR,hr;q=0.9,en-US;q=0.8,en;q=0.7,de;q=0.6',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Cache-Control': 'max-age=0',
+                    'Sec-Ch-Ua': '"Google Chrome";v="120", "Chromium";v="120", "Not A Brand";v="99"',
+                    'Sec-Ch-Ua-Mobile': '?0',
+                    'Sec-Ch-Ua-Platform': '"Windows"',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none' if attempt == 0 else 'same-origin',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Referer': 'https://www.google.com/' if attempt == 0 else 'https://www.entrio.hr/'
+                })
+                
+                # Try navigating to URL
+                print(f"Navigating to {url}...")
+                response = await page.goto(url, wait_until="networkidle", timeout=30000)
+                
+                # Wait for page to fully load and any dynamic content
+                await page.wait_for_timeout(8000)
+                
+                # Handle any additional overlays that might appear
+                await self.handle_cookie_acceptance(page)
+                
+                # Check the result
+                page_title = await page.title()
+                page_url = page.url
+                page_content = await page.content()
+                
+                print(f"Result - URL: {page_url}")
+                print(f"Result - Title: {page_title}")
+                print(f"Result - Content length: {len(page_content)}")
+                
+                # More sophisticated detection of successful access
+                success_indicators = [
+                    "/events" in page_url.lower(),
+                    "događaji" in page_title.lower() or "events" in page_title.lower(),
+                    len(page_content) > 15000,
+                    "event-" in page_content or "dogadaj" in page_content
+                ]
+                
+                failed_indicators = [
+                    "Cloudflare" in page_title,
+                    "Attention Required" in page_title,
+                    "Ray ID" in page_content,
+                    "checking your browser" in page_content.lower(),
+                    len(page_content) < 10000
+                ]
+                
+                if any(success_indicators) and not any(failed_indicators):
+                    print(f"🎉 SUCCESS! Bypassed protection for {url}")
+                    print(f"   Title: {page_title}")
+                    print(f"   URL: {page_url}")
+                    
+                    # Try to extract events from this page
+                    await self.extract_events_from_current_page(page, all_events, max_pages)
+                    return
+                else:
+                    print(f"❌ Still blocked for {url}")
+                    if any(failed_indicators):
+                        print(f"   Detected blocking indicators")
+                    
+            except Exception as e:
+                print(f"❌ Failed to access {url}: {e}")
+                continue
+        
+        print("⚠️ All advanced bypass methods failed, using homepage events only")
+
+    async def extract_events_from_current_page(self, page, all_events, max_pages):
+        """Extract events from the current events page and handle pagination."""
+        page_count = 0
+        
+        while page_count < max_pages:
+            try:
+                # Wait for page content to load
+                await page.wait_for_timeout(3000)
+                
+                # Scroll down to load any dynamic content
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                await page.wait_for_timeout(2000)
+                
+                # Extract events from current page
+                events_data = await page.evaluate("""
+                    () => {
+                        const events = [];
+                        
+                        // Look for different event selectors on events page
+                        const selectors = [
+                            'a[href*="/event/"]',
+                            '.event-card a',
+                            '.event-item a',
+                            '.event-listing a',
+                            '[class*="event"] a',
+                            'article a[href*="/event/"]'
+                        ];
+                        
+                        let eventLinks = [];
+                        for (const selector of selectors) {
+                            const links = Array.from(document.querySelectorAll(selector))
+                                .filter(link => link.href.includes('/event/') && !link.href.includes('my_event'));
+                            if (links.length > 0) {
+                                eventLinks = links;
+                                console.log(`Found ${links.length} events with selector: ${selector}`);
+                                break;
+                            }
+                        }
+                        
+                        // Limit to avoid duplicates but get more events
+                        eventLinks.slice(0, 50).forEach(linkEl => {
+                            const data = {};
+                            data.link = linkEl.href;
+                            
+                            // Try to extract title from link text or parent elements
+                            let title = linkEl.textContent?.trim() || '';
+                            if (!title) {
+                                const parent = linkEl.closest('div, article, section');
+                                if (parent) {
+                                    const titleEl = parent.querySelector('h1, h2, h3, h4, h5, h6, .title, [class*="title"]');
+                                    if (titleEl) {
+                                        title = titleEl.textContent?.trim() || '';
+                                    }
+                                }
+                            }
+                            data.title = title;
+                            
+                            // Try to extract image
+                            let imgEl = linkEl.querySelector('img');
+                            if (!imgEl) {
+                                const parent = linkEl.closest('div, article, section');
+                                if (parent) {
+                                    imgEl = parent.querySelector('img');
+                                }
+                            }
+                            if (imgEl && imgEl.src) {
+                                data.image_url = imgEl.src;
+                            }
+                            
+                            // Try to extract date
+                            const parent = linkEl.closest('div, article, section');
+                            if (parent) {
+                                const dateEl = parent.querySelector('.date, .event-date, time, [class*="date"]');
+                                if (dateEl) {
+                                    data.date = dateEl.textContent?.trim() || '';
+                                }
+                                
+                                const venueEl = parent.querySelector('.venue, .location, [class*="venue"], [class*="location"]');
+                                if (venueEl) {
+                                    data.venue = venueEl.textContent?.trim() || '';
+                                }
+                                
+                                const priceEl = parent.querySelector('.price, [class*="price"]');
+                                if (priceEl) {
+                                    data.price = priceEl.textContent?.trim() || '';
+                                }
+                            }
+                            
+                            events.push(data);
+                        });
+                        
+                        return events;
+                    }
+                """)
+                
+                # Filter out events we already have
+                new_events = [event for event in events_data 
+                             if not any(existing['link'] == event['link'] for existing in all_events)]
+                
+                if len(new_events) > 0:
+                    all_events.extend(new_events)
+                    print(f"Page {page_count + 1}: Found {len(new_events)} new events (Total: {len(all_events)})")
+                else:
+                    print(f"Page {page_count + 1}: No new events found")
+                
+                # Look for next page
+                next_button = await page.query_selector('a[class*="next"], a[aria-label*="next"], .pagination a:last-child, [class*="pagination"] a:last-child')
+                
+                if next_button and page_count < max_pages - 1:
+                    print("Found next page button, clicking...")
+                    await next_button.scroll_into_view_if_needed()
+                    await page.wait_for_timeout(1000)
+                    await next_button.click()
+                    await page.wait_for_timeout(3000)
+                    page_count += 1
+                else:
+                    print("No more pages or reached max pages")
+                    break
+                    
+            except Exception as e:
+                print(f"Error on page {page_count + 1}: {e}")
+                break
 
 
 class EntrioScraper:
@@ -638,29 +1003,50 @@ class EntrioScraper:
         db = SessionLocal()
 
         try:
-            # Prepare incoming data
-            event_dicts = [e.model_dump() for e in events]
-            pairs = [(e["name"], e["date"]) for e in event_dicts]
+            # Prepare incoming data for database
+            event_dicts = []
+            for e in events:
+                event_dict = e.model_dump()
+                # Remove id field as it's auto-generated by database
+                event_dict.pop("id", None)
+                event_dicts.append(event_dict)
+            
+            pairs = [(e["title"], e["date"]) for e in event_dicts]
 
-            # Fetch all existing events for these (name, date) pairs
+            # Fetch all existing events for these (title, date) pairs
             existing = db.execute(
-                select(Event.name, Event.date).where(
-                    tuple_(Event.name, Event.date).in_(pairs)
+                select(Event.title, Event.date).where(
+                    tuple_(Event.title, Event.date).in_(pairs)
                 )
             ).all()
             existing_pairs = set(existing)
 
             # Filter to only new events
             to_insert = [
-                e for e in event_dicts if (e["name"], e["date"]) not in existing_pairs
+                e for e in event_dicts if (e["title"], e["date"]) not in existing_pairs
             ]
 
             if to_insert:
-                stmt = insert(Event).values(to_insert)
-                stmt = stmt.on_conflict_do_nothing(index_elements=["name", "date"])
-                db.execute(stmt)
+                # Use direct SQLAlchemy Core insert to avoid any field mapping issues
+                from sqlalchemy import text
+                
+                # Insert each event individually to avoid bulk insert mapping issues
+                saved_count = 0
+                for event_data in to_insert:
+                    try:
+                        # Create Event object directly
+                        event = Event(**event_data)
+                        db.add(event)
+                        db.flush()  # Get the ID without committing
+                        saved_count += 1
+                    except Exception as e:
+                        # Skip duplicate or invalid events
+                        db.rollback()
+                        print(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
+                        continue
+                
                 db.commit()
-                return len(to_insert)
+                return saved_count
 
             db.commit()
             return 0

@@ -99,7 +99,7 @@ class TicketType(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     # Relationships
-    event = relationship("Event", back_populates="ticket_types")
+    event = relationship("Event")  # Removed back_populates since Event.ticket_types doesn't exist
     bookings = relationship("Booking", back_populates="ticket_type")
     tickets = relationship("Ticket", back_populates="ticket_type")
 
@@ -147,8 +147,8 @@ class Booking(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     # Relationships
-    user = relationship("User", back_populates="bookings")
-    event = relationship("Event", back_populates="bookings")
+    user = relationship("User")
+    event = relationship("Event")  # Removed back_populates since Event.bookings doesn't exist
     ticket_type = relationship("TicketType", back_populates="bookings")
     payments = relationship("Payment", back_populates="booking")
     tickets = relationship("Ticket", back_populates="booking")
@@ -262,7 +262,7 @@ class Ticket(Base):
     # Relationships
     booking = relationship("Booking", back_populates="tickets")
     ticket_type = relationship("TicketType", back_populates="tickets")
-    user = relationship("User", back_populates="tickets")
+    user = relationship("User")  # Removed back_populates since User.tickets doesn't exist
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

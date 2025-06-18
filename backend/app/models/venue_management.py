@@ -61,7 +61,7 @@ venue_facilities = Table(
     Column(
         "venue_id",
         Integer,
-        ForeignKey("venues.id", ondelete="CASCADE"),
+        ForeignKey("enhanced_venues.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(

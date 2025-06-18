@@ -18,6 +18,3 @@ class EventCategory(Base):
 
     # Relationships
     events = relationship("Event", back_populates="category")
-    translations = relationship(
-        "CategoryTranslation", back_populates="category", cascade="all, delete-orphan"
-    )
