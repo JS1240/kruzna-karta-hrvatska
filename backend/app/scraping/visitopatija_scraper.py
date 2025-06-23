@@ -12,6 +12,8 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup, Tag
 
+# Temporarily disabled until OpenAI dependency is added
+# from ..core.llm_location_service import llm_location_service
 from ..models.schemas import EventCreate
 
 # BrightData configuration (shared across scrapers)
@@ -120,11 +122,39 @@ class VisitOpatijaTransformer:
         return " ".join(text.split()) if text else ""
 
     @classmethod
-    def transform(cls, data: Dict) -> Optional[EventCreate]:
+    async def transform(cls, data: Dict) -> Optional[EventCreate]:
         try:
             name = cls.clean_text(data.get("title", ""))
-            location = cls.clean_text(data.get("location", "Opatija"))
             description = cls.clean_text(data.get("description", ""))
+            
+            # Extract specific venue from title and description if available
+            raw_location = cls.clean_text(data.get("location", ""))
+            if not raw_location or raw_location == "Opatija":
+                # Try to extract specific venue from title/description
+                text_content = f"{name} {description}".lower()
+                if "amadria park" in text_content or "hotel royal" in text_content:
+                    location = "Amadria Park Hotel Royal, Opatija"
+                elif "park angiolina" in text_content or "angiolina" in text_content:
+                    location = "Park Angiolina, Opatija"
+                elif "villa angiolina" in text_content:
+                    location = "Villa Angiolina, Opatija"
+                elif "hotel milenij" in text_content:
+                    location = "Hotel Milenij, Opatija"
+                else:
+                    # Temporarily disabled LLM fallback until OpenAI dependency is added
+                    location = "Opatija"
+                    # if llm_location_service.is_enabled():
+                    #     try:
+                    #         llm_result = await llm_location_service.extract_location(name, description, raw_location)
+                    #         if llm_result and llm_result.confidence > 0.7 and "opatija" in llm_result.full_location.lower():
+                    #             location = llm_result.full_location
+                    #         else:
+                    #             location = "Opatija"
+                    #     except Exception as e:
+                    #         print(f"LLM location extraction failed: {e}")
+                    #         location = "Opatija"
+            else:
+                location = raw_location
             price = cls.clean_text(data.get("price", ""))
 
             date_str = data.get("date", "")
@@ -386,7 +416,7 @@ class VisitOpatijaScraper:
         raw = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
         events: List[EventCreate] = []
         for item in raw:
-            event = self.transformer.transform(item)
+            event = await self.transformer.transform(item)
             if event:
                 events.append(event)
         await self.requests_scraper.close()

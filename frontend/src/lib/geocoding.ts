@@ -6,6 +6,97 @@ export interface Coordinates {
   lng: number;
 }
 
+// Croatian venues and their specific coordinates
+const CROATIAN_VENUE_COORDINATES: Record<string, Coordinates> = {
+  // Major event venues and stadiums
+  "poljud stadium": { lat: 43.5133, lng: 16.4439 }, // Split
+  "stadion poljud": { lat: 43.5133, lng: 16.4439 }, // Split
+  "arena pula": { lat: 44.8737, lng: 13.8467 }, // Pula
+  "pula arena": { lat: 44.8737, lng: 13.8467 }, // Pula
+  "amfiteatar pula": { lat: 44.8737, lng: 13.8467 }, // Pula
+  "malo rimsko kazalište pula": { lat: 44.8688, lng: 13.8467 }, // Pula
+  "small roman theatre pula": { lat: 44.8688, lng: 13.8467 }, // Pula
+  
+  // Zagreb venues
+  "dom sportova": { lat: 45.7967, lng: 15.9697 }, // Zagreb
+  "arena zagreb": { lat: 45.7967, lng: 15.9697 }, // Zagreb
+  "maksimir stadium": { lat: 45.8219, lng: 16.0119 }, // Zagreb
+  "stadion maksimir": { lat: 45.8219, lng: 16.0119 }, // Zagreb
+  "hnk zagreb": { lat: 45.8081, lng: 15.9678 }, // Zagreb
+  "croatian national theatre": { lat: 45.8081, lng: 15.9678 }, // Zagreb
+  "hrvatsko narodno kazalište": { lat: 45.8081, lng: 15.9678 }, // Zagreb
+  "tvornica kulture": { lat: 45.8003, lng: 15.9897 }, // Zagreb
+  "jarun lake": { lat: 45.7833, lng: 15.9167 }, // Zagreb
+  "jezero jarun": { lat: 45.7833, lng: 15.9167 }, // Zagreb
+  
+  // Split venues
+  "diocletian's palace": { lat: 43.5082, lng: 16.4404 }, // Split
+  "dioklecijanova palača": { lat: 43.5082, lng: 16.4404 }, // Split
+  "riva split": { lat: 43.5081, lng: 16.4401 }, // Split
+  "bacvice beach": { lat: 43.5048, lng: 16.4531 }, // Split
+  "plaža bačvice": { lat: 43.5048, lng: 16.4531 }, // Split
+  
+  // Dubrovnik venues
+  "lovrijenac fortress": { lat: 42.6414, lng: 18.1064 }, // Dubrovnik
+  "tvrđava lovrijenac": { lat: 42.6414, lng: 18.1064 }, // Dubrovnik
+  "rector's palace": { lat: 42.6414, lng: 18.1108 }, // Dubrovnik
+  "knežev dvor": { lat: 42.6414, lng: 18.1108 }, // Dubrovnik
+  
+  // Pula venues
+  "kastel pula": { lat: 44.8675, lng: 13.8481 }, // Pula
+  "pula castle": { lat: 44.8675, lng: 13.8481 }, // Pula
+  "fort bourguignon": { lat: 44.8644, lng: 13.8514 }, // Pula
+  
+  // Rijeka venues
+  "hnk ivan zajc": { lat: 45.3294, lng: 14.4422 }, // Rijeka
+  "croatian national theatre rijeka": { lat: 45.3294, lng: 14.4422 }, // Rijeka
+  "rijeka city stadium": { lat: 45.3439, lng: 14.4058 }, // Rijeka
+  "stadion rujevica": { lat: 45.3439, lng: 14.4058 }, // Rijeka
+  
+  // Zadar venues
+  "zadar city galleria": { lat: 44.1194, lng: 15.2314 }, // Zadar
+  "forum zadar": { lat: 44.1167, lng: 15.2289 }, // Zadar
+  
+  // Osijek venues
+  "gradski vrt": { lat: 45.5597, lng: 18.6972 }, // Osijek
+  "city garden osijek": { lat: 45.5597, lng: 18.6972 }, // Osijek
+  "hnk osijek": { lat: 45.5550, lng: 18.6955 }, // Osijek
+  
+  // Opatija venues
+  "amadria park hotel royal": { lat: 45.3378, lng: 14.3088 }, // Opatija
+  "villa angiolina": { lat: 45.3352, lng: 14.3092 }, // Opatija
+  "park angiolina": { lat: 45.3352, lng: 14.3092 }, // Opatija
+  "hotel milenij": { lat: 45.3411, lng: 14.3047 }, // Opatija
+  
+  // Makarska venues
+  "ljetno kino makarska": { lat: 43.2969, lng: 17.0178 }, // Makarska
+  "summer cinema makarska": { lat: 43.2969, lng: 17.0178 }, // Makarska
+  
+  // Hvar venues
+  "hvar town square": { lat: 43.1729, lng: 16.4414 }, // Hvar
+  "trg svetog stjepana": { lat: 43.1729, lng: 16.4414 }, // Hvar
+  
+  // Sinj venues
+  "hipodrom sinj": { lat: 43.7036, lng: 16.6422 }, // Sinj
+  "sinj hippodrome": { lat: 43.7036, lng: 16.6422 }, // Sinj
+  
+  // Music venues and clubs
+  "aquarius zagreb": { lat: 45.7833, lng: 15.9167 }, // Zagreb - Jarun
+  "the garden brewery": { lat: 45.8156, lng: 15.9678 }, // Zagreb
+  "vintage industrial bar": { lat: 45.8056, lng: 15.9625 }, // Zagreb
+  "club culture bar": { lat: 43.5081, lng: 16.4401 }, // Split
+  "central club": { lat: 43.5081, lng: 16.4401 }, // Split
+  "carpe diem beach": { lat: 43.1729, lng: 16.4414 }, // Hvar
+  
+  // Universities and conference centers
+  "university of zagreb": { lat: 45.8150, lng: 15.9819 }, // Zagreb
+  "sveučilište u zagrebu": { lat: 45.8150, lng: 15.9819 }, // Zagreb
+  "university of split": { lat: 43.5081, lng: 16.4401 }, // Split
+  "sveučilište u splitu": { lat: 43.5081, lng: 16.4401 }, // Split
+  "zagreb convention centre": { lat: 45.7889, lng: 15.9758 }, // Zagreb
+  "zagrebački velesajam": { lat: 45.7889, lng: 15.9758 }, // Zagreb
+};
+
 // Croatian cities and their approximate coordinates
 const CROATIAN_CITY_COORDINATES: Record<string, Coordinates> = {
   // Major cities
@@ -96,7 +187,7 @@ function extractCityName(location: string): string {
 }
 
 /**
- * Get coordinates for a location string
+ * Get coordinates for a location string (legacy sync version)
  */
 export function getCoordinatesForLocation(
   location: string,
@@ -105,7 +196,19 @@ export function getCoordinatesForLocation(
 
   const normalizedLocation = location.toLowerCase().trim();
 
-  // Direct match
+  // First check for specific venues (most precise)
+  if (CROATIAN_VENUE_COORDINATES[normalizedLocation]) {
+    return CROATIAN_VENUE_COORDINATES[normalizedLocation];
+  }
+
+  // Check for partial venue matches
+  for (const [venueName, coords] of Object.entries(CROATIAN_VENUE_COORDINATES)) {
+    if (normalizedLocation.includes(venueName) || venueName.includes(normalizedLocation)) {
+      return coords;
+    }
+  }
+
+  // Then check for direct city match
   if (CROATIAN_CITY_COORDINATES[normalizedLocation]) {
     return CROATIAN_CITY_COORDINATES[normalizedLocation];
   }
@@ -146,13 +249,128 @@ export function getCoordinatesForLocation(
 }
 
 /**
- * Add jitter to coordinates to avoid overlapping markers
+ * Enhanced async geocoding with real-time fallbacks
+ */
+export async function getCoordinatesForLocationAsync(
+  location: string,
+  context?: string,
+): Promise<GeocodeResult | null> {
+  return await advancedGeocode(location, context);
+}
+
+/**
+ * Venue clustering and smart positioning for multiple events
+ */
+interface VenueCluster {
+  baseCoordinates: Coordinates;
+  events: Array<{id: string; title: string; date: string}>;
+  radius: number;
+  positions: Coordinates[];
+}
+
+/**
+ * Calculate distance between two coordinates in kilometers
+ */
+function calculateDistance(coord1: Coordinates, coord2: Coordinates): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
+  const dLng = (coord2.lng - coord1.lng) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+/**
+ * Create venue clusters for events at the same or nearby locations
+ */
+export function createVenueClusters(
+  events: Array<{id: string; title: string; date: string; coordinates: Coordinates}>,
+  maxClusterDistance: number = 0.1, // 100 meters
+): VenueCluster[] {
+  const clusters: VenueCluster[] = [];
+  const processedEvents = new Set<string>();
+
+  for (const event of events) {
+    if (processedEvents.has(event.id)) continue;
+
+    // Find nearby events
+    const nearbyEvents = events.filter(otherEvent => {
+      if (otherEvent.id === event.id || processedEvents.has(otherEvent.id)) {
+        return false;
+      }
+      const distance = calculateDistance(event.coordinates, otherEvent.coordinates);
+      return distance <= maxClusterDistance;
+    });
+
+    // Create cluster
+    const clusterEvents = [event, ...nearbyEvents];
+    const cluster: VenueCluster = {
+      baseCoordinates: event.coordinates,
+      events: clusterEvents.map(e => ({id: e.id, title: e.title, date: e.date})),
+      radius: Math.min(0.005 + (clusterEvents.length - 1) * 0.002, 0.02), // Dynamic radius
+      positions: [],
+    };
+
+    // Generate optimal positions for events in cluster
+    cluster.positions = generateClusterPositions(
+      event.coordinates,
+      clusterEvents.length,
+      cluster.radius
+    );
+
+    clusters.push(cluster);
+
+    // Mark events as processed
+    clusterEvents.forEach(e => processedEvents.add(e.id));
+  }
+
+  return clusters;
+}
+
+/**
+ * Generate optimal positions for events in a cluster
+ */
+function generateClusterPositions(
+  center: Coordinates,
+  count: number,
+  radius: number,
+): Coordinates[] {
+  if (count === 1) {
+    return [center];
+  }
+
+  const positions: Coordinates[] = [];
+  
+  if (count === 2) {
+    // Simple offset for 2 events
+    positions.push(
+      { lat: center.lat + radius/2, lng: center.lng - radius/2 },
+      { lat: center.lat - radius/2, lng: center.lng + radius/2 }
+    );
+  } else {
+    // Circular arrangement for 3+ events
+    for (let i = 0; i < count; i++) {
+      const angle = (i * 2 * Math.PI) / count;
+      positions.push({
+        lat: center.lat + radius * Math.cos(angle),
+        lng: center.lng + radius * Math.sin(angle),
+      });
+    }
+  }
+
+  return positions;
+}
+
+/**
+ * Add smart jitter to coordinates to avoid overlapping markers
  */
 export function addCoordinateJitter(
   coords: Coordinates,
   index: number = 0,
 ): Coordinates {
-  const jitterAmount = 0.01; // ~1km
+  const jitterAmount = 0.005; // Reduced jitter for better clustering
   const angle = (index * 45) % 360; // Spread markers in a circle
   const jitterLat = Math.cos((angle * Math.PI) / 180) * jitterAmount;
   const jitterLng = Math.sin((angle * Math.PI) / 180) * jitterAmount;
@@ -164,11 +382,81 @@ export function addCoordinateJitter(
 }
 
 /**
- * Mapbox Geocoding API (fallback for unknown locations)
+ * Intelligent coordinate positioning with clustering
+ */
+export function getOptimalEventPositions(
+  events: Array<{id: string; title: string; date: string; location: string}>,
+): Map<string, {coordinates: Coordinates; clusterId?: string; accuracy: string}> {
+  const eventCoordinates = new Map<string, {coordinates: Coordinates; clusterId?: string; accuracy: string}>();
+  const eventsWithCoords: Array<{id: string; title: string; date: string; coordinates: Coordinates}> = [];
+
+  // First pass: get coordinates for all events
+  for (const event of events) {
+    const coords = getCoordinatesForLocation(event.location);
+    if (coords) {
+      eventsWithCoords.push({
+        id: event.id,
+        title: event.title,
+        date: event.date,
+        coordinates: coords,
+      });
+    }
+  }
+
+  // Create clusters for nearby events
+  const clusters = createVenueClusters(eventsWithCoords);
+
+  // Assign optimized positions
+  for (const cluster of clusters) {
+    cluster.events.forEach((event, index) => {
+      const position = cluster.positions[index] || cluster.baseCoordinates;
+      eventCoordinates.set(event.id, {
+        coordinates: position,
+        clusterId: clusters.length > 1 ? `cluster-${clusters.indexOf(cluster)}` : undefined,
+        accuracy: cluster.events.length > 1 ? 'clustered' : 'precise',
+      });
+    });
+  }
+
+  return eventCoordinates;
+}
+
+/**
+ * Enhanced coordinate validation and accuracy scoring
+ */
+interface GeocodeResult extends Coordinates {
+  accuracy: 'venue' | 'address' | 'neighborhood' | 'city' | 'region';
+  confidence: number;
+  source: 'database' | 'mapbox' | 'fallback';
+  place_name?: string;
+}
+
+/**
+ * Croatian geographic bounds for validation
+ */
+const CROATIA_BOUNDS = {
+  north: 46.55,  // Northernmost point
+  south: 42.38,  // Southernmost point  
+  east: 19.43,   // Easternmost point
+  west: 13.50,   // Westernmost point
+};
+
+/**
+ * Validate if coordinates are within Croatian bounds
+ */
+function isWithinCroatiaBounds(coords: Coordinates): boolean {
+  return coords.lat >= CROATIA_BOUNDS.south &&
+         coords.lat <= CROATIA_BOUNDS.north &&
+         coords.lng >= CROATIA_BOUNDS.west &&
+         coords.lng <= CROATIA_BOUNDS.east;
+}
+
+/**
+ * Enhanced Mapbox Geocoding API with accuracy scoring
  */
 export async function geocodeLocation(
   location: string,
-): Promise<Coordinates | null> {
+): Promise<GeocodeResult | null> {
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
   if (!mapboxToken) {
     logger.warn("Mapbox token not available for geocoding");
@@ -176,9 +464,13 @@ export async function geocodeLocation(
   }
 
   try {
-    const query = encodeURIComponent(`${location}, Croatia`);
+    // Clean and prepare query
+    const cleanLocation = location.trim();
+    const query = encodeURIComponent(`${cleanLocation}, Croatia`);
+    
     const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${mapboxToken}&country=hr&limit=1`,
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?` +
+      `access_token=${mapboxToken}&country=hr&limit=3&types=poi,address,place`,
     );
 
     if (!response.ok) {
@@ -188,8 +480,51 @@ export async function geocodeLocation(
     const data = await response.json();
 
     if (data.features && data.features.length > 0) {
-      const [lng, lat] = data.features[0].center;
-      return { lat, lng };
+      // Get the best result
+      const feature = data.features[0];
+      const [lng, lat] = feature.center;
+      
+      // Validate coordinates are in Croatia
+      const coords = { lat, lng };
+      if (!isWithinCroatiaBounds(coords)) {
+        logger.warn(`Coordinates outside Croatia bounds: ${lat}, ${lng} for ${location}`);
+        return null;
+      }
+
+      // Determine accuracy based on place type
+      const placeTypes = feature.place_type || [];
+      let accuracy: GeocodeResult['accuracy'] = 'city';
+      let confidence = 0.5;
+
+      if (placeTypes.includes('poi')) {
+        accuracy = 'venue';
+        confidence = 0.9;
+      } else if (placeTypes.includes('address')) {
+        accuracy = 'address';
+        confidence = 0.8;
+      } else if (placeTypes.includes('neighborhood')) {
+        accuracy = 'neighborhood';
+        confidence = 0.6;
+      } else if (placeTypes.includes('place')) {
+        accuracy = 'city';
+        confidence = 0.5;
+      }
+
+      // Boost confidence for well-known Croatian venues
+      const placeName = feature.place_name?.toLowerCase() || '';
+      if (placeName.includes('stadium') || placeName.includes('arena') || 
+          placeName.includes('theatre') || placeName.includes('hotel')) {
+        confidence = Math.min(confidence + 0.1, 1.0);
+      }
+
+      return {
+        lat,
+        lng,
+        accuracy,
+        confidence,
+        source: 'mapbox',
+        place_name: feature.place_name,
+      };
     }
 
     return null;
@@ -197,4 +532,83 @@ export async function geocodeLocation(
     logger.error("Geocoding error:", error);
     return null;
   }
+}
+
+/**
+ * Advanced geocoding with multiple fallback strategies
+ */
+export async function advancedGeocode(
+  location: string,
+  context?: string,
+): Promise<GeocodeResult | null> {
+  if (!location) return null;
+
+  const normalizedLocation = location.toLowerCase().trim();
+
+  // 1. Try venue database first (highest accuracy)
+  if (CROATIAN_VENUE_COORDINATES[normalizedLocation]) {
+    const coords = CROATIAN_VENUE_COORDINATES[normalizedLocation];
+    return {
+      ...coords,
+      accuracy: 'venue',
+      confidence: 0.95,
+      source: 'database',
+    };
+  }
+
+  // 2. Try partial venue matches
+  for (const [venueName, coords] of Object.entries(CROATIAN_VENUE_COORDINATES)) {
+    if (normalizedLocation.includes(venueName) || venueName.includes(normalizedLocation)) {
+      return {
+        ...coords,
+        accuracy: 'venue',
+        confidence: 0.85,
+        source: 'database',
+      };
+    }
+  }
+
+  // 3. Try city database
+  if (CROATIAN_CITY_COORDINATES[normalizedLocation]) {
+    const coords = CROATIAN_CITY_COORDINATES[normalizedLocation];
+    return {
+      ...coords,
+      accuracy: 'city',
+      confidence: 0.7,
+      source: 'database',
+    };
+  }
+
+  // 4. Try city extraction and lookup
+  const cityName = extractCityName(location);
+  if (cityName && CROATIAN_CITY_COORDINATES[cityName]) {
+    const coords = CROATIAN_CITY_COORDINATES[cityName];
+    return {
+      ...coords,
+      accuracy: 'city',
+      confidence: 0.6,
+      source: 'database',
+    };
+  }
+
+  // 5. Try Mapbox API for unknown venues
+  const mapboxResult = await geocodeLocation(location);
+  if (mapboxResult) {
+    logger.info(`Mapbox geocoded: ${location} → ${mapboxResult.place_name}`);
+    return mapboxResult;
+  }
+
+  // 6. Final fallback with context
+  if (context) {
+    const contextResult = await geocodeLocation(`${location} ${context}`);
+    if (contextResult) {
+      return {
+        ...contextResult,
+        confidence: Math.max(contextResult.confidence - 0.2, 0.1),
+      };
+    }
+  }
+
+  logger.warn(`Could not geocode location: ${location}`);
+  return null;
 }

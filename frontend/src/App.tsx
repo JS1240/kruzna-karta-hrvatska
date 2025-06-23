@@ -8,25 +8,30 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import FaviconSwitcher from "./components/FaviconSwitcher";
 import AppContent from "./components/AppContent";
 import BackToTopButton from "./components/BackToTopButton";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="diidemo-theme">
-      <LanguageProvider>
-        <TooltipProvider>
-          <FaviconSwitcher />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppContent />
-            <BackToTopButton />
-          </BrowserRouter>
-        </TooltipProvider>
-      </LanguageProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="diidemo-theme">
+        <LanguageProvider>
+          <TooltipProvider>
+            <FaviconSwitcher />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppContent />
+              <BackToTopButton />
+              <PWAInstallPrompt />
+            </BrowserRouter>
+          </TooltipProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

@@ -21,6 +21,8 @@ from sqlalchemy.dialects.postgresql import insert
 
 from ..core.config import settings
 from ..core.database import SessionLocal
+# Temporarily disabled until OpenAI dependency is added
+# from ..core.llm_location_service import llm_location_service
 from ..models.event import Event
 from ..models.schemas import EventCreate
 
@@ -115,6 +117,88 @@ class EventDataTransformer:
         return None
 
     @staticmethod
+    async def extract_location_with_llm(title: str, description: str = "", context: str = "") -> Optional[str]:
+        """Extract location using LLM as fallback when basic extraction fails."""
+        # Temporarily disabled until OpenAI dependency is added
+        return None
+        
+        # if not llm_location_service.is_enabled():
+        #     return None
+        #     
+        # try:
+        #     result = await llm_location_service.extract_location(title, description, context)
+        #     if result and result.confidence > 0.6:  # Only use high-confidence results
+        #         return result.full_location
+        # except Exception as e:
+        #     print(f"LLM location extraction error: {e}")
+        
+        # return None
+
+    @staticmethod
+    def extract_location_from_text(title: str, description: str = "") -> str:
+        """Extract location from event title and description."""
+        text = f"{title} {description}".lower()
+        
+        # Known Croatian cities and venues in order of specificity
+        croatian_locations = [
+            # Specific venues first
+            ("poljud", "Split"),
+            ("arena pula", "Pula"),
+            ("pula arena", "Pula"),
+            ("amfiteatar pula", "Pula"),
+            ("rimsko kazalište", "Pula"),
+            ("malo rimsko kazalište", "Pula"),
+            ("jarun", "Zagreb"),
+            ("maksimir", "Zagreb"),
+            ("dom sportova", "Zagreb"),
+            ("arena zagreb", "Zagreb"),
+            ("hipodrom sinj", "Sinj"),
+            ("ljetno kino makarska", "Makarska"),
+            ("summer cinema makarska", "Makarska"),
+            ("opatija", "Opatija"),
+            ("amadria park", "Opatija"),
+            
+            # Cities
+            ("split", "Split"),
+            ("pula", "Pula"),
+            ("rijeka", "Rijeka"),
+            ("zadar", "Zadar"),
+            ("dubrovnik", "Dubrovnik"),
+            ("osijek", "Osijek"),
+            ("sisak", "Sisak"),
+            ("karlovac", "Karlovac"),
+            ("varaždin", "Varaždin"),
+            ("sinj", "Sinj"),
+            ("makarska", "Makarska"),
+            ("trogir", "Trogir"),
+            ("hvar", "Hvar"),
+            ("korčula", "Korčula"),
+            ("rovinj", "Rovinj"),
+            ("poreč", "Poreč"),
+            ("umag", "Umag"),
+            ("krk", "Krk"),
+            ("crikvenica", "Crikvenica"),
+            ("senj", "Senj"),
+            ("gospić", "Gospić"),
+            ("metković", "Metković"),
+            ("ploče", "Ploče"),
+            ("otočac", "Otočac"),
+            ("samobor", "Samobor"),
+            ("velika gorica", "Velika Gorica"),
+            ("zaprešić", "Zaprešić"),
+            # Zagreb should be last as it's too common
+            ("zagreb", "Zagreb"),
+        ]
+        
+        # Search for location mentions
+        for keyword, city in croatian_locations:
+            if keyword in text:
+                return city
+        
+        # If no specific location found, return None to skip event
+        return None
+
+    @staticmethod
     def parse_time(time_str: str) -> str:
         """Parse time string and return in HH:MM format."""
         if not time_str:
@@ -142,7 +226,7 @@ class EventDataTransformer:
         return " ".join(text.strip().split())
 
     @staticmethod
-    def transform_to_event_create(scraped_data: Dict) -> Optional[EventCreate]:
+    async def transform_to_event_create(scraped_data: Dict) -> Optional[EventCreate]:
         """Transform scraped data to EventCreate schema."""
         try:
             # Extract and clean basic fields
@@ -197,8 +281,23 @@ class EventDataTransformer:
             if not name or len(name) < 3:
                 return None
 
+            # Try to extract location from event title or description if not found
             if not location:
-                location = "Zagreb, Croatia"  # Default location
+                location = EventDataTransformer.extract_location_from_text(name, description)
+            
+            # Try LLM fallback if basic extraction failed
+            if not location:
+                venue_context = scraped_data.get("venue", "")
+                location = await EventDataTransformer.extract_location_with_llm(
+                    name, description, venue_context
+                )
+                if location:
+                    print(f"LLM extracted location for '{name}': {location}")
+            
+            # Skip event if we still can't determine location
+            if not location:
+                print(f"Skipping event '{name}' - could not determine location")
+                return None
 
             return EventCreate(
                 title=name,
@@ -283,6 +382,58 @@ class EntrioRequestsScraper:
         except requests.exceptions.RequestException as e:
             print(f"[ERROR] Request failed for {url}: {e}")
             raise
+
+    def extract_location_from_event_page(self, event_url: str) -> str:
+        """Extract detailed location information from event detail page."""
+        try:
+            response = self.fetch(event_url)
+            soup = BeautifulSoup(response.text, "html.parser")
+            
+            # Look for location information in various places
+            location_selectors = [
+                # Common location indicators
+                ".event-location",
+                ".location",
+                ".venue",
+                ".address",
+                '[class*="location"]',
+                '[class*="venue"]',
+                '[class*="address"]',
+                # Text content that might contain location
+                'script[type="application/ld+json"]',  # Structured data
+                'meta[property="event:location"]',
+                'meta[name="location"]',
+            ]
+            
+            for selector in location_selectors:
+                elements = soup.select(selector)
+                for element in elements:
+                    text = element.get_text(strip=True) if hasattr(element, 'get_text') else str(element)
+                    if text and len(text) > 3:
+                        # Extract location using our text parser
+                        location = EventDataTransformer.extract_location_from_text(text, "")
+                        if location:
+                            return location
+            
+            # Look for location in the page title or meta description
+            title = soup.find('title')
+            if title:
+                title_text = title.get_text(strip=True)
+                location = EventDataTransformer.extract_location_from_text(title_text, "")
+                if location:
+                    return location
+            
+            # Look in meta description
+            meta_desc = soup.find('meta', attrs={'name': 'description'})
+            if meta_desc and meta_desc.get('content'):
+                location = EventDataTransformer.extract_location_from_text(meta_desc['content'], "")
+                if location:
+                    return location
+                    
+        except Exception as e:
+            print(f"Error extracting location from event page {event_url}: {e}")
+        
+        return None
 
     def parse_event_from_element(self, event_element: Tag) -> Dict:
         """Extract event details from a single event element."""
@@ -423,6 +574,11 @@ class EntrioRequestsScraper:
             if isinstance(event_element, Tag):
                 event_data = self.parse_event_from_element(event_element)
                 if event_data and len(event_data) > 1:
+                    # Try to extract detailed location if we have a link
+                    if event_data.get("link") and not event_data.get("location"):
+                        detailed_location = self.extract_location_from_event_page(event_data["link"])
+                        if detailed_location:
+                            event_data["location"] = detailed_location
                     events.append(event_data)
 
         # Find next page
@@ -988,7 +1144,7 @@ class EntrioScraper:
         # Transform to EventCreate objects
         events = []
         for raw_event in raw_events:
-            event = self.transformer.transform_to_event_create(raw_event)
+            event = await self.transformer.transform_to_event_create(raw_event)
             if event:
                 events.append(event)
 

@@ -47,11 +47,15 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   Activity,
-  Target
+  Target,
+  UserCheck,
+  Scan
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageTransition from '../components/PageTransition';
+import AttendeeManagement from '../components/AttendeeManagement';
+import EventCheckIn from '../components/EventCheckIn';
 
 interface Event {
   id: number;
@@ -390,9 +394,11 @@ const OrganizerDashboard = () => {
             )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="events">My Events</TabsTrigger>
+                <TabsTrigger value="attendees">Attendees</TabsTrigger>
+                <TabsTrigger value="checkin">Check-in</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
               </TabsList>
 
@@ -911,6 +917,26 @@ const OrganizerDashboard = () => {
                     </CardContent>
                   </Card>
                 )}
+              </TabsContent>
+
+              {/* Attendees Tab */}
+              <TabsContent value="attendees">
+                <AttendeeManagement
+                  eventId="1"
+                  eventTitle="Zagreb Jazz Festival 2025"
+                  eventDate="2025-08-15"
+                  eventTime="19:30"
+                />
+              </TabsContent>
+
+              {/* Check-in Tab */}
+              <TabsContent value="checkin">
+                <EventCheckIn
+                  eventId="1"
+                  eventTitle="Zagreb Jazz Festival 2025"
+                  eventDate="2025-08-15"
+                  eventTime="19:30"
+                />
               </TabsContent>
             </Tabs>
           </div>

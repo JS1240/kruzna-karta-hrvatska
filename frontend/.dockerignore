@@ -14,5 +14,3 @@ build
 coverage
 .nyc_output
 *.log
-Dockerfile
-README.md

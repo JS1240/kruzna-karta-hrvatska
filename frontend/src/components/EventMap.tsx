@@ -2,11 +2,6 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import {
-  Music,
-  Dumbbell,
-  Users,
-  CalendarDays,
-  PartyPopper,
   Loader2,
   AlertCircle,
 } from "lucide-react";
@@ -27,23 +22,10 @@ import {
   addCoordinateJitter,
   Coordinates,
 } from "@/lib/geocoding";
+import { categoryConfig, getCategoryConfig, getAllCategories } from "@/lib/eventCategories";
+import { inferEventCategory, extractPriceValue } from "@/lib/filterUtils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
-
-// Event category mapping and icons
-const categoryConfig = {
-  concert: { icon: Music, color: "#e11d48", label: "Concerts" },
-  music: { icon: Music, color: "#e11d48", label: "Music" },
-  workout: { icon: Dumbbell, color: "#059669", label: "Sports & Fitness" },
-  sports: { icon: Dumbbell, color: "#059669", label: "Sports" },
-  meetup: { icon: Users, color: "#7c3aed", label: "Meetups" },
-  conference: { icon: CalendarDays, color: "#dc2626", label: "Conferences" },
-  party: { icon: PartyPopper, color: "#ea580c", label: "Parties" },
-  festival: { icon: Music, color: "#db2777", label: "Festivals" },
-  theater: { icon: CalendarDays, color: "#0891b2", label: "Theater" },
-  culture: { icon: CalendarDays, color: "#0891b2", label: "Culture" },
-  other: { icon: CalendarDays, color: "#6b7280", label: "Other" },
-};
 
 interface MapEvent extends Event {
   coordinates?: Coordinates;
@@ -88,7 +70,7 @@ const EventMap: React.FC<EventMapProps> = ({ className }) => {
         });
       } else {
         logger.warn(
-          `Could not geocode location: ${event.location} for event: ${event.name}`,
+          `Could not geocode location: ${event.location} for event: ${(event as any).title || event.name}`,
         );
       }
     });
@@ -101,8 +83,9 @@ const EventMap: React.FC<EventMapProps> = ({ className }) => {
     return mapEvents.filter((event) => {
       // Category filter
       if (filters.activeCategory) {
+        const eventTitle = (event as any).title || event.name || "";
         const eventCategory = inferEventCategory(
-          event.name,
+          eventTitle,
           event.description || "",
         );
         if (eventCategory !== filters.activeCategory) return false;
@@ -122,63 +105,25 @@ const EventMap: React.FC<EventMapProps> = ({ className }) => {
   }, [mapEvents, filters.activeCategory, filters.selectedPrice]);
 
 
-  // Infer event category from name and description
-  const inferEventCategory = (name: string, description: string): string => {
-    const text = `${name} ${description}`.toLowerCase();
+  // Note: inferEventCategory and extractPriceValue moved to @/lib/filterUtils
 
-    if (
-      text.includes("concert") ||
-      text.includes("glazba") ||
-      text.includes("muzik")
-    )
-      return "concert";
-    if (
-      text.includes("sport") ||
-      text.includes("fitness") ||
-      text.includes("workout") ||
-      text.includes("trening")
-    )
-      return "workout";
-    if (
-      text.includes("meetup") ||
-      text.includes("networking") ||
-      text.includes("meet")
-    )
-      return "meetup";
-    if (
-      text.includes("conference") ||
-      text.includes("konferencija") ||
-      text.includes("business")
-    )
-      return "conference";
-    if (
-      text.includes("party") ||
-      text.includes("zabava") ||
-      text.includes("festival")
-    )
-      return "party";
-    if (
-      text.includes("theater") ||
-      text.includes("kazalište") ||
-      text.includes("predstava")
-    )
-      return "theater";
-    if (text.includes("festival")) return "festival";
-
-    return "other";
-  };
-
-  // Extract numeric price value
-  const extractPriceValue = (price: string): number | null => {
-    if (!price) return null;
-    if (
-      price.toLowerCase().includes("free") ||
-      price.toLowerCase().includes("besplatno")
-    )
-      return 0;
-
-    const match = price.match(/(\d+)/);
-    return match ? parseInt(match[1]) : null;
+  // Helper function to get SVG paths for different icons
+  const getIconSvg = (category: string): string => {
+    const iconMap: Record<string, string> = {
+      concert: '<path d="m12 1-8 5v14l8-5 8 5V6l-8-5Z"/><path d="M8 6v10"/><path d="M16 6v10"/>',  // Mic
+      music: '<path d="9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>',  // Music
+      festival: '<path d="M6 3h12l4 6-10 13L2 9l4-6z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/>',  // Crown
+      conference: '<rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',  // Briefcase
+      theater: '<path d="M2 16.1A5 5 0 0 1 5.9 20M6.3 20.1a5 5 0 0 1-2.8-5.2"/><path d="M21.8 16.1A5 5 0 0 0 18 20M17.7 20.1a5 5 0 0 0 2.8-5.2"/><path d="M7 8a3 3 0 1 1 6 0c0 1.55-.59 2.96-1.56 4.03L12 16l.56-3.97A5.002 5.002 0 0 0 15 8a3 3 0 1 1 0-6c-4 0-8 1.5-8 6Z"/>',  // Theater
+      culture: '<circle cx="18" cy="7" r="4"/><path d="m14.5 9.5-5 5"/><circle cx="8" cy="17" r="4"/>',  // Palette
+      party: '<path d="M5.8 11.3 2 22l10.7-3.79M4 3h.01M22 8h.01M15 2h.01M22 20h.01M22 2l-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/>',  // PartyPopper
+      meetup: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',  // Users
+      workout: '<path d="M21 8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',  // Trophy
+      sports: '<path d="M21 8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',  // Trophy
+      other: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',  // MoreHorizontal
+    };
+    
+    return iconMap[category] || iconMap.other;
   };
 
   // Initialize map
@@ -224,39 +169,45 @@ const EventMap: React.FC<EventMapProps> = ({ className }) => {
     filteredEvents.forEach((event, index) => {
       if (!event.coordinates) return;
 
-      const category = inferEventCategory(event.name, event.description || "");
-      const config = categoryConfig[category] || categoryConfig.other;
+      const eventTitle = (event as any).title || event.name || "";
+      const category = inferEventCategory(eventTitle, event.description || "");
+      const config = getCategoryConfig(category);
       const IconComponent = config.icon;
 
       // Create marker element
       const el = document.createElement("div");
       el.className = "event-marker";
-      el.style.backgroundColor = config.color;
+      el.style.cssText = `
+        width: 32px;
+        height: 32px;
+        background-color: ${config.color};
+        border: 2px solid white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        transition: all 0.2s ease;
+      `;
 
-      // Add icon
+      // Generate SVG icon dynamically
+      const iconSvg = getIconSvg(category);
       el.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
-          ${
-            IconComponent === Music
-              ? '<path d="9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>'
-              : IconComponent === Dumbbell
-                ? '<path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22H6M22 18V6M2 18V6"/>'
-                : IconComponent === Users
-                  ? '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'
-                  : IconComponent === PartyPopper
-                    ? '<path d="M5.8 11.3 2 22l10.7-3.79M4 3h.01M22 8h.01M15 2h.01M22 20h.01M22 2l-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/>'
-                    : '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'
-          }
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
+          ${iconSvg}
         </svg>
       `;
 
-      // Hover effects
+      // Hover effects - only change shadow and border, not position
       el.addEventListener("mouseenter", () => {
-        el.style.transform = "scale(1.1)";
+        el.style.boxShadow = "0 4px 12px rgba(0,0,0,0.5)";
+        el.style.borderWidth = "3px";
       });
 
       el.addEventListener("mouseleave", () => {
-        el.style.transform = "scale(1)";
+        el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+        el.style.borderWidth = "2px";
       });
 
       // Create marker
@@ -266,34 +217,60 @@ const EventMap: React.FC<EventMapProps> = ({ className }) => {
 
       // Create popup
       const popup = new mapboxgl.Popup({
-        offset: 25,
-        closeButton: true,
+        offset: [0, -10],
+        closeButton: false,
         closeOnClick: false,
-        maxWidth: "300px",
+        maxWidth: "320px",
+        className: "event-popup",
       });
 
+      const popupEventTitle = (event as any).title || event.name || "Unknown Event";
+      const eventDescription = event.description?.substring(0, 120) + (event.description && event.description.length > 120 ? "..." : "");
+
       const popupContent = `
-        <div class="p-3">
-          ${event.image ? `<img src="${event.image}" alt="${event.name}" class="w-full h-32 object-cover rounded mb-2" onerror="this.style.display='none'">` : ""}
-          <h3 class="font-bold text-lg mb-1">${event.name}</h3>
-          <p class="text-sm text-gray-600 mb-2">${event.description?.substring(0, 100)}${event.description && event.description.length > 100 ? "..." : ""}</p>
-          <div class="space-y-1 text-sm">
-            <p><strong>📅 Date:</strong> ${new Date(event.date).toLocaleDateString()} at ${event.time}</p>
-            <p><strong>📍 Location:</strong> ${event.location}</p>
-            <p><strong>💰 Price:</strong> ${event.price || "Contact organizer"}</p>
+        <div class="p-3 bg-white rounded-lg shadow-lg">
+          ${event.image ? `<img src="${event.image}" alt="${popupEventTitle}" class="w-full h-24 object-cover rounded mb-2" onerror="this.style.display='none'">` : ""}
+          <h3 class="font-bold text-base mb-1 text-gray-900 line-clamp-2">${popupEventTitle}</h3>
+          ${eventDescription ? `<p class="text-xs text-gray-600 mb-2 line-clamp-2">${eventDescription}</p>` : ""}
+          <div class="space-y-1 text-xs text-gray-700">
+            <p><span class="font-medium">📅</span> ${new Date(event.date).toLocaleDateString()} at ${event.time}</p>
+            <p><span class="font-medium">📍</span> ${event.location}</p>
+            <p><span class="font-medium">💰</span> ${event.price || "Contact organizer"}</p>
           </div>
-          ${event.link ? `<a href="${event.link}" target="_blank" class="inline-block mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">View Details</a>` : ""}
+          ${event.link ? `<a href="${event.link}" target="_blank" class="inline-block mt-2 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs transition-colors">View Details</a>` : ""}
         </div>
       `;
 
       popup.setHTML(popupContent);
 
-      // Show popup on click
-      el.addEventListener("click", () => {
+      // Show popup on hover
+      el.addEventListener("mouseenter", () => {
         // Close all other popups
         document.querySelectorAll(".mapboxgl-popup").forEach((p) => p.remove());
         marker.setPopup(popup);
         popup.addTo(map.current!);
+      });
+
+      // Hide popup when mouse leaves marker
+      el.addEventListener("mouseleave", () => {
+        setTimeout(() => {
+          if (!popup.getElement()?.querySelector(':hover')) {
+            popup.remove();
+          }
+        }, 100);
+      });
+
+      // Keep popup open when hovering over it
+      popup.on('open', () => {
+        const popupEl = popup.getElement();
+        if (popupEl) {
+          popupEl.addEventListener('mouseenter', () => {
+            // Keep popup open
+          });
+          popupEl.addEventListener('mouseleave', () => {
+            popup.remove();
+          });
+        }
       });
 
       markersRef.current.push(marker);
@@ -345,20 +322,21 @@ const EventMap: React.FC<EventMapProps> = ({ className }) => {
       />
 
       {/* Legend */}
-      <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 z-40">
-        <h3 className="font-semibold mb-2">Event Types</h3>
-        <div className="space-y-1">
-          {Object.entries(categoryConfig).map(([key, config]) => {
+      <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 z-40 max-w-xs">
+        <h3 className="font-semibold mb-3 text-sm">Event Types</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {getAllCategories().map((key) => {
+            const config = categoryConfig[key];
             const IconComponent = config.icon;
             return (
-              <div key={key} className="flex items-center space-x-2 text-sm">
+              <div key={key} className="flex items-center space-x-2 text-xs">
                 <div
-                  className="w-4 h-4 rounded-full flex items-center justify-center"
+                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: config.color }}
                 >
-                  <IconComponent className="h-2 w-2 text-white" />
+                  <IconComponent className="h-2.5 w-2.5 text-white" />
                 </div>
-                <span>{config.label}</span>
+                <span className="truncate">{config.label}</span>
               </div>
             );
           })}

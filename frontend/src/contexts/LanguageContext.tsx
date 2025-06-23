@@ -29,8 +29,30 @@ interface LanguageProviderProps {
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   children,
 }) => {
-  const [language, setLanguage] = useState<Language>("en");
+  const getInitialLanguage = (): Language => {
+    // Check localStorage first
+    const stored = localStorage.getItem('language');
+    if (stored === 'hr' || stored === 'en') {
+      return stored as Language;
+    }
+    
+    // Check browser language
+    const browserLang = navigator.language.toLowerCase();
+    if (browserLang.startsWith('hr')) {
+      return 'hr';
+    }
+    
+    // Default to Croatian
+    return 'hr';
+  };
+
+  const [language, setLanguage] = useState<Language>(getInitialLanguage());
   const [translations, setTranslations] = useState<Translations>({});
+
+  // Save language preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
 
   useEffect(() => {
     const load = async () => {

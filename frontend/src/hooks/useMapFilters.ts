@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { DateRange } from "react-day-picker";
 import { MapFilters } from "@/lib/api";
 
@@ -22,33 +22,33 @@ export const useMapFilters = () => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const getAvailableCities = () => {
+  const getAvailableCities = useCallback(() => {
     return selectedCounty ? countiesWithCities[selectedCounty as keyof typeof countiesWithCities] || [] : [];
-  };
+  }, [selectedCounty]);
 
-  const handleCategoryChange = (category: string | null) => {
-    setActiveCategory(category === activeCategory ? null : category);
-  };
+  const handleCategoryChange = useCallback((category: string | null) => {
+    setActiveCategory(prev => prev === category ? null : category);
+  }, []);
 
-  const handleDateRangeChange = (value: string) => {
-    setSelectedDateRange(value === selectedDateRange ? null : value);
+  const handleDateRangeChange = useCallback((value: string) => {
+    setSelectedDateRange(prev => prev === value ? null : value);
     setSelectedDateRangeObj(undefined);
-  };
+  }, []);
 
-  const handleCountyChange = (county: string) => {
-    setSelectedCounty(county === selectedCounty ? "" : county);
+  const handleCountyChange = useCallback((county: string) => {
+    setSelectedCounty(prev => prev === county ? "" : county);
     setSelectedCity(null);
-  };
+  }, []);
 
-  const handleCityChange = (city: string) => {
-    setSelectedCity(city === selectedCity ? "" : city);
-  };
+  const handleCityChange = useCallback((city: string) => {
+    setSelectedCity(prev => prev === city ? "" : city);
+  }, []);
 
-  const handlePriceRangeChange = (value: [number, number]) => {
+  const handlePriceRangeChange = useCallback((value: [number, number]) => {
     setSelectedPrice(value);
-  };
+  }, []);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setActiveCategory(null);
     setSelectedCounty(null);
     setSelectedCity(null);
@@ -56,7 +56,7 @@ export const useMapFilters = () => {
     setSelectedDateRange(null);
     setSelectedDateRangeObj(undefined);
     setSearchTerm("");
-  };
+  }, []);
 
   const getDateRangeFromSelection = (
     selection: string | null,

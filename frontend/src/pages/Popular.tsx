@@ -19,6 +19,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { eventsApi } from "@/lib/api";
 
 // Types for our popular items
 interface PopularItem {
@@ -47,15 +48,80 @@ const Popular = () => {
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [shake, setShake] = useState("");
 
-  // Simulate loading data
+  // Fetch real popular events data
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setItems(generateMockData());
-      setLoading(false);
-    }, 1200);
-    return () => clearTimeout(timer);
+    const fetchPopularData = async () => {
+      setLoading(true);
+      try {
+        // Fetch events from API
+        const response = await eventsApi.getEvents({ 
+          skip: 0, 
+          limit: 20,
+          sort: 'popular' // Assuming API supports popularity sorting
+        });
+        
+        // Transform API events to PopularItem format
+        const popularItems: PopularItem[] = response.events.map(event => ({
+          id: event.id.toString(),
+          title: event.title || event.name || 'Untitled Event',
+          category: mapEventCategoryToPopularCategory(event.category),
+          image: event.image || '/event-images/placeholder.jpg',
+          likes: Math.floor(Math.random() * 500) + 10, // TODO: Get real likes from API
+          views: Math.floor(Math.random() * 10000) + 100, // TODO: Get real views from API
+          rating: event.rating || (3 + Math.random() * 2),
+          trending: Math.random() > 0.7, // TODO: Get real trending status from API
+          author: {
+            name: event.organizer?.name || 'Event Organizer',
+            avatar: event.organizer?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 4) + 1}`,
+          },
+          tags: event.tags || generateRandomTags(),
+        }));
+
+        setItems(popularItems);
+      } catch (error) {
+        console.error('Failed to fetch popular events:', error);
+        // Fallback to empty array for graceful degradation
+        setItems([]);
+        toast({
+          title: "Error loading popular items",
+          description: "Please try again later",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPopularData();
   }, [selectedCategory, sortBy]);
+
+  // Helper function to map event categories to popular page categories
+  const mapEventCategoryToPopularCategory = (eventCategory: string): string => {
+    const categoryMap: { [key: string]: string } = {
+      'concert': 'Events',
+      'festival': 'Events', 
+      'conference': 'Events',
+      'party': 'Events',
+      'meetup': 'Activities',
+      'workout': 'Activities',
+      'sports': 'Activities',
+      'restaurant': 'Food',
+      'food': 'Food',
+      'venue': 'Venues',
+    };
+    return categoryMap[eventCategory?.toLowerCase()] || 'Events';
+  };
+
+  // Helper function to generate random tags (TODO: should come from API)
+  const generateRandomTags = (): string[] => {
+    const allTags = [
+      "Family Friendly", "Outdoor", "Local Favorites", "Historic",
+      "Romantic", "Budget", "Luxury", "Adventure", "Relaxation",
+      "Nightlife", "Cultural", "Scenic", "Beach", "Mountain",
+    ];
+    const numTags = Math.floor(Math.random() * 3) + 1;
+    return allTags.sort(() => 0.5 - Math.random()).slice(0, numTags);
+  };
 
   const handleLike = (id: string) => {
     setShake(id);
@@ -296,90 +362,7 @@ const Popular = () => {
   );
 };
 
-// Helper function to generate mock data
-function generateMockData(): PopularItem[] {
-  const categories = ["Events", "Venues", "Activities", "Food"];
-  const images = [
-    "https://images.unsplash.com/photo-1473951574080-01fe45ec8643?q=80&w=2070",
-    "https://images.unsplash.com/photo-1596627116790-af6f4d860c2c?q=80&w=1974",
-    "https://images.unsplash.com/photo-1588778272105-1ff5b1883249?q=80&w=1974",
-    "https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?q=80&w=2080",
-    "https://images.unsplash.com/photo-1539635278303-d4002c07eae3?q=80&w=2070",
-    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974",
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2080",
-    "https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=2074",
-  ];
-
-  const tags = [
-    "Family Friendly",
-    "Outdoor",
-    "Local Favorites",
-    "Historic",
-    "Romantic",
-    "Budget",
-    "Luxury",
-    "Adventure",
-    "Relaxation",
-    "Nightlife",
-    "Cultural",
-    "Scenic",
-    "Beach",
-    "Mountain",
-  ];
-
-  const titles = [
-    "Diocletian's Palace",
-    "Plitvice Lakes National Park",
-    "Dubrovnik Old Town",
-    "Zagreb Cathedral",
-    "Hvar Island",
-    "Split Riva",
-    "Krka National Park",
-    "Sea Organ in Zadar",
-    "Blue Cave",
-    "Korčula Old Town",
-    "Rovinj Historic Center",
-    "Zlatni Rat Beach",
-    "Trakošćan Castle",
-    "Ultra Europe Festival",
-  ];
-
-  const avatars = [
-    "https://i.pravatar.cc/150?img=1",
-    "https://i.pravatar.cc/150?img=2",
-    "https://i.pravatar.cc/150?img=3",
-    "https://i.pravatar.cc/150?img=4",
-  ];
-
-  const names = ["Marina K.", "Ivan H.", "Jelena D.", "Ante M.", "Petra B."];
-
-  return Array(16)
-    .fill(null)
-    .map((_, i) => {
-      const category =
-        categories[Math.floor(Math.random() * categories.length)];
-      const itemTags = Array(2 + Math.floor(Math.random() * 2))
-        .fill(null)
-        .map(() => tags[Math.floor(Math.random() * tags.length)])
-        .filter((value, index, self) => self.indexOf(value) === index);
-
-      return {
-        id: `item-${i}`,
-        title: titles[i % titles.length],
-        category,
-        image: images[i % images.length],
-        likes: 10 + Math.floor(Math.random() * 490),
-        views: 100 + Math.floor(Math.random() * 9900),
-        rating: 3 + Math.random() * 2,
-        trending: Math.random() > 0.7,
-        author: {
-          name: names[Math.floor(Math.random() * names.length)],
-          avatar: avatars[Math.floor(Math.random() * avatars.length)],
-        },
-        tags: itemTags,
-      };
-    });
-}
+// Note: Mock data generation function removed - now using real API data
 
 // Add this to your tailwind.config.ts:
 // keyframes: {

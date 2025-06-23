@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,9 @@ import {
   Star,
   Calendar,
   Mail,
+  Loader2,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -49,29 +52,14 @@ import {
   DialogClose,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { venuesApi, Venue } from "@/lib/api";
 
-interface Venue {
-  id: number;
-  name: string;
-  city: string;
-  county: string;
-  address: string;
-  category:
-    | "hotel"
-    | "concert-hall"
-    | "conference-center"
-    | "club"
-    | "restaurant"
-    | "outdoor";
-  capacity: number;
-  priceRange: 1 | 2 | 3 | 4 | 5; // 1 = $ to 5 = $$$$$
-  amenities: string[];
-  imageUrl: string;
-  rating: number;
-  description: string;
-}
+// Venue interface is now imported from api.ts
 
 const Venues = () => {
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCounty, setSelectedCounty] = useState<string>("");
   const [selectedCapacity, setSelectedCapacity] = useState<number[]>([100]);
@@ -86,136 +74,155 @@ const Venues = () => {
     message: "",
   });
 
-  // Mock data for venues
-  const venues: Venue[] = [
-    {
-      id: 1,
-      name: "Lisinski Concert Hall",
-      city: "Zagreb",
-      county: "Zagreb",
-      address: "Trg Stjepana Radića 4, 10000 Zagreb",
-      category: "concert-hall",
-      capacity: 1800,
-      priceRange: 4,
-      amenities: [
-        "Stage",
-        "Sound System",
-        "Lighting",
-        "Parking",
-        "Wheelchair Access",
-      ],
-      imageUrl: "/event-images/concert.jpg",
-      rating: 4.8,
-      description:
-        "Croatia's premier concert hall with excellent acoustics and modern facilities, perfect for classical concerts, operas, and large musical performances.",
-    },
-    {
-      id: 2,
-      name: "Westin Zagreb Hotel",
-      city: "Zagreb",
-      county: "Zagreb",
-      address: "Krsnjavoga 1, 10000 Zagreb",
-      category: "hotel",
-      capacity: 500,
-      priceRange: 5,
-      amenities: [
-        "Catering",
-        "A/V Equipment",
-        "Wifi",
-        "Accommodation",
-        "Parking",
-      ],
-      imageUrl: "/event-images/conference.jpg",
-      rating: 4.5,
-      description:
-        "Five-star hotel with elegant ballrooms and conference spaces ideal for corporate events, weddings, and social gatherings.",
-    },
-    {
-      id: 3,
-      name: "Papaya Club",
-      city: "Novalja",
-      county: "Lika-Senj",
-      address: "Zrće Beach, 53291 Novalja",
-      category: "club",
-      capacity: 4000,
-      priceRange: 3,
-      amenities: ["DJ Booth", "Sound System", "Lighting", "Bar", "VIP Areas"],
-      imageUrl: "/event-images/party.jpg",
-      rating: 4.6,
-      description:
-        "Iconic open-air club on Zrće Beach, known for hosting world-famous DJs and summer parties.",
-    },
-    {
-      id: 4,
-      name: "Šibenik Fortress",
-      city: "Šibenik",
-      county: "Šibenik-Knin",
-      address: "Zagrađe 21, 22000 Šibenik",
-      category: "outdoor",
-      capacity: 1000,
-      priceRange: 3,
-      amenities: ["Historic Setting", "Open-air Stage", "Stunning Views"],
-      imageUrl: "/event-images/concert.jpg",
-      rating: 4.9,
-      description:
-        "Historic medieval fortress offering a unique venue for cultural events, concerts, and festivals with breathtaking views of the Adriatic.",
-    },
-    {
-      id: 5,
-      name: "Split Convention Centre",
-      city: "Split",
-      county: "Split-Dalmatia",
-      address: "Poljička cesta 35, 21000 Split",
-      category: "conference-center",
-      capacity: 1200,
-      priceRange: 4,
-      amenities: [
-        "Multiple Halls",
-        "A/V Equipment",
-        "Catering",
-        "Translation Services",
-      ],
-      imageUrl: "/event-images/conference.jpg",
-      rating: 4.3,
-      description:
-        "Modern convention center with versatile spaces for conferences, trade shows, and corporate events in the heart of Split.",
-    },
-    {
-      id: 6,
-      name: "Restaurant Dubravkin Put",
-      city: "Zagreb",
-      county: "Zagreb",
-      address: "Dubravkin put 2, 10000 Zagreb",
-      category: "restaurant",
-      capacity: 150,
-      priceRange: 4,
-      amenities: [
-        "Gourmet Catering",
-        "Terrace",
-        "Private Dining",
-        "Wine Cellar",
-      ],
-      imageUrl: "/event-images/conference.jpg",
-      rating: 4.7,
-      description:
-        "Upscale restaurant with elegant indoor space and garden terrace, perfect for intimate gatherings and private celebrations.",
-    },
-    {
-      id: 7,
-      name: "Hvar Public Theatre",
-      city: "Hvar",
-      county: "Split-Dalmatia",
-      address: "Trg Sv. Stjepana, 21450 Hvar",
-      category: "concert-hall",
-      capacity: 300,
-      priceRange: 3,
-      amenities: ["Historic Building", "Stage", "Sound System"],
-      imageUrl: "/event-images/concert.jpg",
-      rating: 4.4,
-      description:
-        "One of Europe's oldest theaters dating from 1612, offering a unique historical venue for cultural events and performances.",
-    },
-  ];
+  const fetchVenues = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await venuesApi.getVenues({ limit: 50 });
+      setVenues(response.venues);
+    } catch (err) {
+      console.error('Failed to fetch venues:', err);
+      setError('Failed to load venues');
+      
+      // Fallback: static venue data
+      setVenues([
+        {
+          id: 1,
+          name: "Lisinski Concert Hall",
+          city: "Zagreb",
+          county: "Zagreb",
+          address: "Trg Stjepana Radića 4, 10000 Zagreb",
+          category: "concert-hall",
+          capacity: 1800,
+          priceRange: 4,
+          amenities: [
+            "Stage",
+            "Sound System",
+            "Lighting",
+            "Parking",
+            "Wheelchair Access",
+          ],
+          imageUrl: "/event-images/concert.jpg",
+          rating: 4.8,
+          description:
+            "Croatia's premier concert hall with excellent acoustics and modern facilities, perfect for classical concerts, operas, and large musical performances.",
+        },
+        {
+          id: 2,
+          name: "Westin Zagreb Hotel",
+          city: "Zagreb",
+          county: "Zagreb",
+          address: "Krsnjavoga 1, 10000 Zagreb",
+          category: "hotel",
+          capacity: 500,
+          priceRange: 5,
+          amenities: [
+            "Catering",
+            "A/V Equipment",
+            "Wifi",
+            "Accommodation",
+            "Parking",
+          ],
+          imageUrl: "/event-images/conference.jpg",
+          rating: 4.5,
+          description:
+            "Five-star hotel with elegant ballrooms and conference spaces ideal for corporate events, weddings, and social gatherings.",
+        },
+        {
+          id: 3,
+          name: "Papaya Club",
+          city: "Novalja",
+          county: "Lika-Senj",
+          address: "Zrće Beach, 53291 Novalja",
+          category: "club",
+          capacity: 4000,
+          priceRange: 3,
+          amenities: ["DJ Booth", "Sound System", "Lighting", "Bar", "VIP Areas"],
+          imageUrl: "/event-images/party.jpg",
+          rating: 4.6,
+          description:
+            "Iconic open-air club on Zrće Beach, known for hosting world-famous DJs and summer parties.",
+        },
+        {
+          id: 4,
+          name: "Šibenik Fortress",
+          city: "Šibenik",
+          county: "Šibenik-Knin",
+          address: "Zagrađe 21, 22000 Šibenik",
+          category: "outdoor",
+          capacity: 1000,
+          priceRange: 3,
+          amenities: ["Historic Setting", "Open-air Stage", "Stunning Views"],
+          imageUrl: "/event-images/concert.jpg",
+          rating: 4.9,
+          description:
+            "Historic medieval fortress offering a unique venue for cultural events, concerts, and festivals with breathtaking views of the Adriatic.",
+        },
+        {
+          id: 5,
+          name: "Split Convention Centre",
+          city: "Split",
+          county: "Split-Dalmatia",
+          address: "Poljička cesta 35, 21000 Split",
+          category: "conference-center",
+          capacity: 1200,
+          priceRange: 4,
+          amenities: [
+            "Multiple Halls",
+            "A/V Equipment",
+            "Catering",
+            "Translation Services",
+          ],
+          imageUrl: "/event-images/conference.jpg",
+          rating: 4.3,
+          description:
+            "Modern convention center with versatile spaces for conferences, trade shows, and corporate events in the heart of Split.",
+        },
+        {
+          id: 6,
+          name: "Restaurant Dubravkin Put",
+          city: "Zagreb",
+          county: "Zagreb",
+          address: "Dubravkin put 2, 10000 Zagreb",
+          category: "restaurant",
+          capacity: 150,
+          priceRange: 4,
+          amenities: [
+            "Gourmet Catering",
+            "Terrace",
+            "Private Dining",
+            "Wine Cellar",
+          ],
+          imageUrl: "/event-images/conference.jpg",
+          rating: 4.7,
+          description:
+            "Upscale restaurant with elegant indoor space and garden terrace, perfect for intimate gatherings and private celebrations.",
+        },
+        {
+          id: 7,
+          name: "Hvar Public Theatre",
+          city: "Hvar",
+          county: "Split-Dalmatia",
+          address: "Trg Sv. Stjepana, 21450 Hvar",
+          category: "concert-hall",
+          capacity: 300,
+          priceRange: 3,
+          amenities: ["Historic Building", "Stage", "Sound System"],
+          imageUrl: "/event-images/concert.jpg",
+          rating: 4.4,
+          description:
+            "One of Europe's oldest theaters dating from 1612, offering a unique historical venue for cultural events and performances.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVenues();
+  }, []);
 
   // Counties in Croatia
   const counties = [
@@ -249,24 +256,36 @@ const Venues = () => {
     setSelectedVenue(venue);
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    logger.info("Contact form submitted:", contactForm);
-
-    toast({
-      title: "Request Sent",
-      description:
-        "Your venue inquiry has been sent. The venue will contact you shortly.",
-    });
-
-    setContactDialog(false);
-    setContactForm({
-      name: "",
-      email: "",
-      phone: "",
-      eventDate: "",
-      message: "",
-    });
+    
+    if (!selectedVenue) return;
+    
+    try {
+      await venuesApi.contactVenue(selectedVenue.id, contactForm);
+      
+      toast({
+        title: "Request Sent",
+        description: "Your venue inquiry has been sent. The venue will contact you shortly.",
+      });
+      
+      setContactDialog(false);
+      setContactForm({
+        name: "",
+        email: "",
+        phone: "",
+        eventDate: "",
+        message: "",
+      });
+    } catch (error) {
+      console.error('Failed to send venue contact:', error);
+      
+      toast({
+        title: "Failed to send request",
+        description: "Could not send your inquiry. Please try again or contact the venue directly.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Filter venues based on search, county, capacity, and category
@@ -326,13 +345,23 @@ const Venues = () => {
 
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-navy-blue mb-2 font-sreda">
-            Explore Venues in Croatia
-          </h1>
-          <p className="text-lg text-gray-600">
-            Discover perfect venues for your events - from historical theaters
-            to modern conference centers
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-navy-blue mb-2 font-sreda">
+                Explore Venues in Croatia
+              </h1>
+              <p className="text-lg text-gray-600">
+                Discover perfect venues for your events - from historical theaters
+                to modern conference centers
+              </p>
+            </div>
+            {error && (
+              <Button variant="outline" onClick={fetchVenues} className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Search and filter section */}
@@ -412,7 +441,28 @@ const Venues = () => {
         </Card>
 
         {/* Venues grid */}
-        {filteredVenues.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="flex items-center space-x-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>Loading venues...</span>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <AlertCircle className="w-16 h-16 mx-auto text-red-400 mb-4" />
+            <h2 className="text-2xl font-bold text-navy-blue mb-2">
+              Failed to load venues
+            </h2>
+            <p className="text-lg text-gray-600 mb-6">
+              {error}
+            </p>
+            <Button onClick={fetchVenues}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        ) : filteredVenues.length === 0 ? (
           <div className="text-center py-16">
             <MapPin className="w-16 h-16 mx-auto text-gray-400 mb-4" />
             <h2 className="text-2xl font-bold text-navy-blue mb-2">

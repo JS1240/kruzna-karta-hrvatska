@@ -10,6 +10,10 @@ import Popular from "../pages/Popular";
 import Admin from "../pages/Admin";
 import CreateEvent from "../pages/CreateEvent";
 import OrganizerDashboard from "../pages/OrganizerDashboard";
+import Profile from "../pages/Profile";
+import Community from "../pages/Community";
+import EventDetail from "../pages/EventDetail";
+import Bookings from "../pages/Bookings";
 import NotFound from "../pages/NotFound";
 
 const AppContent = () => {
@@ -24,6 +28,10 @@ const AppContent = () => {
         <Route path="/venues" element={<Venues />} />
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/popular" element={<Popular />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/event/:id" element={<EventDetail />} />
+        <Route path="/bookings" element={<Bookings />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/create-event" element={<CreateEvent />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />

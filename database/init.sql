@@ -3,6 +3,46 @@
 
 -- Enable UUID extension for unique identifiers
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+-- Venue coordinates cache table for real-time geocoding
+CREATE TABLE IF NOT EXISTS venue_coordinates (
+    id SERIAL PRIMARY KEY,
+    venue_name VARCHAR(255) NOT NULL,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    accuracy VARCHAR(50) NOT NULL DEFAULT 'city',
+    confidence DECIMAL(3, 2) NOT NULL DEFAULT 0.5,
+    source VARCHAR(50) NOT NULL DEFAULT 'mapbox',
+    place_name TEXT,
+    place_type VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for venue coordinates
+CREATE INDEX IF NOT EXISTS idx_venue_coordinates_name ON venue_coordinates(LOWER(venue_name));
+CREATE INDEX IF NOT EXISTS idx_venue_coordinates_location ON venue_coordinates(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_venue_coordinates_updated ON venue_coordinates(updated_at);
+
+-- Venue corrections table for user feedback
+CREATE TABLE IF NOT EXISTS venue_corrections (
+    id SERIAL PRIMARY KEY,
+    original_venue VARCHAR(255) NOT NULL,
+    corrected_venue VARCHAR(255) NOT NULL,
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    user_id VARCHAR(100),
+    status VARCHAR(50) DEFAULT 'pending',
+    admin_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for venue corrections
+CREATE INDEX IF NOT EXISTS idx_venue_corrections_status ON venue_corrections(status);
+CREATE INDEX IF NOT EXISTS idx_venue_corrections_original ON venue_corrections(LOWER(original_venue));
+CREATE INDEX IF NOT EXISTS idx_venue_corrections_created ON venue_corrections(created_at);
 
 -- Create event categories table
 CREATE TABLE IF NOT EXISTS event_categories (

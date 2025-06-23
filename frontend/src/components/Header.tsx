@@ -19,6 +19,7 @@ import {
 } from "./ui/dropdown-menu";
 import Logo from "./Logo";
 import Auth from "./Auth";
+import NotificationCenter from "./NotificationCenter";
 
 const Header = () => {
   const [mounted, setMounted] = useState(false);
@@ -82,10 +83,23 @@ const Header = () => {
           >
             {t("nav.popular")}
           </Link>
+          <Link
+            to="/community"
+            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-red-500 hover:scale-110 hover:bg-red-50 px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
+              location.pathname === "/community"
+                ? "text-red-500 bg-red-50 scale-105 shadow-md animate-pulse"
+                : "text-gray-700 dark:text-gray-300 hover:bg-red-50"
+            }`}
+          >
+            Community
+          </Link>
         </nav>
 
         {/* Right: Controls */}
         <div className="flex items-center space-x-3 flex-shrink-0">
+          {/* Notifications */}
+          <NotificationCenter />
+
           {/* Saved/Favorites Button */}
           <Link to="/favorites">
             <Button
@@ -136,19 +150,6 @@ const Header = () => {
           {/* Language Toggle Buttons */}
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setLanguage("en")}
-              className={`px-3 py-1 rounded font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm tracking-wide
-                ${
-                  language === "en"
-                    ? "bg-red-500 text-white shadow-lg scale-105"
-                    : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-900 active:bg-red-200 active:text-red-700"
-                }
-              `}
-              aria-label="Switch to English"
-            >
-              ENG
-            </button>
-            <button
               onClick={() => setLanguage("hr")}
               className={`px-3 py-1 rounded font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm tracking-wide
                 ${
@@ -160,6 +161,19 @@ const Header = () => {
               aria-label="Switch to Croatian"
             >
               HRV
+            </button>
+            <button
+              onClick={() => setLanguage("en")}
+              className={`px-3 py-1 rounded font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm tracking-wide
+                ${
+                  language === "en"
+                    ? "bg-red-500 text-white shadow-lg scale-105"
+                    : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-900 active:bg-red-200 active:text-red-700"
+                }
+              `}
+              aria-label="Switch to English"
+            >
+              ENG
             </button>
           </div>
 
