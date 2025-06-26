@@ -1,6 +1,7 @@
 import React from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AnimatedBackground from "@/components/AnimatedBackground";
 import {
   MapPinIcon,
   CalendarIcon,
@@ -16,11 +17,25 @@ const About = () => {
 
       <main className="flex-grow container mx-auto px-4 py-8">
         <section className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-brand-primary mb-6 font-sreda">
-            About EventMap Croatia
-          </h1>
+          <AnimatedBackground
+            blueOnly={true}
+            blueIntensity="medium"
+            gentleMovement={true}
+            gentleMode="ultra"
+            subtleOpacity={true}
+            opacityMode="low"
+            adjustableBlur={true}
+            blurType="background"
+            blurIntensity="medium"
+            responsive={true}
+            className="rounded-lg overflow-hidden"
+          >
+            <div className="relative z-10 p-8">
+              <h1 className="text-4xl md:text-5xl font-bold text-brand-primary mb-6 font-sreda">
+                About EventMap Croatia
+              </h1>
 
-          <div className="bg-white dark:bg-card rounded-lg shadow-lg p-8 border border-light-blue dark:border-gray-700">
+              <div className="bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-lg shadow-lg p-8 border border-light-blue dark:border-gray-700">
             <div className="flex flex-col md:flex-row gap-8 items-center mb-8">
               <div className="md:w-1/2">
                 <p className="text-lg mb-4">
@@ -196,8 +211,10 @@ const About = () => {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
-          </div>
+            </div>
+          </AnimatedBackground>
         </section>
 
         <section className="mb-12">
@@ -263,11 +280,25 @@ const About = () => {
         </section>
 
         <section>
-          <h2 className="text-3xl font-bold mb-6 font-sreda text-navy-blue">
-            Contact Us
-          </h2>
+          <AnimatedBackground
+            blueOnly={true}
+            blueIntensity="dark"
+            gentleMovement={true}
+            gentleMode="normal"
+            subtleOpacity={true}
+            opacityMode="medium"
+            adjustableBlur={true}
+            blurType="dynamic"
+            blurIntensity="light"
+            responsive={true}
+            className="rounded-lg overflow-hidden"
+          >
+            <div className="relative z-10 p-6">
+              <h2 className="text-3xl font-bold mb-6 font-sreda text-brand-white">
+                Contact Us
+              </h2>
 
-          <div className="bg-white dark:bg-card rounded-lg shadow-lg p-8 border border-light-blue dark:border-gray-700">
+              <div className="bg-white/90 dark:bg-card/90 backdrop-blur-sm rounded-lg shadow-lg p-8 border border-light-blue dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 className="text-xl font-bold mb-4 font-josefin text-navy-blue">
@@ -383,8 +414,10 @@ const About = () => {
                   </button>
                 </form>
               </div>
+              </div>
             </div>
-          </div>
+            </div>
+          </AnimatedBackground>
         </section>
       </main>
 

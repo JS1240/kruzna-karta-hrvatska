@@ -11,6 +11,7 @@ import {
 } from "./ui/carousel";
 import { useNavigate } from "react-router-dom";
 import { eventsApi, Event } from "@/lib/api";
+import AnimatedBackground from "./AnimatedBackground";
 
 const CompactFeaturedEventCard = ({
   id,
@@ -203,10 +204,24 @@ const FeaturedEvents = () => {
   }
 
   return (
-    <section className="mb-12 bg-white rounded-lg shadow-lg p-6 border border-light-blue">
-      <h2 className="text-2xl font-bold mb-6 font-sreda text-navy-blue">
-        Featured Events
-      </h2>
+    <section className="mb-12">
+      <AnimatedBackground
+        blueOnly={true}
+        blueIntensity="light"
+        gentleMovement={true}
+        gentleMode="ultra"
+        subtleOpacity={true}
+        opacityMode="minimal"
+        adjustableBlur={true}
+        blurType="edge"
+        blurIntensity="light"
+        responsive={true}
+        className="rounded-lg overflow-hidden"
+      >
+        <div className="bg-white/70 backdrop-blur-sm rounded-lg shadow-lg p-6 border border-light-blue relative z-10">
+          <h2 className="text-2xl font-bold mb-6 font-sreda text-navy-blue">
+            Featured Events
+          </h2>
       <Carousel
         opts={{
           align: "start",
@@ -230,11 +245,13 @@ const FeaturedEvents = () => {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <div className="flex justify-end gap-2 mt-4">
-          <CarouselPrevious className="static h-8 w-8 translate-y-0" />
-          <CarouselNext className="static h-8 w-8 translate-y-0" />
+          <div className="flex justify-end gap-2 mt-4">
+            <CarouselPrevious className="static h-8 w-8 translate-y-0" />
+            <CarouselNext className="static h-8 w-8 translate-y-0" />
+          </div>
+        </Carousel>
         </div>
-      </Carousel>
+      </AnimatedBackground>
     </section>
   );
 };
