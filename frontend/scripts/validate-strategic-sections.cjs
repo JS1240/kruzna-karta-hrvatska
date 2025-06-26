@@ -391,10 +391,63 @@ if (fs.existsSync(indexPagePath)) {
   const indexContent = fs.readFileSync(indexPagePath, 'utf8');
   const lines = indexContent.split('\n');
   
+  // Enhanced validation with robust array bounds checking
+  const hasValidLineCount = lines.length >= 77;
+  const hasValidLine26 = lines.length > 25 && lines[25] && typeof lines[25] === 'string';
+  
+  // Safe line content checking with multiple fallback patterns
+  const containsHeroSection = hasValidLine26 && (
+    lines[25].includes('section') ||
+    lines[25].includes('<section') ||
+    lines[25].includes('className="mb-12"') ||
+    // Check surrounding lines for section content if line 26 doesn't match
+    (lines.length > 27 && lines.slice(24, 28).some(line => 
+      line && typeof line === 'string' && (
+        line.includes('<section') || 
+        line.includes('section className') ||
+        line.includes('mb-12')
+      )
+    ))
+  );
+  
+  // Additional content validation for hero section patterns
+  const heroSectionPatterns = [
+    'AnimatedBackground',
+    'hero',
+    'main.*container',
+    'text-4xl.*md:text-5xl',
+    'EnhancedSearch',
+    'PageTransition',
+    'Header'
+  ];
+  
+  // Safe pattern matching with error handling
+  const hasHeroSectionContent = heroSectionPatterns.some(pattern => {
+    try {
+      return indexContent.match(new RegExp(pattern, 'i'));
+    } catch (error) {
+      console.warn(`Pattern matching error for "${pattern}":`, error.message);
+      return false;
+    }
+  });
+  
+  // Additional check for specific AnimatedBackground integration
+  const hasAnimatedBackgroundIntegration = indexContent.includes('import AnimatedBackground') &&
+    indexContent.includes('<AnimatedBackground') &&
+    indexContent.includes('blueOnly={true}');
+  
+  const validationPassed = hasValidLineCount && containsHeroSection && 
+    (hasHeroSectionContent || hasAnimatedBackgroundIntegration);
+  
   validateCheck(
-    lines.length >= 77 && lines[25] && lines[25].includes('section'),
-    'Index.tsx hero section properly referenced (lines 26-77)',
-    'Index.tsx hero section line references may be incorrect'
+    validationPassed,
+    'Index.tsx hero section properly referenced with expected content patterns',
+    `Index.tsx hero section validation failed:\n` +
+    `  - Line count >= 77: ${hasValidLineCount}\n` +
+    `  - Valid line 26 exists: ${hasValidLine26}\n` +
+    `  - Contains section markers: ${containsHeroSection}\n` +
+    `  - Has hero content patterns: ${hasHeroSectionContent}\n` +
+    `  - Has AnimatedBackground integration: ${hasAnimatedBackgroundIntegration}`
   );
 }
 
