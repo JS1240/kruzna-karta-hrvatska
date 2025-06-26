@@ -366,7 +366,7 @@ class T42Validator {
   }
 
   // Main validation method
-  async validate() {
+  validate() {
     this.log('Starting T4.2: Clear White Backgrounds validation...');
     this.log('Validating implementation against PRD requirements\\n');
 
@@ -383,12 +383,13 @@ class T42Validator {
 // Run validation
 if (require.main === module) {
   const validator = new T42Validator();
-  validator.validate().then(success => {
+  try {
+    const success = validator.validate();
     process.exit(success ? 0 : 1);
-  }).catch(error => {
+  } catch (error) {
     console.error('Validation failed:', error);
     process.exit(1);
-  });
+  }
 }
 
 module.exports = T42Validator;
