@@ -180,7 +180,7 @@ const Popular = () => {
       <div className="container mx-auto py-8 px-4 min-h-screen">
         <div className="flex flex-col space-y-6">
           <div className="text-center mb-8 animate-fade-in">
-            <h1 className="text-4xl md:text-5xl font-bold text-navy-blue mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-brand-primary mb-4">
               Trending in Croatia
             </h1>
             <p className="text-lg text-gray-600">
@@ -279,8 +279,8 @@ const Popular = () => {
                     {item.trending && (
                       <div className="absolute top-2 right-2">
                         <Badge
-                          variant="default"
-                          className="bg-red-500 flex items-center gap-1 animate-pulse"
+                          variant="accent-gold"
+                          className="bg-accent-gold flex items-center gap-1 animate-pulse font-bold"
                         >
                           <Flame className="h-3 w-3" /> Hot
                         </Badge>
@@ -294,8 +294,8 @@ const Popular = () => {
                       {item.tags.map((tag) => (
                         <Badge
                           key={tag}
-                          variant="secondary"
-                          className="bg-light-blue text-navy-blue hover:bg-medium-blue"
+                          variant="accent-cream"
+                          className="bg-accent-cream text-brand-black hover:bg-accent-gold transition-colors font-medium"
                         >
                           {tag}
                         </Badge>

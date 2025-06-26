@@ -255,7 +255,7 @@ const OrganizerDashboard = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><AlertCircle className="h-3 w-3 mr-1" />Pending Review</Badge>;
+        return <Badge variant="warning" className="bg-accent-gold text-brand-black"><AlertCircle className="h-3 w-3 mr-1" />Pending Review</Badge>;
       case 'approved':
         return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
       case 'rejected':
@@ -371,7 +371,7 @@ const OrganizerDashboard = () => {
             {/* Header */}
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-navy-blue font-sreda">
+                <h1 className="text-3xl font-bold text-brand-primary font-sreda">
                   Organizer Dashboard
                 </h1>
                 <p className="text-lg text-gray-600">

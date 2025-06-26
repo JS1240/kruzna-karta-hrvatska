@@ -10,16 +10,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-sky_blue-200 active:text-light-blue",
+          "bg-brand-primary text-brand-white hover:bg-brand-primary-dark active:bg-brand-secondary active:text-brand-white",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-sky_blue-200 active:text-light-blue",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-brand-secondary active:text-brand-white",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground active:bg-sky_blue-200 active:text-light-blue",
+          "border border-input bg-background hover:bg-brand-accent-cream hover:text-brand-black active:bg-brand-secondary active:text-brand-white",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-sky_blue-200 active:text-light-blue",
+          "bg-brand-secondary text-brand-black hover:bg-brand-secondary-dark hover:text-brand-white active:bg-brand-primary active:text-brand-white",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground active:bg-sky_blue-200 active:text-light-blue",
-        link: "text-primary underline-offset-4 hover:underline active:bg-sky_blue-200 active:text-light-blue",
+          "hover:bg-brand-accent-cream hover:text-brand-black active:bg-brand-secondary active:text-brand-white",
+        link: "text-brand-primary underline-offset-4 hover:underline active:text-brand-primary-dark",
       },
       size: {
         default: "h-10 px-4 py-2",

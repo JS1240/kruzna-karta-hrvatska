@@ -37,6 +37,36 @@
     --ring: 222 72% 30%;
 
     --radius: 0.5rem;
+
+    /* Brand Color Scheme - Animated Background Redesign */
+    /* Primary Brand Colors - for buttons, links, and headers */
+    --brand-primary: 211 54% 46%; /* #3674B5 in HSL */
+    --brand-secondary: 211 52% 57%; /* #578FCA in HSL */
+    
+    /* Accent Colors - for highlights and accents */
+    --brand-accent-cream: 52 67% 88%; /* #F5F0CD in HSL */
+    --brand-accent-gold: 45 93% 73%; /* #FADA7A in HSL */
+    
+    /* Contrast Colors - for text and high contrast elements */
+    --brand-black: 0 0% 0%; /* #000000 in HSL */
+    --brand-white: 0 0% 100%; /* #FFFFFF in HSL */
+    
+    /* Animation Colors - for VANTA topology (blue tones only) */
+    --animation-primary: var(--brand-primary);
+    --animation-secondary: var(--brand-secondary);
+    --animation-background: var(--brand-white);
+    
+    /* Derived Color Variations - for enhanced UI hierarchy */
+    --brand-primary-light: 211 54% 66%; /* Lighter variant of primary */
+    --brand-primary-dark: 211 54% 26%; /* Darker variant of primary */
+    --brand-secondary-light: 211 52% 77%; /* Lighter variant of secondary */
+    --brand-secondary-dark: 211 52% 37%; /* Darker variant of secondary */
+
+    /* UI Accent Elements - using accent colors for highlights */
+    --focus-ring: var(--brand-accent-gold);
+    --highlight-bg: var(--brand-accent-cream);
+    --notification-accent: var(--brand-accent-gold);
+    --badge-accent: var(--brand-accent-cream);
   }
 
   .dark {
@@ -67,6 +97,29 @@
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 212 72% 59%;
+
+    /* Brand Color Scheme - Same colors for dark mode */
+    --brand-primary: 211 54% 46%; /* #3674B5 */
+    --brand-secondary: 211 52% 57%; /* #578FCA */
+    --brand-accent-cream: 52 67% 88%; /* #F5F0CD */
+    --brand-accent-gold: 45 93% 73%; /* #FADA7A */
+    --brand-black: 0 0% 0%; /* #000000 */
+    --brand-white: 0 0% 100%; /* #FFFFFF */
+    --animation-primary: var(--brand-primary);
+    --animation-secondary: var(--brand-secondary);
+    --animation-background: var(--brand-white);
+    
+    /* Derived Color Variations - for enhanced UI hierarchy */
+    --brand-primary-light: 211 54% 66%; /* Lighter variant of primary */
+    --brand-primary-dark: 211 54% 26%; /* Darker variant of primary */
+    --brand-secondary-light: 211 52% 77%; /* Lighter variant of secondary */
+    --brand-secondary-dark: 211 52% 37%; /* Darker variant of secondary */
+
+    /* UI Accent Elements - same accent colors for dark mode */
+    --focus-ring: var(--brand-accent-gold);
+    --highlight-bg: var(--brand-accent-cream);
+    --notification-accent: var(--brand-accent-gold);
+    --badge-accent: var(--brand-accent-cream);
   }
 
   * {
@@ -96,15 +149,33 @@
   }
 
   .map-category-button.active {
-    @apply bg-navy-blue text-white shadow-md;
+    @apply bg-brand-primary text-brand-white shadow-md;
   }
 
   .map-category-button:not(.active) {
-    @apply bg-light-blue text-navy-blue hover:bg-medium-blue hover:text-white;
+    @apply bg-brand-accent-cream text-brand-primary hover:bg-brand-secondary hover:text-brand-white;
   }
 
   .popup-content {
     @apply bg-white p-4 rounded-lg shadow-lg border border-light-blue max-w-sm;
+  }
+
+  /* Focus states using accent colors */
+  .focus-accent {
+    @apply focus:ring-accent-gold focus:ring-2 focus:ring-offset-2;
+  }
+
+  .focus-accent-outline {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-gold focus-visible:ring-offset-2;
+  }
+
+  /* Hover states with accent highlights */
+  .hover-accent-highlight {
+    @apply hover:bg-accent-cream/20 transition-colors duration-200;
+  }
+
+  .hover-accent-border {
+    @apply hover:border-accent-gold transition-colors duration-200;
   }
 
   .language-toggle {

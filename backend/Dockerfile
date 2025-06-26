@@ -22,14 +22,11 @@ WORKDIR /app
 # Copy project files
 COPY pyproject.toml ./
 
-# Install dependencies
-RUN uv venv .venv
-RUN uv sync --all-extras
-# Fix Python symlink for uvicorn script
-RUN ln -sf /usr/local/bin/python3 /app/.venv/bin/python3
+# Install dependencies globally to avoid volume mount conflicts
+RUN pip install fastapi uvicorn sqlalchemy psycopg2-binary pydantic pydantic-settings python-dotenv httpx beautifulsoup4 alembic playwright redis celery pandas scikit-learn python-jose passlib requests boto3 prometheus-client psutil cryptography qrcode python-dateutil stripe email-validator openai schedule
 
 # Install playwright browsers
-RUN .venv/bin/playwright install --with-deps chromium
+RUN playwright install --with-deps chromium
 
 # Copy application code
 COPY . .
@@ -46,4 +43,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Start the application  
-CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

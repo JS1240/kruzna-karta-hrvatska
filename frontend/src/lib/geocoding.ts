@@ -36,6 +36,37 @@ const CROATIAN_VENUE_COORDINATES: Record<string, Coordinates> = {
   "bacvice beach": { lat: 43.5048, lng: 16.4531 }, // Split
   "plaža bačvice": { lat: 43.5048, lng: 16.4531 }, // Split
   
+  // VisitSplit specific venues
+  "trg peristil": { lat: 43.5082, lng: 16.4406 }, // Split - Peristyle Square
+  "peristil": { lat: 43.5082, lng: 16.4406 }, // Split - Peristyle Square
+  "peristyle": { lat: 43.5082, lng: 16.4406 }, // Split - Peristyle Square
+  "stara gradska vijećnica": { lat: 43.5085, lng: 16.4398 }, // Split - Old City Hall
+  "old city hall split": { lat: 43.5085, lng: 16.4398 }, // Split - Old City Hall
+  "bedem cornaro": { lat: 43.5095, lng: 16.4385 }, // Split - Cornaro Bastion
+  "cornaro bastion": { lat: 43.5095, lng: 16.4385 }, // Split - Cornaro Bastion
+  "pjaca": { lat: 43.5081, lng: 16.4401 }, // Split - People's Square (Pjaca)
+  "narodni trg": { lat: 43.5081, lng: 16.4401 }, // Split - People's Square
+  "vestibul": { lat: 43.5083, lng: 16.4405 }, // Split - Vestibule
+  "zlatna vrata": { lat: 43.5088, lng: 16.4405 }, // Split - Golden Gate
+  "golden gate": { lat: 43.5088, lng: 16.4405 }, // Split - Golden Gate
+  "srebrna vrata": { lat: 43.5080, lng: 16.4395 }, // Split - Silver Gate
+  "silver gate": { lat: 43.5080, lng: 16.4395 }, // Split - Silver Gate
+  "željezna vrata": { lat: 43.5075, lng: 16.4403 }, // Split - Iron Gate
+  "iron gate": { lat: 43.5075, lng: 16.4403 }, // Split - Iron Gate
+  "meštrović galerija": { lat: 43.5119, lng: 16.4356 }, // Split - Meštrović Gallery
+  "mestrovic gallery": { lat: 43.5119, lng: 16.4356 }, // Split - Meštrović Gallery
+  "marjan": { lat: 43.5157, lng: 16.4264 }, // Split - Marjan Hill
+  "marjan hill": { lat: 43.5157, lng: 16.4264 }, // Split - Marjan Hill
+  "stinice": { lat: 43.5025, lng: 16.4180 }, // Split - Stinice area
+  "stinice industrijska zona": { lat: 43.5025, lng: 16.4180 }, // Split - Stinice industrial zone
+  "hrvatski dom split": { lat: 43.5095, lng: 16.4412 }, // Split - Croatian Home
+  "croatian home split": { lat: 43.5095, lng: 16.4412 }, // Split - Croatian Home
+  "koncertna dvorana ive tijardovića": { lat: 43.5095, lng: 16.4412 }, // Split - Ivo Tijardović Concert Hall
+  "ivo tijardovic concert hall": { lat: 43.5095, lng: 16.4412 }, // Split - Ivo Tijardović Concert Hall
+  "culture hub croatia": { lat: 43.5089, lng: 16.4389 }, // Split - Culture HUB Croatia
+  "plančićeva": { lat: 43.5089, lng: 16.4389 }, // Split - Plančićeva street area
+  "tončićeva": { lat: 43.5095, lng: 16.4412 }, // Split - Tončićeva street area
+  
   // Dubrovnik venues
   "lovrijenac fortress": { lat: 42.6414, lng: 18.1064 }, // Dubrovnik
   "tvrđava lovrijenac": { lat: 42.6414, lng: 18.1064 }, // Dubrovnik
@@ -167,6 +198,21 @@ const COUNTY_COORDINATES: Record<string, Coordinates> = {
  */
 function extractCityName(location: string): string {
   if (!location) return "";
+
+  const normalizedLocation = location.toLowerCase().trim();
+
+  // Handle specific patterns for Split
+  if (normalizedLocation.includes('split') || 
+      normalizedLocation.startsWith('split') ||
+      normalizedLocation === 'split 3') {
+    return "split";
+  }
+
+  // Handle "Location, Croatia" patterns
+  if (normalizedLocation.includes(', croatia')) {
+    const cityPart = normalizedLocation.split(', croatia')[0].trim();
+    return cityPart;
+  }
 
   // Common patterns to extract city names
   const patterns = [

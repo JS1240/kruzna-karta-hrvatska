@@ -99,7 +99,7 @@ const TicketQR: React.FC<TicketQRProps> = ({ ticket, event, booking, holderName 
         
         <div className="space-y-4">
           {/* Ticket Card */}
-          <Card className="overflow-hidden bg-gradient-to-br from-navy-blue to-blue-600 text-white">
+          <Card className="overflow-hidden bg-gradient-to-br from-navy-blue to-blue-600 text-brand-white">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -107,12 +107,12 @@ const TicketQR: React.FC<TicketQRProps> = ({ ticket, event, booking, holderName 
                   <span className="text-sm font-medium">E-TICKET</span>
                 </div>
                 {ticket.checkedIn ? (
-                  <Badge className="bg-green-500 text-white">
+                  <Badge className="bg-green-500 text-brand-white">
                     <Check className="h-3 w-3 mr-1" />
                     Used
                   </Badge>
                 ) : (
-                  <Badge className="bg-yellow-500 text-black">
+                  <Badge variant="accent-gold" className="bg-accent-gold text-brand-black">
                     Valid
                   </Badge>
                 )}

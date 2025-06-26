@@ -15,6 +15,18 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        // Accent variants using brand accent colors as backgrounds (WCAG AAA compliant)
+        "accent-cream":
+          "border-transparent bg-brand-accent-cream text-brand-black hover:bg-brand-accent-cream/80 font-medium",
+        "accent-gold":
+          "border-transparent bg-brand-accent-gold text-brand-black hover:bg-brand-accent-gold/80 font-medium",
+        // Status variants for notifications and alerts
+        success:
+          "border-transparent bg-green-100 text-green-800 hover:bg-green-200",
+        warning:
+          "border-transparent bg-brand-accent-gold text-brand-black hover:bg-brand-accent-gold/80",
+        info:
+          "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200",
       },
     },
     defaultVariants: {

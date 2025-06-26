@@ -205,7 +205,7 @@ const EventCheckIn: React.FC<EventCheckInProps> = ({
       case 'error':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'duplicate':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-accent-gold text-brand-black border-accent-gold';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }

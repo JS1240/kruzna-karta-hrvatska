@@ -15,6 +15,7 @@ import Community from "../pages/Community";
 import EventDetail from "../pages/EventDetail";
 import Bookings from "../pages/Bookings";
 import NotFound from "../pages/NotFound";
+import { AnimationTestPage } from "../pages/AnimationTestPage";
 
 const AppContent = () => {
   const isLoading = usePageLoader();
@@ -35,6 +36,7 @@ const AppContent = () => {
         <Route path="/admin" element={<Admin />} />
         <Route path="/create-event" element={<CreateEvent />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
+        <Route path="/dev/animations" element={<AnimationTestPage />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

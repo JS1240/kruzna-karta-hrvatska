@@ -117,8 +117,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ trigger }) => {
       <Bell className="h-5 w-5" />
       {unreadCount > 0 && (
         <Badge 
-          variant="destructive" 
-          className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+          variant="accent-gold" 
+          className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs font-bold"
         >
           {unreadCount > 99 ? '99+' : unreadCount}
         </Badge>
@@ -174,8 +174,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ trigger }) => {
                     {recentNotifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-4 hover:bg-gray-50 cursor-pointer border-l-2 ${getNotificationColor(notification.type)} ${
-                          !notification.read ? 'bg-blue-50/50' : ''
+                        className={`p-4 hover:bg-accent-cream/20 cursor-pointer border-l-2 ${getNotificationColor(notification.type)} ${
+                          !notification.read ? 'bg-accent-cream/10' : ''
                         }`}
                         onClick={() => handleNotificationClick(notification)}
                       >
@@ -198,7 +198,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ trigger }) => {
                               </div>
                               <div className="flex items-center gap-1 ml-2">
                                 {!notification.read && (
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  <div className="w-2 h-2 bg-accent-gold rounded-full"></div>
                                 )}
                                 <Button
                                   variant="ghost"
@@ -243,7 +243,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ trigger }) => {
                       </div>
                       <div className="flex items-center gap-2">
                         {permission === 'granted' ? (
-                          <Badge variant="default" className="text-xs">Enabled</Badge>
+                          <Badge variant="success" className="text-xs">Enabled</Badge>
                         ) : permission === 'denied' ? (
                           <Badge variant="destructive" className="text-xs">Blocked</Badge>
                         ) : (
@@ -251,7 +251,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ trigger }) => {
                             variant="outline"
                             size="sm"
                             onClick={handleRequestPermission}
-                            className="text-xs"
+                            className="text-xs bg-accent-cream hover:bg-accent-gold"
                           >
                             Enable
                           </Button>

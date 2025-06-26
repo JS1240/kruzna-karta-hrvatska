@@ -284,7 +284,7 @@ const Favorites = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-navy-blue mb-2 font-sreda">
+              <h1 className="text-3xl font-bold text-brand-primary mb-2 font-sreda">
                 Your Favorite Events
               </h1>
               <p className="text-lg text-gray-600">
@@ -446,7 +446,7 @@ const Favorites = () => {
                         <TableCell>{favorite.event.location}</TableCell>
                         <TableCell>
                           {favorite.notifyEnabled ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-cream text-brand-black">
                               Enabled
                             </span>
                           ) : (

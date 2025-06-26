@@ -45,60 +45,60 @@ const Header = () => {
         <nav className="hidden md:flex space-x-8 flex-1 justify-center">
           <Link
             to="/"
-            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-red-500 hover:scale-110 hover:bg-red-50 px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
+            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/"
-                ? "text-red-500 bg-red-50 scale-105 shadow-md animate-pulse"
-                : "text-gray-700 dark:text-gray-300 hover:bg-red-50"
+                ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md  border-2 border-brand-primary"
+                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
             }`}
           >
             {t("nav.home")}
           </Link>
           <Link
             to="/about"
-            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-red-500 hover:scale-110 hover:bg-red-50 px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
+            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/about"
-                ? "text-red-500 bg-red-50 scale-105 shadow-md animate-pulse"
-                : "text-gray-700 dark:text-gray-300 hover:bg-red-50"
+                ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md border-2 border-brand-primary"
+                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
             }`}
           >
             {t("nav.about")}
           </Link>
           <Link
             to="/venues"
-            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-red-500 hover:scale-110 hover:bg-red-50 px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
+            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/venues"
-                ? "text-red-500 bg-red-50 scale-105 shadow-md animate-pulse"
-                : "text-gray-700 dark:text-gray-300 hover:bg-red-50"
+                ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md border-2 border-brand-primary"
+                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
             }`}
           >
             {t("nav.venues")}
           </Link>
-          <Link
+          {/* <Link
             to="/popular"
-            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-red-500 hover:scale-110 hover:bg-red-50 px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
+            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/popular"
-                ? "text-red-500 bg-red-50 scale-105 shadow-md animate-pulse"
-                : "text-gray-700 dark:text-gray-300 hover:bg-red-50"
+                ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md border-2 border-brand-primary"
+                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
             }`}
           >
             {t("nav.popular")}
-          </Link>
-          <Link
+          </Link> */}
+          {/* <Link
             to="/community"
-            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-red-500 hover:scale-110 hover:bg-red-50 px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
+            className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/community"
-                ? "text-red-500 bg-red-50 scale-105 shadow-md animate-pulse"
-                : "text-gray-700 dark:text-gray-300 hover:bg-red-50"
+                ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md border-2 border-brand-primary"
+                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
             }`}
           >
             Community
-          </Link>
+          </Link> */}
         </nav>
 
         {/* Right: Controls */}
         <div className="flex items-center space-x-3 flex-shrink-0">
           {/* Notifications */}
-          <NotificationCenter />
+          {/* <NotificationCenter /> */}
 
           {/* Saved/Favorites Button */}
           <Link to="/favorites">
@@ -128,18 +128,18 @@ const Header = () => {
               className="group relative transition-all duration-300 hover:scale-110 hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               {resolvedTheme === "dark" ? (
-                <Sun className="h-[1.2rem] w-[1.2rem] transition-all group-hover:hidden text-yellow-400" />
+                <Sun className="h-[1.2rem] w-[1.2rem] transition-all group-hover:hidden text-brand-accent-gold" />
               ) : (
-                <Moon className="h-[1.2rem] w-[1.2rem] transition-all group-hover:hidden text-slate-600" />
+                <Moon className="h-[1.2rem] w-[1.2rem] transition-all group-hover:hidden text-brand-primary" />
               )}
               {resolvedTheme === "dark" ? (
                 <SunFilled
-                  className="h-[1.2rem] w-[1.2rem] hidden group-hover:inline transition-all text-yellow-500 animate-pulse"
+                  className="h-[1.2rem] w-[1.2rem] hidden group-hover:inline transition-all text-brand-accent-gold animate-pulse"
                   fill="currentColor"
                 />
               ) : (
                 <MoonFilled
-                  className="h-[1.2rem] w-[1.2rem] hidden group-hover:inline transition-all text-blue-500 animate-pulse"
+                  className="h-[1.2rem] w-[1.2rem] hidden group-hover:inline transition-all text-brand-primary animate-pulse"
                   fill="currentColor"
                 />
               )}

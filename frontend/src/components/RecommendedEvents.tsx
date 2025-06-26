@@ -208,7 +208,7 @@ const RecommendedEvents: React.FC<RecommendedEventsProps> = ({ className = '' })
                   />
                   {event.attendeeCount && (
                     <div className="absolute bottom-2 right-2">
-                      <Badge variant="secondary" className="bg-white/90 text-gray-700">
+                      <Badge variant="accent-cream" className="bg-accent-cream/90 text-brand-black">
                         <Users className="h-3 w-3 mr-1" />
                         {event.attendeeCount.toLocaleString()}
                       </Badge>
@@ -235,7 +235,7 @@ const RecommendedEvents: React.FC<RecommendedEventsProps> = ({ className = '' })
               {nearbyEvents.map((event) => (
                 <div key={event.id} className="relative">
                   <div className="absolute top-2 left-2 z-10">
-                    <Badge className="bg-blue-500 text-white">
+                    <Badge variant="accent-cream" className="bg-accent-cream text-brand-black font-medium">
                       <MapPin className="h-3 w-3 mr-1" />
                       Nearby
                     </Badge>

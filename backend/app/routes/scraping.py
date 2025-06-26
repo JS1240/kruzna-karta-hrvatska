@@ -529,10 +529,13 @@ async def quick_scrape_zadar(
 
 @router.post("/tzdubrovnik", response_model=ScrapeResponse)
 async def scrape_tzdubrovnik(request: ScrapeRequest, background_tasks: BackgroundTasks):
-    """Trigger TzDubrovnik.hr event scraping."""
+    """Trigger Visit Dubrovnik event scraping."""
     try:
+        # Convert max_pages to months_ahead (reasonable mapping)
+        months_ahead = min(request.max_pages * 2, 12)  # max 12 months
+        
         if request.max_pages <= 2:
-            result = await scrape_tzdubrovnik_events(max_pages=request.max_pages)
+            result = await scrape_tzdubrovnik_events(months_ahead=months_ahead)
             return ScrapeResponse(**result)
 
         import uuid
@@ -540,18 +543,18 @@ async def scrape_tzdubrovnik(request: ScrapeRequest, background_tasks: Backgroun
         task_id = str(uuid.uuid4())
 
         async def run_dbk_scrape():
-            return await scrape_tzdubrovnik_events(max_pages=request.max_pages)
+            return await scrape_tzdubrovnik_events(months_ahead=months_ahead)
 
         background_tasks.add_task(run_dbk_scrape)
 
         return ScrapeResponse(
             status="accepted",
-            message=f"TzDubrovnik.hr scraping task started in background for {request.max_pages} pages",
+            message=f"Visit Dubrovnik scraping task started in background for {months_ahead} months ahead",
             task_id=task_id,
         )
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Failed to start TzDubrovnik scraping: {str(e)}"
+            status_code=500, detail=f"Failed to start Visit Dubrovnik scraping: {str(e)}"
         )
 
 
@@ -561,13 +564,15 @@ async def quick_scrape_tzdubrovnik(
         1, ge=1, le=3, description="Number of pages to scrape (1-3 for quick scraping)"
     )
 ):
-    """Quick TzDubrovnik.hr scraping."""
+    """Quick Visit Dubrovnik scraping."""
     try:
-        result = await scrape_tzdubrovnik_events(max_pages=max_pages)
+        # Convert max_pages to months_ahead for calendar-based scraping
+        months_ahead = min(max_pages * 2, 6)  # max 6 months for quick scraping
+        result = await scrape_tzdubrovnik_events(months_ahead=months_ahead)
         return ScrapeResponse(**result)
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"TzDubrovnik scraping failed: {str(e)}"
+            status_code=500, detail=f"Visit Dubrovnik scraping failed: {str(e)}"
         )
 
 
@@ -637,11 +642,12 @@ async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundT
                 zadar_result = await scrape_zadar_events(max_pages=request.max_pages)
                 results.append(("Zadar Travel", zadar_result))
 
-                # Scrape TzDubrovnik.hr
+                # Scrape Visit Dubrovnik
+                months_ahead = min(request.max_pages * 2, 12)
                 dubrovnik_result = await scrape_tzdubrovnik_events(
-                    max_pages=request.max_pages
+                    months_ahead=months_ahead
                 )
-                results.append(("TzDubrovnik.hr", dubrovnik_result))
+                results.append(("Visit Dubrovnik", dubrovnik_result))
 
                 # Combine results
                 total_scraped = sum(

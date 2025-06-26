@@ -16,7 +16,7 @@ const About = () => {
 
       <main className="flex-grow container mx-auto px-4 py-8">
         <section className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-navy-blue mb-6 font-sreda">
+          <h1 className="text-4xl md:text-5xl font-bold text-brand-primary mb-6 font-sreda">
             About EventMap Croatia
           </h1>
 
@@ -54,20 +54,20 @@ const About = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <h2 className="text-2xl font-bold mb-4 font-sreda text-navy-blue">
+                <h2 className="text-2xl font-bold mb-4 font-sreda text-brand-primary">
                   Our Features
                 </h2>
 
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
-                    <div className="mt-1 bg-navy-blue rounded-full p-1 text-white">
+                    <div className="mt-1 bg-brand-primary rounded-full p-1 text-brand-white">
                       <MapPinIcon size={18} />
                     </div>
                     <div>
                       <h3 className="font-bold font-josefin">
                         Interactive Map
                       </h3>
-                      <p className="text-gray-700">
+                      <p className="text-brand-black">
                         Explore events across Croatia on our user-friendly map
                         interface.
                       </p>
@@ -75,12 +75,12 @@ const About = () => {
                   </li>
 
                   <li className="flex items-start gap-3">
-                    <div className="mt-1 bg-navy-blue rounded-full p-1 text-white">
+                    <div className="mt-1 bg-navy-blue rounded-full p-1 text-brand-white">
                       <CalendarIcon size={18} />
                     </div>
                     <div>
                       <h3 className="font-bold font-josefin">Daily Updates</h3>
-                      <p className="text-gray-700">
+                      <p className="text-brand-black">
                         Our platform refreshes daily to ensure you have access
                         to the latest events.
                       </p>
@@ -88,14 +88,14 @@ const About = () => {
                   </li>
 
                   <li className="flex items-start gap-3">
-                    <div className="mt-1 bg-navy-blue rounded-full p-1 text-white">
+                    <div className="mt-1 bg-navy-blue rounded-full p-1 text-brand-white">
                       <Users size={18} />
                     </div>
                     <div>
                       <h3 className="font-bold font-josefin">
                         Category Filters
                       </h3>
-                      <p className="text-gray-700">
+                      <p className="text-brand-black">
                         Easily filter events by category: concerts, workouts,
                         meet-ups, conferences, and parties.
                       </p>
@@ -103,14 +103,14 @@ const About = () => {
                   </li>
 
                   <li className="flex items-start gap-3">
-                    <div className="mt-1 bg-navy-blue rounded-full p-1 text-white">
+                    <div className="mt-1 bg-navy-blue rounded-full p-1 text-brand-white">
                       <Globe size={18} />
                     </div>
                     <div>
                       <h3 className="font-bold font-josefin">
                         Multilingual Support
                       </h3>
-                      <p className="text-gray-700">
+                      <p className="text-brand-black">
                         Access our platform in both English and Croatian
                         languages.
                       </p>
@@ -133,7 +133,7 @@ const About = () => {
                       <h3 className="font-bold font-josefin">
                         Data Collection
                       </h3>
-                      <p className="text-gray-700">
+                      <p className="text-brand-black">
                         We aggregate events from multiple trusted sources across
                         Croatia.
                       </p>
@@ -152,7 +152,7 @@ const About = () => {
                       <h3 className="font-bold font-josefin">
                         Processing & Categorization
                       </h3>
-                      <p className="text-gray-700">
+                      <p className="text-brand-black">
                         Events are processed, categorized, and geolocated for
                         optimal mapping.
                       </p>
@@ -171,7 +171,7 @@ const About = () => {
                       <h3 className="font-bold font-josefin">
                         Interactive Display
                       </h3>
-                      <p className="text-gray-700">
+                      <p className="text-brand-black">
                         Events are displayed on our interactive map with
                         detailed information.
                       </p>
@@ -188,7 +188,7 @@ const About = () => {
                     </div>
                     <div className="flex-grow">
                       <h3 className="font-bold font-josefin">Direct Access</h3>
-                      <p className="text-gray-700">
+                      <p className="text-brand-black">
                         Users can click through to purchase tickets or get more
                         information about events.
                       </p>
@@ -217,7 +217,7 @@ const About = () => {
                   Ana Horvat
                 </h3>
                 <p className="text-medium-blue mb-3">Founder & CEO</p>
-                <p className="text-gray-700">
+                <p className="text-brand-black">
                   Ana brings 10+ years of experience in event management and
                   digital mapping.
                 </p>
@@ -235,7 +235,7 @@ const About = () => {
                   Marko Kovač
                 </h3>
                 <p className="text-medium-blue mb-3">Lead Developer</p>
-                <p className="text-gray-700">
+                <p className="text-brand-black">
                   Marko is responsible for our interactive map and data
                   integration systems.
                 </p>
@@ -253,7 +253,7 @@ const About = () => {
                   Ivana Novak
                 </h3>
                 <p className="text-medium-blue mb-3">Content Manager</p>
-                <p className="text-gray-700">
+                <p className="text-brand-black">
                   Ivana curates our event database and ensures data accuracy
                   across the platform.
                 </p>
@@ -336,7 +336,7 @@ const About = () => {
                   <div>
                     <label
                       htmlFor="name"
-                      className="block text-sm font-medium text-gray-700 mb-1"
+                      className="block text-sm font-medium text-brand-black mb-1"
                     >
                       Name
                     </label>
@@ -350,7 +350,7 @@ const About = () => {
                   <div>
                     <label
                       htmlFor="email"
-                      className="block text-sm font-medium text-gray-700 mb-1"
+                      className="block text-sm font-medium text-brand-black mb-1"
                     >
                       Email
                     </label>
@@ -364,7 +364,7 @@ const About = () => {
                   <div>
                     <label
                       htmlFor="message"
-                      className="block text-sm font-medium text-gray-700 mb-1"
+                      className="block text-sm font-medium text-brand-black mb-1"
                     >
                       Message
                     </label>
@@ -377,7 +377,7 @@ const About = () => {
 
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-navy-blue text-white rounded-md hover:bg-medium-blue transition-colors font-josefin"
+                    className="px-6 py-3 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dark transition-colors font-josefin"
                   >
                     Send Message
                   </button>

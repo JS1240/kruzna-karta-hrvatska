@@ -50,6 +50,38 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        
+        // Brand Colors - New Color Scheme (Animated Background Redesign)
+        brand: {
+          primary: "hsl(var(--brand-primary))", // #3674B5
+          secondary: "hsl(var(--brand-secondary))", // #578FCA
+          "accent-cream": "hsl(var(--brand-accent-cream))", // #F5F0CD
+          "accent-gold": "hsl(var(--brand-accent-gold))", // #FADA7A
+          black: "hsl(var(--brand-black))", // #000000
+          white: "hsl(var(--brand-white))", // #FFFFFF
+          // Derived variations for UI hierarchy
+          "primary-light": "hsl(var(--brand-primary-light))",
+          "primary-dark": "hsl(var(--brand-primary-dark))",
+          "secondary-light": "hsl(var(--brand-secondary-light))",
+          "secondary-dark": "hsl(var(--brand-secondary-dark))",
+        },
+        
+        // UI Accent Elements using brand accent colors
+        "accent-cream": "hsl(var(--brand-accent-cream))",
+        "accent-gold": "hsl(var(--brand-accent-gold))",
+        "focus-ring": "hsl(var(--focus-ring))",
+        "highlight-bg": "hsl(var(--highlight-bg))",
+        "notification-accent": "hsl(var(--notification-accent))",
+        "badge-accent": "hsl(var(--badge-accent))",
+        
+        // Animation Colors - for VANTA topology backgrounds
+        animation: {
+          primary: "hsl(var(--animation-primary))",
+          secondary: "hsl(var(--animation-secondary))",
+          background: "hsl(var(--animation-background))",
+        },
+        
+        // Legacy colors (maintained for backward compatibility)
         "lightest-blue": "#caf0f8",
         "navy-blue": "#193459",
         "light-blue": "#d5e3f0",
@@ -114,5 +146,5 @@ export default {
       },
     },
   },
-  plugins: [import("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate")],
 } satisfies Config;

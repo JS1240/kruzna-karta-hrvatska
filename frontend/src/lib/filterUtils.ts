@@ -7,57 +7,111 @@
 export const inferEventCategory = (name: string, description: string): string => {
   const text = `${name} ${description}`.toLowerCase();
 
+  // Festival category (check first as it's more specific)
+  if (
+    text.includes("festival") ||
+    text.includes("festivalu") ||
+    text.includes("fest ") ||
+    text.includes("ultra") ||
+    text.includes("summer festival") ||
+    text.includes("music festival")
+  ) {
+    return "festival";
+  }
+
+  // Concert/Music category
   if (
     text.includes("concert") ||
+    text.includes("koncert") ||
     text.includes("glazba") ||
-    text.includes("muzik")
+    text.includes("muzik") ||
+    text.includes("music") ||
+    text.includes("opera") ||
+    text.includes("symphony") ||
+    text.includes("orkestar") ||
+    text.includes("amira medunjanin") ||
+    text.includes("electronic") ||
+    text.includes("jazz") ||
+    text.includes("rock") ||
+    text.includes("pop")
   ) {
-    return "concert";
+    return "music";
   }
   
+  // Theater/Culture category
+  if (
+    text.includes("theater") ||
+    text.includes("theatre") ||
+    text.includes("kazalište") ||
+    text.includes("predstava") ||
+    text.includes("drama") ||
+    text.includes("opera") ||
+    text.includes("performance") ||
+    text.includes("cultural") ||
+    text.includes("kultura") ||
+    text.includes("art") ||
+    text.includes("umjetnost") ||
+    text.includes("exhibition") ||
+    text.includes("izložba")
+  ) {
+    return "culture";
+  }
+  
+  // Sports/Workout category
   if (
     text.includes("sport") ||
     text.includes("fitness") ||
     text.includes("workout") ||
-    text.includes("trening")
+    text.includes("trening") ||
+    text.includes("football") ||
+    text.includes("basketball") ||
+    text.includes("tennis") ||
+    text.includes("marathon") ||
+    text.includes("cycling") ||
+    text.includes("bicikl")
   ) {
-    return "workout";
+    return "sports";
   }
   
-  if (
-    text.includes("meetup") ||
-    text.includes("networking") ||
-    text.includes("meet")
-  ) {
-    return "meetup";
-  }
-  
+  // Conference/Business category
   if (
     text.includes("conference") ||
     text.includes("konferencija") ||
-    text.includes("business")
+    text.includes("business") ||
+    text.includes("seminar") ||
+    text.includes("workshop") ||
+    text.includes("summit") ||
+    text.includes("meeting") ||
+    text.includes("networking")
   ) {
     return "conference";
   }
   
+  // Party/Entertainment category
   if (
     text.includes("party") ||
     text.includes("zabava") ||
-    text.includes("festival")
+    text.includes("club") ||
+    text.includes("nightlife") ||
+    text.includes("dance") ||
+    text.includes("ples") ||
+    text.includes("disco") ||
+    text.includes("night") ||
+    text.includes("evening")
   ) {
     return "party";
   }
   
+  // Meetup/Social category
   if (
-    text.includes("theater") ||
-    text.includes("kazalište") ||
-    text.includes("predstava")
+    text.includes("meetup") ||
+    text.includes("meet") ||
+    text.includes("social") ||
+    text.includes("community") ||
+    text.includes("gathering") ||
+    text.includes("okupljanje")
   ) {
-    return "theater";
-  }
-  
-  if (text.includes("festival")) {
-    return "festival";
+    return "meetup";
   }
 
   return "other";

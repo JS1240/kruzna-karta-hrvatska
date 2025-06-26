@@ -25,7 +25,7 @@ const App = () => (
             <BrowserRouter>
               <AppContent />
               <BackToTopButton />
-              <PWAInstallPrompt />
+              {/* <PWAInstallPrompt /> */}
             </BrowserRouter>
           </TooltipProvider>
         </LanguageProvider>

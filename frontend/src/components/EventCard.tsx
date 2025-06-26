@@ -115,7 +115,7 @@ const EventCard: React.FC<EventCardProps> = ({
         {/* Image quality indicator for scraped images */}
         {!imageError && image && !image.startsWith('/event-images/') && (
           <div className="absolute bottom-2 left-2">
-            <Badge variant="outline" className="bg-white/80 text-xs text-green-600 border-green-200">
+            <Badge variant="accent-cream" className="bg-accent-cream/90 text-xs text-brand-black border-accent-gold">
               Live
             </Badge>
           </div>
@@ -163,7 +163,7 @@ const EventCard: React.FC<EventCardProps> = ({
         {/* Price Badge */}
         {price && (
           <div className="absolute bottom-3 right-3">
-            <Badge variant="secondary" className="bg-white/90 text-navy-blue font-semibold">
+            <Badge variant="accent-gold" className="bg-accent-gold/95 text-brand-black font-semibold border-none">
               {price}
             </Badge>
           </div>
