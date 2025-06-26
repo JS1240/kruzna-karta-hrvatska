@@ -20,7 +20,7 @@ const About = () => {
             About EventMap Croatia
           </h1>
 
-          <div className="bg-white rounded-lg shadow-lg p-8 border border-light-blue">
+          <div className="bg-white dark:bg-card rounded-lg shadow-lg p-8 border border-light-blue dark:border-gray-700">
             <div className="flex flex-col md:flex-row gap-8 items-center mb-8">
               <div className="md:w-1/2">
                 <p className="text-lg mb-4">
@@ -206,7 +206,7 @@ const About = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-light-blue">
+            <div className="bg-white dark:bg-card rounded-lg shadow-lg overflow-hidden border border-light-blue dark:border-gray-700">
               <img
                 src="/team-member-1.jpg"
                 alt="Team Member"
@@ -224,7 +224,7 @@ const About = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-light-blue">
+            <div className="bg-white dark:bg-card rounded-lg shadow-lg overflow-hidden border border-light-blue dark:border-gray-700">
               <img
                 src="/team-member-2.jpg"
                 alt="Team Member"
@@ -242,7 +242,7 @@ const About = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-light-blue">
+            <div className="bg-white dark:bg-card rounded-lg shadow-lg overflow-hidden border border-light-blue dark:border-gray-700">
               <img
                 src="/team-member-3.jpg"
                 alt="Team Member"
@@ -267,7 +267,7 @@ const About = () => {
             Contact Us
           </h2>
 
-          <div className="bg-white rounded-lg shadow-lg p-8 border border-light-blue">
+          <div className="bg-white dark:bg-card rounded-lg shadow-lg p-8 border border-light-blue dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 className="text-xl font-bold mb-4 font-josefin text-navy-blue">

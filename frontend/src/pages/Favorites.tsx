@@ -349,7 +349,7 @@ const Favorites = () => {
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="bg-white/80 hover:bg-white text-navy-blue"
+                      className="bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 text-navy-blue dark:text-white border border-gray-200 dark:border-gray-600 shadow-sm"
                       onClick={() => handleRemoveFavorite(favorite.id)}
                     >
                       <Heart className="h-4 w-4 fill-navy-blue" />

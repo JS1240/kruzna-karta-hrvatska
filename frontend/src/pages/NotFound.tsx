@@ -12,7 +12,7 @@ const NotFound = () => {
       <Header />
 
       <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 border border-light-blue max-w-lg w-full text-center">
+        <div className="bg-white dark:bg-card rounded-lg shadow-lg p-8 border border-light-blue dark:border-gray-700 max-w-lg w-full text-center">
           <h1 className="text-6xl font-bold mb-4 font-sreda text-navy-blue">
             404
           </h1>

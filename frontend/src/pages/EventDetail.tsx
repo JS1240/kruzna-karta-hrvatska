@@ -16,7 +16,8 @@ import {
   ArrowLeft,
   Ticket,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Header from '@/components/Header';
@@ -340,7 +341,7 @@ const EventDetail: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4 text-white">
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary" className="bg-white/20 text-white border-0">
+                      <Badge variant="secondary" className="bg-white/20 text-white border-0 shadow-sm backdrop-blur-sm">
                         {event.category}
                       </Badge>
                       {event.organizer.verified && (
