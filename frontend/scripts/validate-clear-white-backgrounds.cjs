@@ -142,17 +142,33 @@ class T42Validator {
     const whiteBackgroundPatterns = [
       /bg-white/g,
       /bg-brand-white/g,
-      /bg-card/g,
+      /bg-card/g
+    ];
+
+    // Check for dark mode background patterns
+    const darkModePatterns = [
       /dark:bg-card/g,
       /dark:bg-popover/g
     ];
 
     let hasWhiteBackgrounds = false;
+    let hasDarkModeBackgrounds = false;
+
+    // Validate white background patterns
     whiteBackgroundPatterns.forEach(pattern => {
       const matches = content.match(pattern);
       if (matches && matches.length > 0) {
         hasWhiteBackgrounds = true;
         this.success(`Found ${matches.length} white background usage(s) in ${filePath}`);
+      }
+    });
+
+    // Validate dark mode background patterns
+    darkModePatterns.forEach(pattern => {
+      const matches = content.match(pattern);
+      if (matches && matches.length > 0) {
+        hasDarkModeBackgrounds = true;
+        this.success(`Found ${matches.length} dark mode background usage(s) in ${filePath}`);
       }
     });
 
@@ -174,7 +190,7 @@ class T42Validator {
     });
 
     // Check for dark mode compatibility
-    if (content.includes('dark:bg-card') || content.includes('dark:bg-popover')) {
+    if (hasDarkModeBackgrounds) {
       this.success(`Dark mode background support found in ${filePath}`);
     } else if (hasWhiteBackgrounds) {
       this.warning(`White backgrounds found but missing dark mode equivalents in ${filePath}`);
@@ -326,22 +342,22 @@ class T42Validator {
 
   // Generate summary report
   generateReport() {
-    this.log('\\n' + '='.repeat(60));
+    this.log('\n' + '='.repeat(60));
     this.log('T4.2 VALIDATION SUMMARY REPORT');
     this.log('='.repeat(60));
 
-    this.log(`\\nTotal Checks: ${this.passed.length + this.warnings.length + this.errors.length}`);
+    this.log(`\nTotal Checks: ${this.passed.length + this.warnings.length + this.errors.length}`);
     this.log(`✅ Passed: ${this.passed.length}`);
     this.log(`⚠️  Warnings: ${this.warnings.length}`);  
     this.log(`❌ Errors: ${this.errors.length}`);
 
     if (this.errors.length > 0) {
-      this.log('\\n❌ ERRORS:');
+      this.log('\n❌ ERRORS:');
       this.errors.forEach(error => this.log(`   • ${error}`));
     }
 
     if (this.warnings.length > 0) {
-      this.log('\\n⚠️  WARNINGS:');
+      this.log('\n⚠️  WARNINGS:');
       this.warnings.forEach(warning => this.log(`   • ${warning}`));
     }
 
@@ -350,17 +366,17 @@ class T42Validator {
     const successfulChecks = this.passed.length + this.warnings.length; // Warnings are not failures
     const completionPercentage = totalChecks > 0 ? Math.round((successfulChecks / totalChecks) * 100) : 0;
 
-    this.log(`\\n📊 Completion: ${completionPercentage}%`);
+    this.log(`\n📊 Completion: ${completionPercentage}%`);
 
     if (this.errors.length === 0) {
-      this.log('\\n🎉 T4.2 VALIDATION PASSED!');
+      this.log('\n🎉 T4.2 VALIDATION PASSED!');
       this.log('Clear white backgrounds implementation is ready for next phase.');
     } else {
-      this.log('\\n🔧 T4.2 VALIDATION REQUIRES FIXES');
+      this.log('\n🔧 T4.2 VALIDATION REQUIRES FIXES');
       this.log('Please address the errors above before proceeding to T4.3.');
     }
 
-    this.log('\\n' + '='.repeat(60));
+    this.log('\n' + '='.repeat(60));
 
     return this.errors.length === 0;
   }
@@ -368,7 +384,7 @@ class T42Validator {
   // Main validation method
   validate() {
     this.log('Starting T4.2: Clear White Backgrounds validation...');
-    this.log('Validating implementation against PRD requirements\\n');
+    this.log('Validating implementation against PRD requirements\n');
 
     this.validateBackgroundSystem();
     this.validatePageImplementations();
