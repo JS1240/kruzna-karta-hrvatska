@@ -1,6 +1,15 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { initVantaTopology, cleanupVantaEffect, initBlueOnlyTopology, initGentleTopology } from '@/utils/vantaUtils';
 import { BRAND_COLORS } from '@/utils/colorUtils';
+import { 
+  generateOverlayBackground, 
+  getOverlayBackdropFilter, 
+  getTextContrastClasses, 
+  generateOverlayClasses,
+  type OverlayMode,
+  type OverlayStyle,
+  type TextContrast 
+} from '@/utils/overlayUtils';
 
 export interface AnimatedBackgroundProps {
   /** Enable/disable the animation */
@@ -70,6 +79,18 @@ export interface AnimatedBackgroundProps {
   tabletIntensity?: number;
   /** Desktop-specific intensity override (0-1) */
   desktopIntensity?: number;
+  /** Enable content overlay handling (T4.3) */
+  overlayMode?: OverlayMode;
+  /** Overlay visual style type */
+  overlayStyle?: OverlayStyle;
+  /** Custom overlay background color (hex or rgba) */
+  overlayColor?: string;
+  /** Custom overlay opacity (0-1, default: auto-calculated) */
+  overlayOpacity?: number;
+  /** Automatic text contrast adjustment */
+  textContrast?: TextContrast;
+  /** Overlay padding override (default: 'p-8') */
+  overlayPadding?: string;
 }
 
 /**
@@ -87,6 +108,7 @@ export interface AnimatedBackgroundProps {
  * - T3.4: Subtle opacity and transparency effects
  * - T3.5: Adjustable blur effects with multiple blur types
  * - T3.6: Responsive behavior for different screen sizes
+ * - T4.3: Content overlay handling with proper blur effects
  * 
  * @example
  * ```tsx
@@ -99,6 +121,9 @@ export interface AnimatedBackgroundProps {
  *   responsive={true}
  *   responsiveMode="auto"
  *   mobileIntensity={0.2}
+ *   overlayMode="medium"
+ *   overlayStyle="glass"
+ *   textContrast="auto"
  * >
  *   <div>Your content here</div>
  * </AnimatedBackground>
@@ -139,6 +164,12 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
   mobileIntensity,
   tabletIntensity,
   desktopIntensity,
+  overlayMode = 'none',
+  overlayStyle = 'glass',
+  overlayColor,
+  overlayOpacity,
+  textContrast = 'auto',
+  overlayPadding = 'p-8',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const vantaEffectRef = useRef<any>(null);
@@ -553,6 +584,7 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
     return styling;
   };
 
+
   // Get background styling with blur and transparency effects
   const getBackgroundStyling = () => {
     const finalOpacity = getOptimalOpacity();
@@ -618,10 +650,19 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
         </div>
       )}
 
-      {/* Content overlay */}
+      {/* Content overlay with T4.3 overlay handling */}
       {children && (
-        <div className="relative z-10 w-full h-full">
-          {children}
+        <div 
+          className={`w-full h-full ${generateOverlayClasses(overlayMode, overlayStyle, overlayPadding)}`}
+          style={{
+            background: generateOverlayBackground(overlayMode, overlayStyle, overlayColor, overlayOpacity),
+            backdropFilter: getOverlayBackdropFilter(overlayMode, overlayStyle),
+            WebkitBackdropFilter: getOverlayBackdropFilter(overlayMode, overlayStyle),
+          }}
+        >
+          <div className={getTextContrastClasses(overlayMode, textContrast, overlayOpacity)}>
+            {children}
+          </div>
         </div>
       )}
     </div>

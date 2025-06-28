@@ -36,9 +36,13 @@ const Index = () => {
               blurType="background"
               blurIntensity="light"
               responsive={true}
+              overlayMode="light"
+              overlayStyle="glass"
+              textContrast="auto"
+              overlayPadding="p-8"
               className="rounded-lg overflow-hidden"
             >
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10 p-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="md:w-1/2">
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-brand-primary dark:text-brand-white mb-4 font-sreda transition-colors duration-300">
                     {t("home.title")}

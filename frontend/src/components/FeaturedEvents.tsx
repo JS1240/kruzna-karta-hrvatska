@@ -216,9 +216,12 @@ const FeaturedEvents = () => {
         blurType="edge"
         blurIntensity="light"
         responsive={true}
-        className="rounded-lg overflow-hidden"
+        overlayMode="light"
+        overlayStyle="glass"
+        textContrast="auto"
+        overlayPadding="p-6"
+        className="rounded-lg overflow-hidden shadow-lg border border-light-blue"
       >
-        <div className="bg-white/70 backdrop-blur-sm rounded-lg shadow-lg p-6 border border-light-blue relative z-10">
           <h2 className="text-2xl font-bold mb-6 font-sreda text-navy-blue">
             Featured Events
           </h2>
@@ -250,7 +253,6 @@ const FeaturedEvents = () => {
             <CarouselNext className="static h-8 w-8 translate-y-0" />
           </div>
         </Carousel>
-        </div>
       </AnimatedBackground>
     </section>
   );

@@ -2,6 +2,7 @@ import React from "react";
 import { MapPinIcon } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
+import AnimatedBackground from "./AnimatedBackground";
 
 const AboutCroatia = () => {
   const regions = [
@@ -78,10 +79,24 @@ const AboutCroatia = () => {
   ];
 
   return (
-    <section className="mb-12 relative overflow-hidden rounded-lg shadow-lg bg-gradient-to-r from-navy-blue to-medium-blue text-white">
-      <div className="absolute inset-0 z-0 opacity-20 bg-[url('/about-image.jpg')] bg-cover bg-center"></div>
-
-      <div className="relative z-10 p-8">
+    <section className="mb-12">
+      <AnimatedBackground
+        blueOnly={true}
+        blueIntensity="medium"
+        gentleMovement={true}
+        gentleMode="normal"
+        subtleOpacity={true}
+        opacityMode="low"
+        adjustableBlur={true}
+        blurType="background"
+        blurIntensity="medium"
+        responsive={true}
+        overlayMode="medium"
+        overlayStyle="frosted"
+        textContrast="light"
+        overlayPadding="p-8"
+        className="rounded-lg overflow-hidden shadow-lg"
+      >
         <div className="flex flex-col md:flex-row gap-8">
           <div className="md:w-1/3">
             <h2 className="text-3xl font-bold mb-4 font-sreda flex items-center gap-2">
@@ -121,7 +136,7 @@ const AboutCroatia = () => {
 
               {regions.map((region) => (
                 <TabsContent key={region.id} value={region.id} className="mt-0">
-                  <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg">
+                  <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                     <h3 className="text-xl font-bold mb-3 font-sreda">
                       {region.name}
                     </h3>
@@ -141,7 +156,7 @@ const AboutCroatia = () => {
             </Tabs>
           </div>
         </div>
-      </div>
+      </AnimatedBackground>
     </section>
   );
 };
