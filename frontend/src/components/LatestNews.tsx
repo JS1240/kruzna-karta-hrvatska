@@ -41,7 +41,7 @@ const NewsCard = ({ article }: NewsCardProps) => {
         />
       </div>
       <CardContent className="flex-grow flex flex-col p-4">
-        <div className="flex items-center text-sm text-gray-500 mb-2">
+        <div className="flex items-center text-sm text-brand-black mb-2">
           <CalendarIcon size={14} className="mr-1" />
           <span>{formatDate(article.date)}</span>
           {article.category && (
@@ -50,26 +50,26 @@ const NewsCard = ({ article }: NewsCardProps) => {
             </span>
           )}
         </div>
-        <h3 className="text-xl font-bold text-navy-blue mb-2">{article.title}</h3>
-        <p className="text-gray-600 mb-4 flex-grow">{article.description}</p>
+        <h3 className="text-xl font-bold text-brand-primary mb-2">{article.title}</h3>
+        <p className="text-brand-black mb-4 flex-grow">{article.description}</p>
         {article.link ? (
           <a
             href={article.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-medium-blue font-medium flex items-center hover:text-navy-blue transition-colors"
+            className="text-medium-blue font-medium flex items-center hover:text-brand-primary transition-colors"
           >
             Read more <ArrowRight size={16} className="ml-1" />
           </a>
         ) : article.eventId ? (
           <a
             href={`/events/${article.eventId}`}
-            className="text-medium-blue font-medium flex items-center hover:text-navy-blue transition-colors"
+            className="text-medium-blue font-medium flex items-center hover:text-brand-primary transition-colors"
           >
             View Event <ArrowRight size={16} className="ml-1" />
           </a>
         ) : (
-          <span className="text-gray-400 font-medium flex items-center">
+          <span className="text-brand-black font-medium flex items-center">
             No link available
           </span>
         )}
@@ -143,7 +143,7 @@ const LatestNews = () => {
   return (
     <section className="mb-12 bg-white rounded-lg shadow-lg p-6 border border-light-blue">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold font-sreda text-navy-blue">
+        <h2 className="text-2xl font-bold font-sreda text-brand-primary">
           Latest News
         </h2>
         {error && (
@@ -165,10 +165,10 @@ const LatestNews = () => {
         <div className="flex items-center justify-center h-48 text-center">
           <div>
             <AlertCircle className="h-12 w-12 mx-auto text-red-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-brand-black mb-2">
               Failed to load news
             </h3>
-            <p className="text-gray-600 mb-4">{error}</p>
+            <p className="text-brand-black mb-4">{error}</p>
             <Button onClick={fetchNews}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
@@ -178,11 +178,11 @@ const LatestNews = () => {
       ) : news.length === 0 ? (
         <div className="flex items-center justify-center h-48 text-center">
           <div>
-            <CalendarIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <CalendarIcon className="h-12 w-12 mx-auto text-brand-black mb-4" />
+            <h3 className="text-lg font-semibold text-brand-black mb-2">
               No news available
             </h3>
-            <p className="text-gray-600">Check back later for the latest updates</p>
+            <p className="text-brand-black">Check back later for the latest updates</p>
           </div>
         </div>
       ) : (

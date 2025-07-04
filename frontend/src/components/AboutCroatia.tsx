@@ -93,23 +93,23 @@ const AboutCroatia = () => {
         responsive={true}
         overlayMode="medium"
         overlayStyle="frosted"
-        textContrast="light"
+        textContrast="auto"
         overlayPadding="p-8"
         className="rounded-lg overflow-hidden shadow-lg"
       >
         <div className="flex flex-col md:flex-row gap-8">
           <div className="md:w-1/3">
-            <h2 className="text-3xl font-bold mb-4 font-sreda flex items-center gap-2">
+            <h2 className="text-3xl font-bold mb-4 font-sreda flex items-center gap-2 drop-shadow-lg">
               <MapPinIcon size={24} />
               About Croatia
             </h2>
-            <p className="mb-4 font-josefin">
+            <p className="mb-4 font-josefin drop-shadow-md">
               Croatia offers a remarkable blend of natural beauty, rich history,
               and vibrant culture. From the pristine Adriatic coastline to
               historic cities and lush national parks, this Mediterranean gem
               has something for every traveler.
             </p>
-            <p className="font-josefin">
+            <p className="font-josefin drop-shadow-md">
               Explore Croatia's diverse regions, each with its own unique
               character and attractions. From the sunny islands of Dalmatia to
               the rolling hills of Istria and the vibrant capital of Zagreb,
@@ -137,15 +137,15 @@ const AboutCroatia = () => {
               {regions.map((region) => (
                 <TabsContent key={region.id} value={region.id} className="mt-0">
                   <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                    <h3 className="text-xl font-bold mb-3 font-sreda">
+                    <h3 className="text-xl font-bold mb-3 font-sreda drop-shadow-md">
                       {region.name}
                     </h3>
-                    <p className="mb-4 font-josefin">{region.description}</p>
+                    <p className="mb-4 font-josefin drop-shadow-sm">{region.description}</p>
 
-                    <h4 className="text-lg font-bold mb-2">Top Attractions:</h4>
+                    <h4 className="text-lg font-bold mb-2 drop-shadow-md">Top Attractions:</h4>
                     <ul className="list-disc pl-6 space-y-1">
                       {region.attractions.map((attraction, index) => (
-                        <li key={index} className="font-josefin">
+                        <li key={index} className="font-josefin drop-shadow-sm">
                           {attraction}
                         </li>
                       ))}

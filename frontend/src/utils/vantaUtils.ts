@@ -1,5 +1,6 @@
 import VANTA from 'vanta/dist/vanta.topology.min';
 import * as THREE from 'three';
+import { startPerformanceMonitoring, stopPerformanceMonitoring, type PerformanceCallbacks } from './performanceMonitor';
 
 /**
  * VANTA.js topology animation utilities
@@ -151,6 +152,52 @@ export class VantaTopologyManager {
       console.error('Failed to initialize VANTA topology animation:', error);
     }
   }
+  
+  /**
+   * Start performance monitoring for this topology animation
+   * @param animationId - Unique identifier for monitoring
+   * @param callbacks - Performance event callbacks
+   * @param fpsTarget - Target FPS (auto-detected if not provided)
+   */
+  startPerformanceMonitoring(
+    animationId?: string,
+    callbacks?: PerformanceCallbacks,
+    fpsTarget?: number
+  ): void {
+    if (!this.vantaInstance) {
+      console.warn('Cannot start performance monitoring: VANTA instance not initialized');
+      return;
+    }
+    
+    const id = animationId || `vanta-manager-${Date.now()}`;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const deviceTargetFPS = fpsTarget || (isMobile ? 30 : 60);
+    
+    const thresholds = {
+      targetFPS: deviceTargetFPS,
+      mediumThreshold: deviceTargetFPS * 0.8,
+      lowThreshold: deviceTargetFPS * 0.6,
+      criticalThreshold: deviceTargetFPS * 0.4,
+      averagingWindow: 1000,
+      minFramesForStableFPS: 10
+    };
+    
+    startPerformanceMonitoring(id, thresholds, callbacks);
+    (this.vantaInstance as any).__performanceMonitoringId = id;
+    console.log(`Performance monitoring started for VANTA manager: ${id}`);
+  }
+  
+  /**
+   * Stop performance monitoring for this topology animation
+   */
+  stopPerformanceMonitoring(): void {
+    if (this.vantaInstance && (this.vantaInstance as any).__performanceMonitoringId) {
+      const id = (this.vantaInstance as any).__performanceMonitoringId;
+      stopPerformanceMonitoring(id);
+      delete (this.vantaInstance as any).__performanceMonitoringId;
+      console.log(`Performance monitoring stopped for VANTA manager: ${id}`);
+    }
+  }
 
   /**
    * Update animation configuration
@@ -167,6 +214,9 @@ export class VantaTopologyManager {
    */
   destroy(): void {
     if (this.vantaInstance) {
+      // Stop performance monitoring before destroying
+      this.stopPerformanceMonitoring();
+      
       this.vantaInstance.destroy();
       this.vantaInstance = null;
       console.log('VANTA topology animation destroyed');
@@ -227,6 +277,12 @@ export interface TopologyInitOptions {
   points?: number;
   forceAnimate?: boolean;
   blueIntensity?: 'light' | 'medium' | 'dark';
+  /** Enable performance monitoring for this topology animation */
+  enablePerformanceMonitoring?: boolean;
+  /** Performance monitoring callbacks */
+  performanceCallbacks?: PerformanceCallbacks;
+  /** FPS target override (auto-detected if not provided) */
+  fpsTarget?: number;
 }
 
 /**
@@ -292,6 +348,27 @@ export const initVantaTopology = async (options: TopologyInitOptions): Promise<a
       THREE: THREE
     });
 
+    // T5.1: Start performance monitoring if enabled
+    if (options.enablePerformanceMonitoring) {
+      const animationId = options.id || 'vanta-topology-default';
+      const deviceTargetFPS = options.fpsTarget || (isMobile ? 30 : 60);
+      
+      const thresholds = {
+        targetFPS: deviceTargetFPS,
+        mediumThreshold: deviceTargetFPS * 0.8,
+        lowThreshold: deviceTargetFPS * 0.6,
+        criticalThreshold: deviceTargetFPS * 0.4,
+        averagingWindow: 1000,
+        minFramesForStableFPS: 10
+      };
+      
+      startPerformanceMonitoring(animationId, thresholds, options.performanceCallbacks);
+      
+      // Store monitoring info on the effect for cleanup
+      (vantaEffect as any).__performanceMonitoringId = animationId;
+      console.log(`Performance monitoring started for VANTA topology: ${animationId}`);
+    }
+
     console.log('VANTA topology animation initialized successfully');
     return vantaEffect;
   } catch (error) {
@@ -307,6 +384,13 @@ export const initVantaTopology = async (options: TopologyInitOptions): Promise<a
 export const cleanupVantaEffect = (effect: any): void => {
   try {
     if (effect && typeof effect.destroy === 'function') {
+      // T5.1: Stop performance monitoring if it was enabled
+      if (effect.__performanceMonitoringId) {
+        stopPerformanceMonitoring(effect.__performanceMonitoringId);
+        console.log(`Performance monitoring stopped for: ${effect.__performanceMonitoringId}`);
+        delete effect.__performanceMonitoringId;
+      }
+      
       effect.destroy();
       console.log('VANTA effect cleaned up successfully');
     }
@@ -405,6 +489,27 @@ export const initBlueOnlyTopology = async (options: TopologyInitOptions): Promis
       ...config,
       THREE: THREE
     });
+
+    // T5.1: Start performance monitoring if enabled
+    if (options.enablePerformanceMonitoring) {
+      const animationId = options.id || 'vanta-blue-topology-default';
+      const deviceTargetFPS = options.fpsTarget || (isMobile ? 30 : 60);
+      
+      const thresholds = {
+        targetFPS: deviceTargetFPS,
+        mediumThreshold: deviceTargetFPS * 0.8,
+        lowThreshold: deviceTargetFPS * 0.6,
+        criticalThreshold: deviceTargetFPS * 0.4,
+        averagingWindow: 1000,
+        minFramesForStableFPS: 10
+      };
+      
+      startPerformanceMonitoring(animationId, thresholds, options.performanceCallbacks);
+      
+      // Store monitoring info on the effect for cleanup
+      (vantaEffect as any).__performanceMonitoringId = animationId;
+      console.log(`Performance monitoring started for VANTA blue-only topology: ${animationId}`);
+    }
 
     console.log('VANTA blue-only topology animation initialized successfully');
     console.log(`Animation mode: Blue-only (${blueIntensity} intensity)`);
@@ -595,6 +700,27 @@ export const initGentleTopology = async (options: TopologyInitOptions & {
       ...config,
       THREE: THREE
     });
+
+    // T5.1: Start performance monitoring if enabled
+    if (options.enablePerformanceMonitoring) {
+      const animationId = options.id || 'vanta-gentle-topology-default';
+      const deviceTargetFPS = options.fpsTarget || (isMobile ? 30 : 60);
+      
+      const thresholds = {
+        targetFPS: deviceTargetFPS,
+        mediumThreshold: deviceTargetFPS * 0.8,
+        lowThreshold: deviceTargetFPS * 0.6,
+        criticalThreshold: deviceTargetFPS * 0.4,
+        averagingWindow: 1000,
+        minFramesForStableFPS: 10
+      };
+      
+      startPerformanceMonitoring(animationId, thresholds, options.performanceCallbacks);
+      
+      // Store monitoring info on the effect for cleanup
+      (vantaEffect as any).__performanceMonitoringId = animationId;
+      console.log(`Performance monitoring started for VANTA gentle topology: ${animationId}`);
+    }
 
     console.log('VANTA gentle topology animation initialized successfully');
     console.log(`Gentle mode: ${gentleMode}, Movement speed: ${movementSpeed}, Particles: ${gentleParams.points}`);

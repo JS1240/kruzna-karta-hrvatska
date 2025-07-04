@@ -2,10 +2,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Calendar, MapPin, ExternalLink } from "lucide-react";
+import { Heart, Calendar, MapPin, ExternalLink, Share2, Bookmark } from "lucide-react";
 import ShareButton from "./ShareButton";
 import { toast } from "@/hooks/use-toast";
 import { handleImageError, getFallbackImage } from "@/utils/imageUtils";
+import { SlideInCard } from "@/components/transitions";
+import { LoadingTransition, EventSkeletonCard } from "@/components/loading";
+import { SwipeActions, useTouchButton, detectTouchDevice, getTouchOptimizedClasses } from "@/components/mobile";
 
 interface EventCardProps {
   id: string;
@@ -19,6 +22,10 @@ interface EventCardProps {
   isFavorite?: boolean;
   onFavoriteToggle?: (id: string) => void;
   className?: string;
+  // Loading transition props
+  isLoading?: boolean;
+  showAnimation?: boolean;
+  animationDelay?: number;
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -33,10 +40,17 @@ const EventCard: React.FC<EventCardProps> = ({
   isFavorite = false,
   onFavoriteToggle,
   className = '',
+  isLoading = false,
+  showAnimation = true,
+  animationDelay = 0,
 }) => {
   const navigate = useNavigate();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  // Touch device detection and styling
+  const device = detectTouchDevice();
+  const touchClasses = getTouchOptimizedClasses(device);
 
   const handleClick = () => {
     navigate(`/events/${id}`);
@@ -58,6 +72,63 @@ const EventCard: React.FC<EventCardProps> = ({
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+  // Touch-specific handlers
+  const handleSwipeShare = () => {
+    // Share functionality
+    if (navigator.share) {
+      navigator.share({
+        title,
+        text: description,
+        url: `${window.location.origin}/events/${id}`,
+      });
+    } else {
+      // Fallback to clipboard
+      navigator.clipboard.writeText(`${window.location.origin}/events/${id}`);
+      toast({
+        title: "Link copied",
+        description: "Event link copied to clipboard",
+      });
+    }
+  };
+
+  const handleSwipeFavorite = () => {
+    if (onFavoriteToggle) {
+      onFavoriteToggle(id);
+      toast({
+        title: isFavorite ? "Removed from favorites" : "Added to favorites",
+        description: isFavorite 
+          ? `${title} has been removed from your favorites`
+          : `${title} has been added to your favorites`,
+      });
+    }
+  };
+
+  // Define swipe actions for mobile
+  const leftSwipeActions = [
+    {
+      id: 'share',
+      label: 'Share',
+      icon: Share2,
+      color: 'blue' as const,
+      onAction: handleSwipeShare,
+    },
+  ];
+
+  const rightSwipeActions = onFavoriteToggle ? [
+    {
+      id: 'favorite',
+      label: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+      icon: Heart,
+      color: 'red' as const,
+      onAction: handleSwipeFavorite,
+    },
+  ] : [];
+
+  // Touch button for card tap
+  const { handlers: cardTouchHandlers } = useTouchButton(handleClick, {
+    hapticFeedback: true,
+  });
 
   const handleImageLoadError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setImageError(true);
@@ -83,17 +154,25 @@ const EventCard: React.FC<EventCardProps> = ({
     }
   };
 
-  return (
-    <div
-      className={`group relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${className}`}
-      onClick={handleClick}
-      tabIndex={0}
-      role="button"
-      aria-label={`View details for ${title}`}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") handleClick();
-      }}
+  // Create the card content
+  const cardContent = (
+    <SwipeActions
+      leftActions={leftSwipeActions}
+      rightActions={rightSwipeActions}
+      threshold={60}
+      className={className}
     >
+      <div
+        className={`group relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${touchClasses.interactive}`}
+        onClick={handleClick}
+        tabIndex={0}
+        role="button"
+        aria-label={`View details for ${title}`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") handleClick();
+        }}
+        {...cardTouchHandlers}
+      >
       {/* Image Container */}
       <div className="relative h-48 overflow-hidden">
         <img
@@ -203,7 +282,51 @@ const EventCard: React.FC<EventCardProps> = ({
         </div>
       </div>
     </div>
+    </SwipeActions>
   );
+
+  // Create skeleton for loading state
+  const skeleton = (
+    <EventSkeletonCard
+      showImage={true}
+      showBadge={!!category}
+      showPrice={!!price}
+      showDescription={!!description}
+      className={className}
+    />
+  );
+
+  // Wrap with loading transition
+  const contentWithLoadingTransition = (
+    <LoadingTransition
+      isLoading={isLoading}
+      skeleton={skeleton}
+      duration={0.5}
+      delay={150}
+      crossfade={true}
+    >
+      {cardContent}
+    </LoadingTransition>
+  );
+
+  // Wrap with scroll animation if enabled
+  if (showAnimation) {
+    return (
+      <SlideInCard
+        direction="up"
+        distance={30}
+        duration={0.5}
+        delay={animationDelay}
+        threshold={0.2}
+        rootMargin="50px"
+        easing="cubic-bezier(0.25, 0.46, 0.45, 0.94)"
+      >
+        {contentWithLoadingTransition}
+      </SlideInCard>
+    );
+  }
+
+  return contentWithLoadingTransition;
 };
 
 export default EventCard;
