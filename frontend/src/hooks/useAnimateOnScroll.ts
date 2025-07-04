@@ -102,7 +102,12 @@ const ANIMATION_CONFIGS = {
 } as const;
 
 /**
- * Main scroll animation hook
+ * React hook that animates an element when it scrolls into view, with support for configurable animation types and user motion preferences.
+ *
+ * Applies the specified animation when the target element enters the viewport, using intersection observer logic and respecting reduced motion settings. Returns a ref callback for the element, visibility state, animation completion state, computed inline styles, and a CSS class name.
+ *
+ * @param config - Optional configuration for animation type, duration, easing, distance, scale, rotation, stagger delay, and intersection observer options
+ * @returns An object containing the ref callback, visibility booleans, computed style, and class name for the animated element
  */
 export function useAnimateOnScroll(
   config: AnimateOnScrollConfig = {}
@@ -197,38 +202,84 @@ export function useAnimateOnScroll(
 }
 
 /**
- * Preset hooks for common animations
+ * React hook for applying a fade-in animation to an element when it scrolls into view.
+ *
+ * @returns An object containing a ref callback, visibility state, computed style, and className for the animated element.
  */
 export function useFadeIn(config: AnimateOnScrollConfig = {}) {
   return useAnimateOnScroll({ animation: 'fade', ...config });
 }
 
+/**
+ * React hook that animates an element with a slide-up effect when it enters the viewport.
+ *
+ * Uses the `useAnimateOnScroll` hook with the `'slideUp'` animation preset. Additional configuration options can be provided to customize the animation.
+ *
+ * @returns An object containing a ref callback, visibility booleans, computed style, and className for the animated element.
+ */
 export function useSlideUp(config: AnimateOnScrollConfig = {}) {
   return useAnimateOnScroll({ animation: 'slideUp', ...config });
 }
 
+/**
+ * React hook that animates an element with a slide-down effect when it enters the viewport.
+ *
+ * @param config - Optional configuration to customize the animation and intersection observer behavior
+ * @returns An object containing a ref callback, visibility state, computed styles, and class name for the animated element
+ */
 export function useSlideDown(config: AnimateOnScrollConfig = {}) {
   return useAnimateOnScroll({ animation: 'slideDown', ...config });
 }
 
+/**
+ * React hook that animates an element with a slide-in-from-left effect when it enters the viewport.
+ *
+ * @param config - Optional configuration to customize the animation and intersection observer behavior
+ * @returns An object containing a ref callback, visibility state, computed style, and class name for the animated element
+ */
 export function useSlideLeft(config: AnimateOnScrollConfig = {}) {
   return useAnimateOnScroll({ animation: 'slideLeft', ...config });
 }
 
+/**
+ * React hook that animates an element with a slide-in-from-right effect when it enters the viewport.
+ *
+ * @returns An object containing a ref callback, visibility state, computed styles, and class name for the animated element.
+ */
 export function useSlideRight(config: AnimateOnScrollConfig = {}) {
   return useAnimateOnScroll({ animation: 'slideRight', ...config });
 }
 
+/**
+ * React hook that animates an element with a scale-in effect when it enters the viewport.
+ *
+ * Uses scroll-triggered animation with support for user motion preferences. Additional animation and intersection observer options can be provided via the config object.
+ *
+ * @returns An object containing a ref callback, visibility booleans, computed style, and className for the animated element.
+ */
 export function useScaleIn(config: AnimateOnScrollConfig = {}) {
   return useAnimateOnScroll({ animation: 'scale', ...config });
 }
 
+/**
+ * React hook that animates an element with a bounce-in effect when it enters the viewport.
+ *
+ * Accepts configuration options to customize the animation behavior.
+ *
+ * @returns An object containing a ref callback, visibility booleans, computed style, and className for the animated element.
+ */
 export function useBounceIn(config: AnimateOnScrollConfig = {}) {
   return useAnimateOnScroll({ animation: 'bounce', ...config });
 }
 
 /**
- * Scroll animation with custom transform
+ * Provides scroll-triggered animation with custom CSS transforms, respecting user motion preferences.
+ *
+ * Applies the specified initial and animate transform styles to an element as it enters the viewport, with configurable transition properties. Animations are disabled if the user prefers reduced motion.
+ *
+ * @param initialTransform - The CSS transform to apply before the element is visible
+ * @param animateTransform - The CSS transform to apply when the element becomes visible (defaults to 'none')
+ * @returns An object containing a ref callback, visibility booleans, computed style, and a motion-related class name
  */
 export function useCustomScrollAnimation(
   initialTransform: string,

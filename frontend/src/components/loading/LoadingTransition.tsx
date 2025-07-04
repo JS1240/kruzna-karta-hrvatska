@@ -255,7 +255,11 @@ export const CardLoadingTransition: React.FC<LoadingTransitionProps> = (props) =
 );
 
 /**
- * Hook for managing loading transitions
+ * Manages state for transitioning from a loading skeleton to content, providing flags for transition progress and completion.
+ *
+ * @param isLoading - Whether the loading state is active
+ * @param options - Optional configuration for transition delay and callbacks
+ * @returns An object with `isTransitioning`, `hasLoaded`, `shouldShowContent`, and `shouldShowSkeleton` flags
  */
 export function useLoadingTransition(
   isLoading: boolean,

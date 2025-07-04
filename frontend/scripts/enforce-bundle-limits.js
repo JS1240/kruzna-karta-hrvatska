@@ -81,7 +81,8 @@ const OPTIONAL_CHUNKS = [
 ];
 
 /**
- * Parse command line arguments
+ * Parses command-line arguments and returns an options object indicating which enforcement modes are enabled.
+ * @return {{strict: boolean, fix: boolean, report: boolean, ci: boolean}} An object with flags for strict mode, fix mode, report mode, and CI mode.
  */
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -104,7 +105,10 @@ function parseArgs() {
 }
 
 /**
- * Get file size in KB
+ * Returns the size of a file in kilobytes.
+ * If the file does not exist or cannot be accessed, returns 0.
+ * @param {string} filePath - The path to the file.
+ * @return {number} The file size in kilobytes, or 0 if unavailable.
  */
 function getFileSize(filePath) {
   try {
@@ -116,7 +120,10 @@ function getFileSize(filePath) {
 }
 
 /**
- * Get all chunks from dist directory
+ * Scans the specified dist directory for JavaScript bundle files, categorizes them into chunk names, and aggregates their sizes.
+ *
+ * @param {string} distPath - Path to the distribution directory containing bundle files.
+ * @return {Map<string, number>} A map of chunk names to their total sizes in kilobytes. Returns an empty map if the directory does not exist.
  */
 function getDistChunks(distPath) {
   const chunks = new Map();
@@ -164,7 +171,11 @@ function getDistChunks(distPath) {
 }
 
 /**
- * Analyze bundle violations
+ * Analyzes JavaScript bundle chunk sizes against predefined limits, identifying violations and warnings, and generates optimization recommendations.
+ *
+ * @param {Map<string, number>} chunks - Map of chunk names to their sizes in KB.
+ * @param {Object} options - Options object controlling analysis behavior.
+ * @return {Object} Analysis results including violations, warnings, recommendations, total bundle size, and critical path size.
  */
 function analyzeBundleViolations(chunks, options) {
   log.header('📊 Bundle Size Analysis');
@@ -232,7 +243,14 @@ function analyzeBundleViolations(chunks, options) {
 }
 
 /**
- * Generate optimization recommendations
+ * Generates prioritized optimization recommendations based on chunk sizes and detected bundle violations or warnings.
+ *
+ * Analyzes specific chunk categories (such as animation, maps, charts, mobile optimizations, UI libraries, and miscellaneous vendors) and suggests targeted actions like code splitting, lazy loading, or dependency audits when size thresholds are exceeded.
+ *
+ * @param {Map<string, number>} chunks - Map of chunk names to their sizes in KB.
+ * @param {Array} violations - List of bundle size violations.
+ * @param {Array} warnings - List of bundle size warnings.
+ * @return {Array<Object>} Array of recommendation objects, each containing priority, type, message, and suggested action.
  */
 function generateOptimizationRecommendations(chunks, violations, warnings) {
   const recommendations = [];
@@ -309,7 +327,10 @@ function generateOptimizationRecommendations(chunks, violations, warnings) {
 }
 
 /**
- * Report bundle analysis results
+ * Outputs bundle analysis results, including violations, warnings, summary statistics, and optimization recommendations.
+ * @param {Object} analysis - The analysis results containing violations, warnings, recommendations, total size, and critical path size.
+ * @param {Object} options - CLI options affecting output formatting or behavior.
+ * @return {boolean} Returns true if no bundle size violations are present; otherwise, false.
  */
 function reportResults(analysis, options) {
   const { violations, warnings, recommendations, totalSize, criticalSize } = analysis;
@@ -352,7 +373,8 @@ function reportResults(analysis, options) {
 }
 
 /**
- * Generate optimization suggestions script
+ * Generates a shell script with recommended optimization steps based on bundle analysis.
+ * The script is saved as `optimize-bundle.sh` in the parent directory if the `--fix` option is enabled and recommendations exist.
  */
 function generateOptimizationScript(recommendations, options) {
   if (!options.fix || recommendations.length === 0) return;
@@ -393,7 +415,12 @@ echo "Optimization script completed. Please review and implement suggestions man
 }
 
 /**
- * Save bundle report
+ * Saves a JSON report of the bundle size analysis to the dist directory.
+ *
+ * The report includes a timestamp, bundle size limits, analysis results, chunk sizes, CLI options, and pass/fail status.
+ * Returns the report object regardless of whether saving succeeds.
+ *
+ * @return {Object} The generated report object.
  */
 function saveBundleReport(analysis, chunks, options) {
   const report = {
@@ -418,7 +445,10 @@ function saveBundleReport(analysis, chunks, options) {
 }
 
 /**
- * CI/CD integration
+ * Outputs bundle size analysis results in GitHub Actions workflow command format when running in CI mode.
+ * 
+ * If violations exist, logs errors and sets workflow outputs to indicate failure and the number of violations.
+ * If no violations are found, logs a notice and sets outputs to indicate success.
  */
 function handleCIMode(analysis, options) {
   if (!options.ci) return;
@@ -442,7 +472,9 @@ function handleCIMode(analysis, options) {
 }
 
 /**
- * Main enforcement function
+ * Executes the bundle size enforcement workflow, including analysis, reporting, optimization script generation, report saving, and CI integration.
+ *
+ * Parses CLI options, checks bundle chunk sizes against configured limits, reports violations and warnings, generates optimization recommendations and scripts if requested, saves a JSON report, and exits with an appropriate status code based on enforcement results and mode.
  */
 function main() {
   const options = parseArgs();

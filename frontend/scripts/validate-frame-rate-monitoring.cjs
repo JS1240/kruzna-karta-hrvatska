@@ -40,7 +40,9 @@ const log = {
 };
 
 /**
- * Read and validate file contents
+ * Reads the contents of a file relative to the project root.
+ * @param {string} filePath - Path to the file, relative to the project root.
+ * @return {string|null} The file contents as a string, or null if the file cannot be read.
  */
 function readFile(filePath) {
   try {
@@ -51,7 +53,9 @@ function readFile(filePath) {
 }
 
 /**
- * Check if file exists
+ * Determines whether a file exists at the given relative path from the project root.
+ * @param {string} filePath - The relative path to the file.
+ * @return {boolean} True if the file exists, false otherwise.
  */
 function fileExists(filePath) {
   try {
@@ -62,7 +66,11 @@ function fileExists(filePath) {
 }
 
 /**
- * Validate performance monitor utility
+ * Validates the implementation of the performance monitor utility in `performanceMonitor.ts`.
+ *
+ * Checks for the presence of required interfaces, classes, FPS tracking logic, device-specific targets, memory monitoring, callback systems, a global monitor manager, and visibility change handling. Logs the results of each check and returns whether all criteria are met.
+ *
+ * @returns {boolean} True if all validation checks pass; otherwise, false.
  */
 function validatePerformanceMonitorUtility() {
   log.subheader('1. Performance Monitor Utility (performanceMonitor.ts)');
@@ -161,7 +169,11 @@ function validatePerformanceMonitorUtility() {
 }
 
 /**
- * Validate AnimatedBackground component FPS monitoring
+ * Validates that the AnimatedBackground component implements all required frame rate and performance monitoring features.
+ *
+ * Checks for correct imports, props, state management, setup and cleanup logic, callback integration, FPS overlay, memory usage display, and performance-based styling in the component source file.
+ *
+ * @returns {boolean} True if all monitoring-related checks pass; otherwise, false.
  */
 function validateAnimatedBackgroundMonitoring() {
   log.subheader('2. AnimatedBackground Component FPS Monitoring');
@@ -262,7 +274,11 @@ function validateAnimatedBackgroundMonitoring() {
 }
 
 /**
- * Validate VANTA utils performance monitoring
+ * Validates the integration and completeness of performance monitoring features in the VANTA utilities module.
+ *
+ * Checks for the presence of performance monitoring imports, enhanced topology initialization options, monitoring integration in topology functions, cleanup procedures, and monitoring methods in the topology manager. Logs the results of each check and returns whether all required features are present.
+ *
+ * @returns {boolean} True if all performance monitoring checks in the VANTA utilities pass; otherwise, false.
  */
 function validateVantaUtilsMonitoring() {
   log.subheader('3. VANTA Utils Performance Monitoring');
@@ -351,7 +367,11 @@ function validateVantaUtilsMonitoring() {
 }
 
 /**
- * Validate animation manager enhanced monitoring
+ * Validates that enhanced performance monitoring features are correctly implemented in the animation manager utility.
+ *
+ * Checks for the presence of required imports, enhanced interfaces, global performance callbacks, monitoring start/stop methods, visibility handling, critical performance detection, aggregated metrics retrieval, and enable/disable controls in `src/utils/animationUtils.ts`.
+ *
+ * @returns {boolean} True if all validation checks pass; otherwise, false.
  */
 function validateAnimationManagerMonitoring() {
   log.subheader('4. Animation Manager Enhanced Monitoring');
@@ -445,7 +465,11 @@ function validateAnimationManagerMonitoring() {
 }
 
 /**
- * Validate AnimationTestPage performance demo
+ * Validates the implementation of the performance monitoring demo in the AnimationTestPage component.
+ *
+ * Checks for the presence of required imports, state interfaces, demo sections, metrics display, test animations, auto adjustment, memory monitoring, comparison animations, documentation, and metrics update logic to ensure the demo fully supports frame rate and performance monitoring features.
+ *
+ * @returns {boolean} True if all validation checks pass; otherwise, false.
  */
 function validateAnimationTestPageDemo() {
   log.subheader('5. AnimationTestPage Performance Demo');
@@ -541,7 +565,11 @@ function validateAnimationTestPageDemo() {
 }
 
 /**
- * Validate implementation completeness
+ * Checks that all required files and key features for frame rate performance monitoring are present and correctly implemented across the codebase.
+ * 
+ * Runs a series of content-based checks to verify the existence of essential files, TypeScript interfaces, FPS tracking logic, device-specific targets, threshold detection, global manager, component integration, and development demo completeness.
+ * 
+ * @returns {boolean} True if all completeness checks pass; otherwise, false.
  */
 function validateImplementationCompleteness() {
   log.subheader('6. Implementation Completeness Check');
@@ -645,7 +673,9 @@ function validateImplementationCompleteness() {
 }
 
 /**
- * Main validation function
+ * Runs all validation checks for frame rate performance monitoring implementation and reports the results.
+ *
+ * Executes a series of validation functions to verify the presence and correctness of performance monitoring features across the codebase. Logs a summary of results and exits the process with a success or failure code based on the outcome.
  */
 function main() {
   log.header('🚀 Performance Monitoring Validation (T5.1)');

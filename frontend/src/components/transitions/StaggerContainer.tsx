@@ -107,7 +107,10 @@ StaggerContainer.displayName = 'StaggerContainer';
 const StaggerContext = React.createContext<ReturnType<typeof useStaggeredAnimation> | null>(null);
 
 /**
- * Hook to access stagger controller from context
+ * Retrieves the stagger animation controller from context.
+ *
+ * Throws an error if called outside of a `StaggerContainer`.
+ * @returns The stagger controller object for managing staggered animations.
  */
 export function useStaggerContext() {
   const context = React.useContext(StaggerContext);
@@ -255,7 +258,11 @@ export const StaggerReverse: React.FC<StaggerContainerProps> = (props) => (
 );
 
 /**
- * Higher-order component for automatic staggering
+ * Wraps a React component to automatically apply staggered animation using `StaggerContainer` and `StaggerItem`.
+ *
+ * The returned component accepts a `staggerContainer` prop to enable or disable the stagger effect. If disabled, the original component is rendered without animation.
+ *
+ * @returns A new component that applies staggered animation to its children unless `staggerContainer` is set to false.
  */
 export function withStagger<P extends object>(
   Component: React.ComponentType<P>,
@@ -282,7 +289,13 @@ export function withStagger<P extends object>(
 }
 
 /**
- * Hook for using stagger items without context
+ * Provides staggered animation state and refs for a single item without requiring a context provider.
+ *
+ * Creates an isolated stagger controller using the given container configuration and returns animation state, styles, and refs for the specified item.
+ *
+ * @param id - Unique identifier for the staggered item
+ * @param containerConfig - Optional configuration for the stagger container's animation behavior
+ * @returns An object containing the container ref setter, item animation state and styles, and container visibility status
  */
 export function useStandaloneStaggerItem(
   id: string | number,

@@ -34,7 +34,14 @@ export interface MotionCapabilities {
   transitionMultiplier: number;
 }
 
-// Custom hook for reduced motion detection and management
+/**
+ * React hook for detecting and managing user motion preferences, combining system settings, manual overrides, and configurable animation behaviors.
+ *
+ * Returns motion state, effective preference, motion capability flags, utility functions for animation/transition/className handling, and CSS custom properties for styling integration.
+ *
+ * @param config - Optional partial configuration to control motion features and behavior
+ * @returns An object containing motion state, capabilities, utility functions, and CSS custom properties
+ */
 export function useReducedMotion(config?: Partial<MotionConfig>) {
   const [systemPreference, setSystemPreference] = useState<MotionPreference>('no-preference');
   const [userOverride, setUserOverride] = useState<MotionOverride>('respect-system');
@@ -282,7 +289,14 @@ export interface MotionContextValue {
 
 export const MotionContext = createContext<MotionContextValue | null>(null);
 
-// Provider component
+/**
+ * Provides motion preference state and utilities to the React component tree via context.
+ *
+ * Applies CSS custom properties for motion settings to the document root and supplies motion state and a configuration update function to descendants.
+ *
+ * @param children - React nodes to render within the provider
+ * @param config - Optional partial configuration for motion behavior
+ */
 export function MotionProvider({ 
   children, 
   config 
@@ -320,7 +334,12 @@ export function MotionProvider({
   );
 }
 
-// Hook to use motion context
+/**
+ * Returns the current motion context value.
+ *
+ * Throws an error if called outside of a `MotionProvider`.
+ * @returns The motion context value containing motion state and configuration update function.
+ */
 export function useMotionContext() {
   const context = useContext(MotionContext);
   if (!context) {
@@ -329,17 +348,40 @@ export function useMotionContext() {
   return context;
 }
 
-// Utility hooks for specific use cases
+/**
+ * Returns animation properties adjusted for the current motion preferences.
+ *
+ * @param duration - Optional animation duration to be adjusted based on motion settings
+ * @returns Animation properties with duration and enabled state adapted to user and system motion preferences
+ */
 export function useAnimationProps(duration?: number | string) {
   const { getAnimationProps } = useReducedMotion();
   return getAnimationProps(duration);
 }
 
+/**
+ * Returns transition style properties based on the current motion preferences.
+ *
+ * If transitions are disabled or reduced, the returned properties will reflect those settings, including adjusting or removing transition durations as appropriate.
+ *
+ * @param duration - Optional transition duration to use if transitions are allowed
+ * @returns An object containing transition-related style properties
+ */
 export function useTransitionProps(duration?: number | string) {
   const { getTransitionProps } = useReducedMotion();
   return getTransitionProps(duration);
 }
 
+/**
+ * Returns a class name string that adapts to the user's motion preference.
+ *
+ * Combines the provided base classes with additional classes for normal or reduced motion, depending on the current motion capabilities.
+ *
+ * @param baseClasses - The base class names to always include
+ * @param motionClasses - Class names to include when motion is allowed
+ * @param reduceClasses - Class names to include when reduced motion is preferred
+ * @returns The combined class name string reflecting the current motion preference
+ */
 export function useMotionClassName(
   baseClasses: string, 
   motionClasses?: string, 
@@ -349,7 +391,13 @@ export function useMotionClassName(
   return getClassName(baseClasses, motionClasses, reduceClasses);
 }
 
-// Simple hook for basic reduced motion detection (backward compatibility)
+/**
+ * Returns a boolean indicating whether the user prefers reduced motion.
+ *
+ * This is a simplified hook for legacy or basic usage scenarios.
+ *
+ * @returns `true` if reduced motion is preferred, otherwise `false`
+ */
 export function useSimpleReducedMotion(): boolean {
   const { prefersReducedMotion } = useReducedMotion();
   return prefersReducedMotion;

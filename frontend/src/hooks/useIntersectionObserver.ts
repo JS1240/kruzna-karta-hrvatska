@@ -25,7 +25,11 @@ export interface IntersectionResult {
 }
 
 /**
- * Enhanced intersection observer hook with motion preference awareness
+ * React hook that observes an element's intersection with the viewport, respecting user motion preferences and supporting delayed or one-time triggers.
+ *
+ * Provides intersection state, the latest observer entry, and a ref callback for the target element. If reduced motion is preferred, triggers intersection immediately when the element is visible. Supports configurable threshold, root margin, delay, trigger-once behavior, and disabling.
+ *
+ * @returns An object containing `isIntersecting`, `hasIntersected`, the latest `IntersectionObserverEntry`, and a `ref` callback to assign to the observed element.
  */
 export function useIntersectionObserver(
   config: IntersectionConfig = {}
@@ -165,7 +169,9 @@ export function useIntersectionObserver(
 }
 
 /**
- * Simplified intersection observer for basic visibility detection
+ * Returns a boolean indicating if the element is currently visible in the viewport, along with a ref callback to assign the observed element.
+ *
+ * @returns A tuple containing the intersection state and a ref setter for the target element
  */
 export function useVisibility(
   options: IntersectionConfig = {}
@@ -175,7 +181,9 @@ export function useVisibility(
 }
 
 /**
- * Intersection observer for triggering once when element becomes visible
+ * React hook that returns whether an element has ever intersected the viewport, triggering only once.
+ *
+ * @returns A tuple containing a boolean indicating if the element has intersected at least once, and a ref callback to assign to the target element.
  */
 export function useInView(
   options: IntersectionConfig = {}
@@ -188,7 +196,14 @@ export function useInView(
 }
 
 /**
- * Intersection observer with staggered delay based on index
+ * Returns an intersection observer result with a delay staggered by the element's index.
+ *
+ * The intersection trigger is delayed by `baseDelay * index` milliseconds, enabling staggered animations or loading effects for lists of elements.
+ *
+ * @param index - The zero-based index used to calculate the staggered delay
+ * @param baseDelay - The base delay in milliseconds for each index step (default: 100)
+ * @param options - Additional intersection observer configuration
+ * @returns The intersection observer result with staggered delay applied
  */
 export function useStaggeredIntersection(
   index: number,

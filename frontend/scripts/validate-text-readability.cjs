@@ -28,10 +28,21 @@ const colors = {
   bold: '\x1b[1m'
 };
 
+/**
+ * Logs a message to the console with optional colored formatting.
+ * @param {string} message - The message to display.
+ * @param {string} [color='reset'] - The color key for formatting the message output.
+ */
 function log(message, color = 'reset') {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
+/**
+ * Checks if a file exists at the specified path and logs the result with a description.
+ * @param {string} filePath - The path to the file to check.
+ * @param {string} description - A brief description of the file or its purpose for logging.
+ * @return {boolean} True if the file exists, false otherwise.
+ */
 function validateFile(filePath, description) {
   if (!fs.existsSync(filePath)) {
     log(`❌ ${description}: File not found - ${filePath}`, 'red');
@@ -41,6 +52,17 @@ function validateFile(filePath, description) {
   return true;
 }
 
+/**
+ * Validates that specific patterns are present or absent in a file's content.
+ *
+ * Reads the file at the given path and checks each pattern object for required presence or absence, logging results for each check.
+ * Returns true if all required patterns are found and all forbidden patterns are absent; otherwise, returns false.
+ *
+ * @param {string} filePath - Path to the file to validate.
+ * @param {Array<{pattern: RegExp, name: string, required?: boolean, shouldNotExist?: boolean}>} patterns - Array of pattern objects specifying what to check for.
+ * @param {string} description - Description of the validation context for logging.
+ * @return {boolean} True if all validations pass; false otherwise.
+ */
 function validateFileContent(filePath, patterns, description) {
   if (!fs.existsSync(filePath)) {
     log(`❌ ${description}: File not found - ${filePath}`, 'red');
@@ -74,6 +96,12 @@ function validateFileContent(filePath, patterns, description) {
   return allFound;
 }
 
+/**
+ * Checks a file for the presence of legacy text color classes and logs the results.
+ * @param {string} filePath - Path to the file to be checked.
+ * @param {string} description - Description of the file or component being validated.
+ * @return {boolean} True if no legacy color classes are found; false otherwise.
+ */
 function validateNoLegacyColors(filePath, description) {
   if (!fs.existsSync(filePath)) {
     log(`❌ ${description}: File not found - ${filePath}`, 'red');
@@ -101,6 +129,11 @@ function validateNoLegacyColors(filePath, description) {
   return allPassed;
 }
 
+/**
+ * Runs a comprehensive validation suite to ensure text readability improvements over animated backgrounds are correctly implemented across key frontend components.
+ *
+ * Executes a series of tests that check for proper overlay modes, consistent use of brand colors, application of text shadows, removal of legacy color classes, and the presence of a smart text shadow system. Logs detailed results for each test and exits the process with a success or failure code based on the overall outcome.
+ */
 function main() {
   log('🔍 T4.4 Text Readability Over Animated Backgrounds Validation', 'bold');
   log('='.repeat(65), 'blue');

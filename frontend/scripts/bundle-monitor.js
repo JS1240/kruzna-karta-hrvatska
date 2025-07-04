@@ -93,7 +93,10 @@ interface Alert {
 }
 
 /**
- * Get file size in KB
+ * Returns the size of a file in kilobytes.
+ * If the file does not exist or an error occurs, returns 0.
+ * @param {string} filePath - Path to the file.
+ * @return {number} File size in kilobytes, or 0 if unavailable.
  */
 function getFileSize(filePath) {
   try {
@@ -105,7 +108,12 @@ function getFileSize(filePath) {
 }
 
 /**
- * Get current bundle sizes
+ * Scans the specified distribution directory and returns a map of JavaScript bundle chunk names to their sizes in kilobytes.
+ *
+ * Only `.js` files (excluding source maps) are considered. Files are categorized into named chunks based on filename patterns, and sizes are summed for each chunk.
+ *
+ * @param {string} distPath - The path to the distribution directory containing bundle files.
+ * @returns {Map<string, number>} A map where keys are chunk names and values are their sizes in kilobytes.
  */
 function getCurrentBundleSizes(distPath) {
   const chunks = new Map();
@@ -152,7 +160,8 @@ function getCurrentBundleSizes(distPath) {
 }
 
 /**
- * Load bundle size history
+ * Loads and parses the bundle size history from the configured history file.
+ * @return {Array} An array of history entries, or an empty array if the file does not exist or cannot be read.
  */
 function loadHistory() {
   try {
@@ -169,7 +178,8 @@ function loadHistory() {
 }
 
 /**
- * Save bundle size history
+ * Saves the bundle size history to the configured history file after cleaning old entries.
+ * Ensures the target directory exists before writing. Returns true on success, false on failure.
  */
 function saveHistory(history) {
   try {
@@ -191,7 +201,9 @@ function saveHistory(history) {
 }
 
 /**
- * Clean old history entries
+ * Filters and sorts bundle size history entries to retain only those within the configured retention period and limits the total number of entries.
+ * @param {Array} history - The array of history entries to clean.
+ * @return {Array} The cleaned and sorted array of history entries.
  */
 function cleanHistory(history) {
   const now = new Date();
@@ -205,7 +217,8 @@ function cleanHistory(history) {
 }
 
 /**
- * Get Git information
+ * Retrieves the current Git commit hash (shortened to 8 characters) and branch name.
+ * @return {Promise<{commit: string, branch: string}>} An object containing the commit hash and branch name, or 'unknown' values if retrieval fails.
  */
 async function getGitInfo() {
   try {
@@ -221,7 +234,10 @@ async function getGitInfo() {
 }
 
 /**
- * Create history entry
+ * Creates a new history entry object containing bundle size data, Git information, and build metadata.
+ * 
+ * @param {Map<string, number>} chunks - Map of chunk names to their sizes in kilobytes.
+ * @return {Object} The history entry with timestamp, commit, branch, chunk sizes, total size, critical chunk size, and build info.
  */
 async function createHistoryEntry(chunks) {
   const gitInfo = await getGitInfo();
@@ -248,7 +264,13 @@ async function createHistoryEntry(chunks) {
 }
 
 /**
- * Analyze size changes
+ * Compares the current bundle size entry to the previous history entry, identifying significant size changes per chunk and overall.
+ *
+ * Calculates percentage growth for each chunk and the total bundle size, generating alerts if growth exceeds configured thresholds. Only changes greater than 1% are tracked.
+ *
+ * @param {Object} currentEntry - The current bundle size entry.
+ * @param {Array<Object>} history - Array of previous bundle size entries.
+ * @return {Object} An object containing arrays of detected changes and generated alerts.
  */
 function analyzeSizeChanges(currentEntry, history) {
   if (history.length === 0) {
@@ -305,7 +327,12 @@ function analyzeSizeChanges(currentEntry, history) {
 }
 
 /**
- * Create alert
+ * Creates a new alert object with a unique ID, timestamp, type, category, message, details, and unresolved status.
+ * @param {string} type - The alert type, such as 'warning' or 'critical'.
+ * @param {string} category - The category of the alert (e.g., 'chunk', 'total').
+ * @param {string} message - A descriptive message for the alert.
+ * @param {object} details - Additional details relevant to the alert.
+ * @return {object} The constructed alert object.
  */
 function createAlert(type, category, message, details) {
   return {
@@ -320,7 +347,8 @@ function createAlert(type, category, message, details) {
 }
 
 /**
- * Display size changes
+ * Displays formatted bundle size changes in the console, highlighting increases and decreases with color-coded arrows.
+ * If no significant changes are present, logs an informational message.
  */
 function displaySizeChanges(changes) {
   if (changes.length === 0) {
@@ -345,7 +373,8 @@ function displaySizeChanges(changes) {
 }
 
 /**
- * Display alerts
+ * Displays bundle size alerts in the console, formatting critical alerts as errors and warnings as warnings.
+ * @param {Array} alerts - The list of alert objects to display.
  */
 function displayAlerts(alerts) {
   if (alerts.length === 0) {
@@ -364,7 +393,12 @@ function displayAlerts(alerts) {
 }
 
 /**
- * Generate size trends
+ * Analyzes recent bundle size history to identify growth trends and generate insights.
+ *
+ * Examines the last several history entries to calculate total size growth, detect significant increases or decreases, and identify consecutive growth periods.
+ *
+ * @param {Array} history - Array of history entries containing bundle size data.
+ * @return {{ trends: Array, insights: Array }} An object with trend summaries and human-readable insights.
  */
 function generateSizeTrends(history) {
   if (history.length < 2) {
@@ -418,7 +452,10 @@ function generateSizeTrends(history) {
 }
 
 /**
- * Display trends and insights
+ * Displays bundle size trends and insights in a formatted console output.
+ * 
+ * @param {Array} trends - Array of trend summary objects, each containing period, startSize, endSize, and totalGrowth.
+ * @param {Array} insights - Array of insight strings to be displayed.
  */
 function displayTrendsAndInsights(trends, insights) {
   if (trends.length > 0) {
@@ -435,7 +472,9 @@ function displayTrendsAndInsights(trends, insights) {
 }
 
 /**
- * Save monitoring report
+ * Saves a comprehensive monitoring report to the configured report file, including the provided data and a timestamp.
+ * If the target directory does not exist, it is created recursively.
+ * Logs a success message on completion or a warning if saving fails.
  */
 function saveMonitoringReport(data) {
   try {
@@ -458,7 +497,8 @@ function saveMonitoringReport(data) {
 }
 
 /**
- * Save alerts
+ * Appends new alerts to the alerts file, retaining only the most recent 50 alerts.
+ * Logs a success message on completion or a warning if saving fails.
  */
 function saveAlerts(alerts) {
   if (alerts.length === 0) return;
@@ -484,7 +524,8 @@ function saveAlerts(alerts) {
 }
 
 /**
- * Parse command line arguments
+ * Parses command-line arguments to determine which monitoring operations to perform.
+ * @return {Object} An options object indicating which actions are enabled (record, analyze, trends, report, quiet).
  */
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -515,7 +556,9 @@ function parseArgs() {
 }
 
 /**
- * Main monitoring function
+ * Orchestrates the bundle size monitoring workflow based on CLI options.
+ *
+ * Executes steps to record current bundle sizes, analyze changes against history, generate alerts, display trends and insights, and save reports. Exits with a nonzero code if critical alerts are detected, or zero otherwise.
  */
 async function main() {
   const options = parseArgs();

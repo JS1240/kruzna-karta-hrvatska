@@ -182,7 +182,10 @@ const DEVICE_SIMULATIONS = {
 };
 
 /**
- * Parse command line arguments
+ * Parses command-line arguments and returns an options object for configuring the performance test runner.
+ * 
+ * Recognizes flags for test type, device, scenario, duration, output control, verbosity, continuous mode, and threshold.
+ * @return {Object} Parsed options including testType, device, scenario, output, verbose, continuous, threshold, and duration.
  */
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -229,7 +232,9 @@ function parseArgs() {
 }
 
 /**
- * Simulate device characteristics
+ * Retrieves and logs the characteristics of a simulated device profile by name.
+ * @param {string} deviceName - The name of the device profile to simulate.
+ * @return {Object|null} The device simulation object if found, or null if the device is unknown.
  */
 function simulateDevice(deviceName) {
   const device = DEVICE_SIMULATIONS[deviceName];
@@ -248,7 +253,12 @@ function simulateDevice(deviceName) {
 }
 
 /**
- * Run performance validation test
+ * Runs a performance validation test across one or more simulated devices, checking if FPS targets are met for desktop and mobile profiles.
+ *
+ * Selects devices based on options, simulates performance tests for each, displays individual and summary results, and optionally saves the results. Returns whether all tested devices met their FPS targets.
+ *
+ * @param {Object} options - Test configuration options, including device selection and output preferences.
+ * @return {Promise<boolean>} True if all devices passed the validation test; otherwise, false.
  */
 async function runValidationTest(options) {
   log.header('🎯 Performance Validation Test');
@@ -299,7 +309,12 @@ async function runValidationTest(options) {
 }
 
 /**
- * Run stress test
+ * Executes stress tests across selected device profiles and scenarios to evaluate performance under extreme conditions.
+ *
+ * Runs a series of predefined stress scenarios for each device, simulating high load and measuring FPS, memory usage, and recovery capability. Aggregates and displays results, generates a summary, and optionally saves output reports.
+ *
+ * @param {Object} options - Test configuration options, including device selection and output preferences.
+ * @return {Promise<boolean>} Resolves to true if the overall stability score exceeds 0.8, otherwise false.
  */
 async function runStressTest(options) {
   log.header('🔥 Stress Testing');
@@ -354,7 +369,11 @@ async function runStressTest(options) {
 }
 
 /**
- * Run benchmark suite
+ * Runs the benchmark suite across selected devices and scenarios, simulating performance tests and aggregating results.
+ *
+ * Executes benchmark scenarios for each specified device, collects and displays individual and summary metrics, and optionally saves results to output files.
+ * @param {Object} options - Benchmark configuration options, including device, scenario, output, and other test parameters.
+ * @return {Promise<boolean>} Resolves to true if the overall benchmark score exceeds 0.7, otherwise false.
  */
 async function runBenchmarkSuite(options) {
   log.header('📊 Benchmark Suite');
@@ -402,7 +421,14 @@ async function runBenchmarkSuite(options) {
 }
 
 /**
- * Simulate performance test (placeholder for actual implementation)
+ * Simulates a performance test run for a given device and target FPS thresholds.
+ *
+ * Generates randomized FPS and memory usage metrics based on device characteristics and test options, returning results that indicate whether performance targets are met.
+ *
+ * @param {Object} device - The simulated device profile.
+ * @param {Object} targets - The target FPS thresholds for the test.
+ * @param {Object} options - Test options, including duration.
+ * @return {Object} Simulated performance metrics, including FPS values, frame drops, memory usage, pass status, and duration.
  */
 async function simulatePerformanceTest(device, targets, options) {
   // Simulate test execution delay
@@ -431,7 +457,14 @@ async function simulatePerformanceTest(device, targets, options) {
 }
 
 /**
- * Simulate stress test
+ * Simulates a stress test on a device using the specified scenario parameters.
+ *
+ * Applies a stress multiplier to reduce device performance, calculates average and minimum FPS, memory usage, and determines recovery success.
+ *
+ * @param {Object} device - The simulated device profile.
+ * @param {Object} scenario - The stress test scenario, including duration and multiplier.
+ * @param {Object} options - Additional test options.
+ * @return {Object} Stress test metrics including averageFPS, minFPS, memoryUsage, stressLevel, recovered, and duration.
  */
 async function simulateStressTest(device, scenario, options) {
   await delay(scenario.duration);
@@ -455,7 +488,11 @@ async function simulateStressTest(device, scenario, options) {
 }
 
 /**
- * Simulate benchmark test
+ * Simulates a benchmark test for a given device and scenario, returning performance metrics such as average FPS, normalized score, memory usage, and duration.
+ * @param {Object} device - The simulated device profile.
+ * @param {Object} scenario - The benchmark scenario configuration.
+ * @param {Object} options - Additional test options.
+ * @return {Object} An object containing averageFPS, score, memoryUsage, and duration.
  */
 async function simulateBenchmarkTest(device, scenario, options) {
   await delay(scenario.config.duration || 5000);
@@ -475,7 +512,9 @@ async function simulateBenchmarkTest(device, scenario, options) {
 }
 
 /**
- * Calculate device performance characteristics
+ * Calculates the base FPS and memory usage for a simulated device based on its hardware and connection characteristics.
+ * @param {Object} device - The simulated device profile containing GPU tier, CPU cores, viewport size, memory, and connection type.
+ * @return {Object} An object with `fps` and `memory` properties representing the estimated device performance.
  */
 function calculateDevicePerformance(device) {
   let baseFPS = 30;
@@ -512,7 +551,9 @@ function calculateDevicePerformance(device) {
 }
 
 /**
- * Display test result
+ * Displays the results of a performance test, including FPS metrics, frame drops, memory usage, and duration, with pass/fail status and warnings if targets are not met.
+ * @param {Object} result - The performance test result containing metrics and pass status.
+ * @param {Object} targets - The target FPS thresholds for the test.
  */
 function displayTestResult(result, targets) {
   const status = result.testPassed ? '✓' : '✗';
@@ -532,7 +573,9 @@ function displayTestResult(result, targets) {
 }
 
 /**
- * Display stress test result
+ * Displays the results of a stress test scenario, including FPS metrics, memory usage, stress level, and recovery status.
+ * @param {Object} result - The stress test metrics and recovery outcome.
+ * @param {Object} scenario - The stress test scenario details.
  */
 function displayStressTestResult(result, scenario) {
   console.log(`\n${colors.cyan}Stress Test Result: ${scenario.name}${colors.reset}`);
@@ -549,7 +592,9 @@ function displayStressTestResult(result, scenario) {
 }
 
 /**
- * Display benchmark result
+ * Displays the results of a benchmark test for a given scenario, including average FPS, performance score, and memory usage.
+ * @param {Object} result - The benchmark test result containing metrics such as averageFPS, score, and memoryUsage.
+ * @param {Object} scenario - The benchmark scenario information, including its name.
  */
 function displayBenchmarkResult(result, scenario) {
   console.log(`\n${colors.cyan}Benchmark Result: ${scenario.name}${colors.reset}`);
@@ -559,7 +604,11 @@ function displayBenchmarkResult(result, scenario) {
 }
 
 /**
- * Generate validation summary
+ * Aggregates validation test results and computes summary statistics.
+ *
+ * Calculates total tests, number and percentage of passed tests, average FPS for desktop and mobile devices, and determines if the overall pass rate meets the required threshold.
+ * @param {Array} results - Array of validation test result objects.
+ * @return {Object} Summary object containing test counts, pass rate, average FPS metrics, pass status, and timestamp.
  */
 function generateValidationSummary(results) {
   const totalTests = results.length;
@@ -587,7 +636,9 @@ function generateValidationSummary(results) {
 }
 
 /**
- * Generate stress test summary
+ * Aggregates stress test results to compute recovery rate, stability score, and average minimum FPS.
+ * @param {Array} results - Array of stress test result objects.
+ * @return {Object} Summary including total scenarios, recovery rate (percentage), stability score, and average minimum FPS.
  */
 function generateStressTestSummary(results) {
   const recoveryRate = results.filter(r => r.recovered).length / results.length;
@@ -602,7 +653,10 @@ function generateStressTestSummary(results) {
 }
 
 /**
- * Generate benchmark summary
+ * Aggregates benchmark test results to produce summary statistics and a performance grade.
+ *
+ * @param {Array<Object>} results - Array of benchmark result objects, each containing `score` and `averageFPS`.
+ * @return {Object} Summary including total benchmarks, overall score, average FPS, and performance grade.
  */
 function generateBenchmarkSummary(results) {
   const averageScore = results.reduce((sum, r) => sum + r.score, 0) / results.length;
@@ -617,7 +671,8 @@ function generateBenchmarkSummary(results) {
 }
 
 /**
- * Display summaries
+ * Displays the aggregated results of validation tests, including pass rate, average FPS metrics, and overall status.
+ * @param {Object} summary - The summary object containing validation test results and metrics.
  */
 function displayValidationSummary(summary) {
   log.header('📋 Validation Summary');
@@ -633,6 +688,10 @@ function displayValidationSummary(summary) {
   }
 }
 
+/**
+ * Displays a summary of stress test results, including recovery rate, stability score, and average minimum FPS.
+ * @param {Object} summary - The aggregated results of the stress tests.
+ */
 function displayStressTestSummary(summary) {
   log.header('📋 Stress Test Summary');
   log.metric('Recovery Rate', `${summary.recoveryRate}%`);
@@ -640,6 +699,10 @@ function displayStressTestSummary(summary) {
   log.metric('Average Min FPS', summary.averageMinFPS);
 }
 
+/**
+ * Displays the overall benchmark test summary, including score percentage, performance grade, and average FPS.
+ * @param {Object} summary - The aggregated benchmark results to display.
+ */
 function displayBenchmarkSummary(summary) {
   log.header('📋 Benchmark Summary');
   log.metric('Overall Score', `${(summary.overallScore * 100).toFixed(1)}%`);
@@ -648,7 +711,10 @@ function displayBenchmarkSummary(summary) {
 }
 
 /**
- * Save test results
+ * Saves test results and summary to a JSON report file, updating test history and summary files.
+ * 
+ * Ensures the output directory exists, writes a timestamped report file containing test details,
+ * and updates persistent history and summary records for the specified test type.
  */
 async function saveTestResults(testType, results, summary) {
   try {
@@ -683,7 +749,8 @@ async function saveTestResults(testType, results, summary) {
 }
 
 /**
- * Update test history
+ * Appends a new test summary entry to the test history file, maintaining only the most recent 100 entries.
+ * If the history file does not exist, it is created. Logs a warning if the update fails.
  */
 function updateTestHistory(testType, summary) {
   try {
@@ -713,7 +780,9 @@ function updateTestHistory(testType, summary) {
 }
 
 /**
- * Update summary file
+ * Updates the summary JSON file with the latest test summary for the specified test type.
+ * If the file exists, it merges the new summary with existing data; otherwise, it creates a new summary file.
+ * Logs a warning if the update fails.
  */
 function updateSummaryFile(testType, summary) {
   try {
@@ -737,19 +806,24 @@ function updateSummaryFile(testType, summary) {
 }
 
 /**
- * Utility functions
+ * Returns a promise that resolves after a specified number of milliseconds.
+ * @param {number} ms - The delay duration in milliseconds.
+ * @return {Promise<void>} A promise that resolves after the delay.
  */
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Simulates a recovery test for the specified device by introducing a delay.
+ */
 async function simulateRecoveryTest(device) {
   await delay(1000);
   log.info('Recovery test completed');
 }
 
 /**
- * Show help
+ * Displays usage instructions and available command-line options for the performance test runner.
  */
 function showHelp() {
   console.log(`
@@ -790,7 +864,9 @@ ${colors.cyan}Examples:${colors.reset}
 }
 
 /**
- * Main function
+ * Orchestrates command-line performance test execution based on parsed options.
+ *
+ * Parses CLI arguments, displays help if requested, and runs the selected test type (validation, stress, or benchmark) for the specified device and scenario. Logs results and exits with an appropriate status code based on test outcomes. Handles errors and supports verbose output for debugging.
  */
 async function main() {
   const options = parseArgs();

@@ -28,10 +28,21 @@ const colors = {
   bold: '\x1b[1m'
 };
 
+/**
+ * Logs a message to the console with the specified ANSI color.
+ * @param {string} message - The message to display.
+ * @param {string} [color='reset'] - The color key to use for the message.
+ */
 function log(message, color = 'reset') {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
+/**
+ * Checks whether a specified file exists and logs the result with a description.
+ * @param {string} filePath - The path to the file to check.
+ * @param {string} description - A brief description of the file being validated, used in log messages.
+ * @return {boolean} True if the file exists, false otherwise.
+ */
 function validateFile(filePath, description) {
   if (!fs.existsSync(filePath)) {
     log(`❌ ${description}: File not found - ${filePath}`, 'red');
@@ -41,6 +52,14 @@ function validateFile(filePath, description) {
   return true;
 }
 
+/**
+ * Checks if all specified regex patterns are present in a file's content, logging results for each pattern.
+ * 
+ * @param {string} filePath - Path to the file to validate.
+ * @param {Array<{pattern: RegExp, name: string, required?: boolean}>} patterns - List of patterns to check, each with a descriptive name and optional required flag.
+ * @param {string} description - Description of the validation context for logging.
+ * @return {boolean} True if all required patterns are found; false otherwise.
+ */
 function validateFileContent(filePath, patterns, description) {
   if (!fs.existsSync(filePath)) {
     log(`❌ ${description}: File not found - ${filePath}`, 'red');
@@ -65,6 +84,11 @@ function validateFileContent(filePath, patterns, description) {
   return allFound;
 }
 
+/**
+ * Runs a series of validation tests to verify the implementation of content overlay handling with blur effects across frontend components.
+ *
+ * Checks for the existence of required files and the presence of specific overlay-related code patterns, including prop definitions, utility functions, and usage in key components. Logs color-coded results for each test and exits the process with a status code indicating overall success or failure.
+ */
 function main() {
   log('🔍 T4.3 Content Overlay Handling Validation', 'bold');
   log('='.repeat(50), 'blue');

@@ -41,7 +41,9 @@ const log = {
 };
 
 /**
- * Read and validate file contents
+ * Reads the contents of a file relative to the script directory.
+ * @param {string} filePath - Path to the file, relative to the script's parent directory.
+ * @return {string|null} The file contents as a string, or null if the file cannot be read.
  */
 function readFile(filePath) {
   try {
@@ -52,7 +54,9 @@ function readFile(filePath) {
 }
 
 /**
- * Check if file exists
+ * Determines whether a file exists at the specified relative path.
+ * @param {string} filePath - The path to the file, relative to the script directory.
+ * @return {boolean} True if the file exists, false otherwise.
  */
 function fileExists(filePath) {
   try {
@@ -63,7 +67,11 @@ function fileExists(filePath) {
 }
 
 /**
- * Validate device detection system
+ * Validates the completeness of the device detection system implementation in `deviceDetection.ts`.
+ *
+ * Checks for the presence of required interfaces, classes, methods, and logic related to device capability detection, performance scoring, device classification, battery and thermal state detection, connection quality, fallback recommendation logic, and convenience exports. Logs the result of each check and returns `true` if all checks pass.
+ *
+ * @returns {boolean} `true` if all device detection system checks pass; otherwise, `false`.
  */
 function validateDeviceDetectionSystem() {
   log.subheader('1. Device Detection System (deviceDetection.ts)');
@@ -167,7 +175,11 @@ function validateDeviceDetectionSystem() {
 }
 
 /**
- * Validate fallback animation system
+ * Validates the completeness of the fallback animation system implementation in `fallbackAnimations.ts`.
+ *
+ * Checks for the presence of required interfaces, classes, animation logic, style injection, cleanup mechanisms, brand color integration, and convenience functions related to fallback animations. Logs the result of each check and returns `true` if all checks pass.
+ *
+ * @returns {boolean} `true` if all fallback animation system checks pass; otherwise, `false`.
  */
 function validateFallbackAnimationSystem() {
   log.subheader('2. Fallback Animation System (fallbackAnimations.ts)');
@@ -267,7 +279,10 @@ function validateFallbackAnimationSystem() {
 }
 
 /**
- * Validate CSS fallback styles
+ * Validates the presence and completeness of required CSS styles for fallback animations.
+ *
+ * Checks the fallbackAnimations.css file for essential container, animation, pattern, theme, and accessibility styles to ensure proper fallback rendering on low-performance devices.
+ * @returns {boolean} True if all required CSS checks pass; otherwise, false.
  */
 function validateCSSFallbackStyles() {
   log.subheader('3. CSS Fallback Styles (fallbackAnimations.css)');
@@ -364,7 +379,8 @@ function validateCSSFallbackStyles() {
 }
 
 /**
- * Validate FallbackBackground component
+ * Validates the implementation of the FallbackBackground React component by checking for required imports, interfaces, integration points, animation initialization, CSS variable and theme class generation, debug info, error handling, accessibility features, and content overlay support.
+ * @returns {boolean} True if all validation checks pass; otherwise, false.
  */
 function validateFallbackBackgroundComponent() {
   log.subheader('4. FallbackBackground Component (FallbackBackground.tsx)');
@@ -463,7 +479,11 @@ function validateFallbackBackgroundComponent() {
 }
 
 /**
- * Validate AnimatedBackground integration
+ * Validates the integration of fallback logic within the AnimatedBackground component.
+ *
+ * Checks for the presence of key imports, props, state management, device detection, battery and thermal state handling, performance monitoring, conditional rendering of fallback components, WebGL animation prevention, debug display, and callback integration in the AnimatedBackground implementation.
+ *
+ * @returns {boolean} True if all integration checks pass; otherwise, false.
  */
 function validateAnimatedBackgroundIntegration() {
   log.subheader('5. AnimatedBackground Fallback Integration');
@@ -560,7 +580,8 @@ function validateAnimatedBackgroundIntegration() {
 }
 
 /**
- * Validate implementation completeness
+ * Validates the overall completeness of the fallback implementation by checking for the existence and content of required files, interfaces, classes, integration points, performance monitoring, and accessibility support.
+ * @returns {boolean} True if all completeness checks pass; otherwise, false.
  */
 function validateImplementationCompleteness() {
   log.subheader('6. Implementation Completeness Check');
@@ -664,7 +685,9 @@ function validateImplementationCompleteness() {
 }
 
 /**
- * Main validation function
+ * Runs all fallback validation checks and reports the overall implementation status.
+ *
+ * Executes a series of validation functions to verify the completeness and correctness of fallback options for animated backgrounds on low-performance devices. Logs detailed results, summarizes implemented features and fallback hierarchy, and exits the process with a success or failure code based on the outcome.
  */
 function main() {
   log.header('🚀 Fallback Options Validation (T5.2)');

@@ -38,7 +38,12 @@ export interface StaggerResult {
 }
 
 /**
- * Staggered animation controller
+ * Provides a controller for orchestrating staggered entry animations for a group of items within a container, with support for motion preferences and viewport visibility.
+ *
+ * Registers items, calculates their animation delays based on configuration, and manages their readiness state for animation. Triggers staggered animations when the container enters the viewport, or immediately if reduced motion is preferred. Exposes utility functions for retrieving item styles and class names reflecting their animation state.
+ *
+ * @param config - Optional configuration for stagger timing, animation type, direction, duration, easing, maximum items, and intersection observer options.
+ * @returns An object containing a container ref, visibility state, item registration function, style and class name getters, reset function, and the current list of registered items.
  */
 export function useStaggeredAnimation(
   config: StaggerConfig = {}
@@ -254,7 +259,11 @@ export function useStaggeredAnimation(
 }
 
 /**
- * Simplified staggered animation for common use cases
+ * Provides a staggered animation controller for list items with a default slide-up animation and configurable delay.
+ *
+ * @param staggerDelay - The delay in milliseconds between each item's animation start
+ * @param config - Optional configuration to override default animation settings
+ * @returns A stagger controller for managing staggered list animations
  */
 export function useStaggeredList(
   staggerDelay: number = 100,
@@ -268,7 +277,14 @@ export function useStaggeredList(
 }
 
 /**
- * Staggered grid animation
+ * Returns a staggered animation controller configured for grid layouts.
+ *
+ * Applies a 'scale' animation with alternate direction and customizable number of columns and stagger delay.
+ *
+ * @param columns - Number of columns in the grid
+ * @param staggerDelay - Delay in milliseconds between each item's animation
+ * @param config - Additional configuration options for the staggered animation
+ * @returns A stagger controller for managing grid item animations
  */
 export function useStaggeredGrid(
   columns: number = 3,
@@ -284,7 +300,11 @@ export function useStaggeredGrid(
 }
 
 /**
- * Staggered text animation for headings
+ * Provides a staggered slide-up animation controller optimized for animating text elements such as headings.
+ *
+ * @param staggerDelay - The delay in milliseconds between each item's animation start
+ * @param config - Optional configuration to override default animation settings
+ * @returns A stagger controller for managing staggered text animations
  */
 export function useStaggeredText(
   staggerDelay: number = 30,
@@ -299,7 +319,11 @@ export function useStaggeredText(
 }
 
 /**
- * Hook for individual items in a stagger group
+ * Registers an item with a staggered animation controller and returns its animation style, class name, and readiness state.
+ *
+ * @param id - Unique identifier for the item within the stagger group
+ * @param staggerController - The stagger animation controller managing the group
+ * @returns An object containing the item's animation style, class name, and readiness state
  */
 export function useStaggerItem(
   id: string | number,

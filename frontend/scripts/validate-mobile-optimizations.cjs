@@ -34,7 +34,9 @@ const log = {
 };
 
 /**
- * Read and validate file contents
+ * Reads the contents of a file relative to the script directory.
+ * @param {string} filePath - Path to the file, relative to the script's parent directory.
+ * @return {string|null} The file contents as a string, or null if the file cannot be read.
  */
 function readFile(filePath) {
   try {
@@ -45,7 +47,9 @@ function readFile(filePath) {
 }
 
 /**
- * Check if file exists
+ * Determines whether a file exists at the specified relative path.
+ * @param {string} filePath - The path to the file, relative to the script directory.
+ * @return {boolean} True if the file exists, false otherwise.
  */
 function fileExists(filePath) {
   try {
@@ -56,7 +60,11 @@ function fileExists(filePath) {
 }
 
 /**
- * Validate enhanced mobile device detection
+ * Validates the presence and completeness of enhanced mobile device detection features in the `mobileDetection.ts` module.
+ *
+ * Checks for key TypeScript interfaces, classes, and methods related to mobile capabilities, browser and OS detection, device model, CPU architecture, graphics API, WebGL capabilities, GPU memory parsing, PWA support, safe area insets, and mobile optimization settings.
+ *
+ * @returns {boolean} True if all required features are present; otherwise, false.
  */
 function validateEnhancedMobileDetection() {
   log.subheader('1. Enhanced Mobile Device Detection (mobileDetection.ts)');
@@ -177,7 +185,12 @@ function validateEnhancedMobileDetection() {
 }
 
 /**
- * Validate mobile performance monitoring
+ * Validates the presence and completeness of mobile performance monitoring features in the source file.
+ *
+ * Checks for required interfaces, classes, and methods related to performance metrics, callbacks, event tracking, monitoring of device state, and generation of performance insights in `src/utils/mobilePerformanceMonitor.ts`.
+ * Logs the results of each check and returns whether all required features are present.
+ *
+ * @returns {boolean} True if all mobile performance monitoring checks pass; otherwise, false.
  */
 function validateMobilePerformanceMonitoring() {
   log.subheader('2. Mobile Performance Monitoring (mobilePerformanceMonitor.ts)');
@@ -298,7 +311,11 @@ function validateMobilePerformanceMonitoring() {
 }
 
 /**
- * Validate connection-aware optimizer
+ * Validates the presence and completeness of connection-aware optimization features in the `connectionAwareOptimizer.ts` module.
+ *
+ * Checks for required interfaces, classes, methods, and logic related to connection metrics, data usage, connection profiles, monitoring, bandwidth testing, adaptation, data usage tracking, mobile settings optimization, texture resolution, and connection insights.
+ *
+ * @returns {boolean} `true` if all required features are present; otherwise, `false`.
  */
 function validateConnectionAwareOptimizer() {
   log.subheader('3. Connection-Aware Optimizer (connectionAwareOptimizer.ts)');
@@ -414,7 +431,11 @@ function validateConnectionAwareOptimizer() {
 }
 
 /**
- * Validate mobile touch optimizer
+ * Validates the presence and completeness of the Mobile Touch Optimizer module.
+ *
+ * Checks for required interfaces, classes, methods, and features in `src/utils/mobileTouchOptimizer.ts`, including touch interaction events, spatial zones, touch responsiveness, spatial optimization, orientation and haptic settings, touch event handling, velocity calculation, spatial zone management, density mapping, orientation handling, haptic feedback, and performance insights.
+ *
+ * @returns {boolean} True if all required components are present; otherwise, false.
  */
 function validateMobileTouchOptimizer() {
   log.subheader('4. Mobile Touch Optimizer (mobileTouchOptimizer.ts)');
@@ -539,7 +560,11 @@ function validateMobileTouchOptimizer() {
 }
 
 /**
- * Validate implementation completeness
+ * Validates the completeness of the mobile optimization implementation by checking for the existence of required source files and verifying that each module contains key classes, methods, interfaces, and advanced features.
+ * 
+ * Runs a series of checks to ensure all core modules are present and include essential functionality such as enhanced device detection, performance monitoring, connection-aware optimization, touch optimization, comprehensive TypeScript interfaces, convenience functions, and advanced mobile features.
+ * 
+ * @returns {boolean} True if all completeness checks pass; otherwise, false.
  */
 function validateImplementationCompleteness() {
   log.subheader('5. Implementation Completeness Check');
@@ -662,7 +687,11 @@ function validateImplementationCompleteness() {
 }
 
 /**
- * Validate mobile-specific optimizations
+ * Validates the presence of advanced mobile-specific optimization features across relevant source modules.
+ *
+ * Checks for implementation of features such as battery-aware optimizations, touch interaction optimization, network-aware animation scaling, spatial density optimization, orientation-responsive features, thermal throttling detection, GPU memory optimization, data usage awareness, haptic feedback integration, and progressive performance adaptation. Logs the result of each check and returns whether all required features are present.
+ *
+ * @returns {boolean} True if all mobile-specific optimization features are detected; otherwise, false.
  */
 function validateMobileSpecificOptimizations() {
   log.subheader('6. Mobile-Specific Optimization Features');
@@ -795,7 +824,9 @@ function validateMobileSpecificOptimizations() {
 }
 
 /**
- * Main validation function
+ * Runs all mobile optimization validation checks and outputs a summary of results.
+ *
+ * Executes validation functions for device detection, performance monitoring, connection-aware optimization, touch optimization, implementation completeness, and mobile-specific features. Logs detailed results and exits the process with a success or failure code based on the outcome.
  */
 function main() {
   log.header('🚀 Mobile Animation Optimization Validation (T5.3)');

@@ -51,7 +51,11 @@ export interface TouchState {
 }
 
 /**
- * Main touch gesture hook
+ * React hook for detecting and managing touch gestures, including swipe, pinch, and long press.
+ *
+ * Provides touch state, gesture event handlers, haptic feedback triggering, and velocity tracking. Supports configurable gesture thresholds, durations, velocity, haptic feedback, scroll prevention, and disabling.
+ *
+ * @returns An object containing the current touch state, touch event handlers, a haptic feedback trigger function, and the current velocity.
  */
 export function useTouch(config: TouchGestureConfig = {}) {
   const {
@@ -263,7 +267,11 @@ export function useTouch(config: TouchGestureConfig = {}) {
 }
 
 /**
- * Swipe gesture hook
+ * React hook that detects swipe gestures and invokes a callback with gesture details.
+ *
+ * Calls the provided `onSwipe` function whenever a swipe gesture is recognized, passing information about the gesture such as direction, distance, velocity, and duration.
+ *
+ * @returns The current touch state and touch event handlers to attach to a touchable element.
  */
 export function useSwipe(
   onSwipe: (gesture: SwipeGesture) => void,
@@ -284,7 +292,11 @@ export function useSwipe(
 }
 
 /**
- * Long press hook
+ * React hook for detecting long press gestures and invoking a callback.
+ *
+ * Calls the provided `onLongPress` function when a long press gesture is recognized based on the configured duration and thresholds.
+ *
+ * @returns The current touch state and touch event handlers.
  */
 export function useLongPress(
   onLongPress: () => void,
@@ -305,7 +317,11 @@ export function useLongPress(
 }
 
 /**
- * Touch-friendly button hook
+ * Provides touch-friendly button behavior with tap detection, optional double-tap prevention, and haptic feedback.
+ *
+ * Triggers the `onClick` callback on a simple tap (not a swipe or long press). If `preventDoubleClick` is enabled, ignores taps within the `doubleTapWindow` interval. Haptic feedback is triggered on tap.
+ *
+ * @returns Touch state and event handlers for use on touchable elements
  */
 export function useTouchButton(
   onClick: () => void,
@@ -350,7 +366,10 @@ export function useTouchButton(
 }
 
 /**
- * Pull to refresh hook
+ * Implements a pull-to-refresh gesture, triggering a refresh callback when the user pulls down from the top of the page past a configurable threshold.
+ *
+ * @param onRefresh - Callback invoked when the pull distance exceeds the threshold; supports both synchronous and asynchronous operations.
+ * @returns An object containing `isRefreshing` (refresh in progress), `pullDistance` (current pull distance in pixels), `isActive` (whether a pull gesture is active), `progress` (pull progress ratio from 0 to 1), and touch event handlers.
  */
 export function usePullToRefresh(
   onRefresh: () => void | Promise<void>,

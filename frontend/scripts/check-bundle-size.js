@@ -34,7 +34,8 @@ const log = {
 };
 
 /**
- * Get command line arguments
+ * Parses command-line arguments to extract the bundle size limit.
+ * @return {{limit: number}} An object containing the size limit in kilobytes, defaulting to 1000 if not specified.
  */
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -45,7 +46,10 @@ function parseArgs() {
 }
 
 /**
- * Get file size in KB
+ * Returns the size of the specified file in kilobytes.
+ * If the file does not exist or an error occurs, returns 0.
+ * @param {string} filePath - Path to the file.
+ * @return {number} File size in kilobytes, or 0 if unavailable.
  */
 function getFileSize(filePath) {
   try {
@@ -57,7 +61,9 @@ function getFileSize(filePath) {
 }
 
 /**
- * Get all JS files in dist directory
+ * Recursively scans the specified directory for JavaScript files (excluding source maps), returning their relative paths, sizes in KB, and full paths, sorted by descending size.
+ * @param {string} distPath - The root directory to scan for JavaScript bundle files.
+ * @return {Array<{path: string, size: number, fullPath: string}>} An array of file objects representing JavaScript files found in the directory.
  */
 function getDistFiles(distPath) {
   const files = [];
@@ -67,6 +73,9 @@ function getDistFiles(distPath) {
     return files;
   }
   
+  /**
+   * Recursively scans a directory for JavaScript files (excluding source maps) and collects their relative paths, sizes in KB, and full paths into the `files` array.
+   */
   function walkDir(dir) {
     const items = fs.readdirSync(dir);
     
@@ -89,7 +98,10 @@ function getDistFiles(distPath) {
 }
 
 /**
- * Analyze mobile optimization file sizes
+ * Analyzes the sizes of key mobile optimization source files and reports if any exceed recommended thresholds.
+ *
+ * Checks specific mobile-related utility files for their individual and total sizes, logging warnings if any file exceeds 25KB or if the combined size exceeds 100KB. Returns an object containing the total size and an array of file size details.
+ * @returns {{ totalMobileSize: number, mobileFileSizes: Array<{ file: string, size: number }> }} The total size of mobile optimization files and their individual sizes.
  */
 function analyzeMobileOptimizations() {
   const mobileFiles = [
@@ -129,7 +141,11 @@ function analyzeMobileOptimizations() {
 }
 
 /**
- * Analyze bundle chunks
+ * Analyzes JavaScript bundle chunks to determine total size, identify chunks exceeding the specified size limit, and report the largest chunks.
+ *
+ * @param {Array<Object>} files - Array of file objects representing JavaScript bundle chunks, each with `size` (in KB) and `path`.
+ * @param {number} limit - Maximum allowed size for a single chunk in KB.
+ * @return {Object} An object containing the total bundle size (`totalSize`), an array of violating chunks (`violations`), and all chunk details (`chunks`).
  */
 function analyzeBundleChunks(files, limit) {
   log.header('📦 Bundle Chunk Analysis');
@@ -165,7 +181,13 @@ function analyzeBundleChunks(files, limit) {
 }
 
 /**
- * Identify optimization opportunities
+ * Identifies large or potentially unoptimized JavaScript bundle files and suggests optimization strategies.
+ *
+ * Analyzes the provided list of bundle files to detect large vendor chunks, animation libraries, and map-related files that exceed certain size thresholds relative to the specified limit. Returns an array of detected optimization opportunities, each including the affected files and a suggestion for improvement.
+ *
+ * @param {Array<{path: string, size: number}>} files - List of bundle file objects with path and size in KB.
+ * @param {number} limit - The size limit in KB used to determine optimization thresholds.
+ * @return {Array<Object>} Array of optimization opportunity objects, each containing type, files, and suggestion.
  */
 function identifyOptimizations(files, limit) {
   log.header('🎯 Optimization Opportunities');
@@ -232,7 +254,9 @@ function identifyOptimizations(files, limit) {
 }
 
 /**
- * Generate bundle report
+ * Generates a JSON report summarizing bundle size analysis, including violations, mobile optimization size, and recommendations, and saves it to the dist directory.
+ * @param {Object} analysis - The analysis results containing bundle and mobile optimization data.
+ * @return {Object} The generated report object.
  */
 function generateReport(analysis) {
   const { limit } = parseArgs();
@@ -282,7 +306,7 @@ function generateReport(analysis) {
 }
 
 /**
- * Main function
+ * Orchestrates the bundle size analysis workflow, including argument parsing, mobile optimization checks, bundle chunk analysis, optimization identification, report generation, and final status logging. Exits the process with code 0 if all checks pass, or 1 if violations or excessive mobile optimization size are detected.
  */
 function main() {
   const { limit } = parseArgs();

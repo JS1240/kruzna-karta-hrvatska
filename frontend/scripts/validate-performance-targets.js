@@ -104,7 +104,10 @@ const VALIDATION_CONFIG = {
 };
 
 /**
- * Parse command line arguments
+ * Parses command-line arguments to configure validation options.
+ *
+ * Recognizes device type, scenario, test duration, iteration count, strict mode, verbosity, and output control flags.
+ * @return {Object} An options object containing the parsed configuration for validation.
  */
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -147,7 +150,13 @@ function parseArgs() {
 }
 
 /**
- * Validate performance targets for a device type
+ * Runs performance validation tests for a specified device type across selected scenarios and iterations.
+ *
+ * Executes each scenario for the given device type, simulating performance metrics and evaluating them against predefined targets. Aggregates results, calculates the overall pass rate, displays detailed and summary output, and returns whether the device met the required validation threshold.
+ *
+ * @param {string} deviceType - The device type to validate (e.g., 'desktop', 'mobile', 'tablet').
+ * @param {object} options - Validation options including scenario selection, iteration count, duration override, strictness, verbosity, and output control.
+ * @return {Promise<boolean>} True if the device meets the required pass rate; otherwise, false.
  */
 async function validateDevicePerformance(deviceType, options) {
   log.header(`🎯 Validating ${deviceType.toUpperCase()} Performance Targets`);
@@ -212,7 +221,16 @@ async function validateDevicePerformance(deviceType, options) {
 }
 
 /**
- * Run individual performance validation test
+ * Simulates and evaluates a single performance validation test for a given device type and scenario.
+ *
+ * Generates realistic performance metrics with random variation, checks compliance against target thresholds for FPS, frame time, and memory usage, and returns detailed test results including pass/fail status and any issues detected.
+ *
+ * @param {string} deviceType - The type of device being tested (e.g., 'desktop', 'mobile', 'tablet').
+ * @param {Object} scenario - The test scenario configuration.
+ * @param {Object} targets - The performance targets for the device.
+ * @param {number} duration - The duration of the test in milliseconds.
+ * @param {Object} options - Additional options for the test run.
+ * @return {Object} An object containing test details, measured metrics, compliance status, pass/fail result, issues, and timestamp.
  */
 async function runPerformanceValidation(deviceType, scenario, targets, duration, options) {
   log.info(`  🧪 Testing: ${scenario.description}`);
@@ -276,7 +294,13 @@ async function runPerformanceValidation(deviceType, scenario, targets, duration,
 }
 
 /**
- * Calculate expected performance for device/scenario combination
+ * Computes the expected FPS and memory usage for a given device type and test scenario.
+ *
+ * Applies device and scenario-specific multipliers to baseline performance targets to estimate expected metrics.
+ *
+ * @param {string} deviceType - The type of device (e.g., 'desktop', 'tablet', 'mobile').
+ * @param {Object} scenario - The test scenario object, expected to have a `name` property.
+ * @return {{fps: number, memory: number}} The expected frames per second and memory usage for the device/scenario combination.
  */
 function calculateExpectedPerformance(deviceType, scenario) {
   // Base performance by device type
@@ -307,7 +331,9 @@ function calculateExpectedPerformance(deviceType, scenario) {
 }
 
 /**
- * Display test result
+ * Displays the result of a single performance test, including metrics and issues if verbose mode is enabled or the test failed.
+ * @param {Object} result - The test result object containing scenario name, metrics, compliance status, pass/fail status, and issues.
+ * @param {boolean} verbose - Whether to display detailed metrics and issues regardless of pass/fail status.
  */
 function displayTestResult(result, verbose) {
   const statusIcon = result.passed ? '✅' : '❌';
@@ -332,7 +358,13 @@ function displayTestResult(result, verbose) {
 }
 
 /**
- * Display validation summary
+ * Displays a summary of performance validation results for a specific device type, including test counts, pass rate, key performance metrics, and overall pass/fail status.
+ * 
+ * @param {string} deviceType - The device type being validated (e.g., 'desktop', 'mobile', 'tablet').
+ * @param {Array} results - Array of test result objects containing metrics and pass/fail status.
+ * @param {number} passRate - The percentage of tests that passed.
+ * @param {boolean} overallPassed - Whether the device met the required pass threshold.
+ * @param {Object} options - Validation options, including strict mode and verbosity.
  */
 function displayValidationSummary(deviceType, results, passRate, overallPassed, options) {
   log.header(`📊 ${deviceType.toUpperCase()} Validation Summary`);
@@ -365,7 +397,9 @@ function displayValidationSummary(deviceType, results, passRate, overallPassed, 
 }
 
 /**
- * Run comprehensive validation
+ * Runs performance validation across all specified device types and scenarios, aggregates results, displays summaries, and optionally saves a report.
+ * @param {Object} options - Validation and CLI configuration options.
+ * @return {Promise<boolean>} Resolves to true if all device types meet performance targets; otherwise, false.
  */
 async function runComprehensiveValidation(options) {
   log.header('🚀 Performance Targets Validation');
@@ -420,7 +454,9 @@ async function runComprehensiveValidation(options) {
 }
 
 /**
- * Save validation results
+ * Saves the validation results and configuration to a timestamped JSON report file.
+ * 
+ * Creates the output directory if it does not exist. Logs a success message on completion or a warning if saving fails.
  */
 async function saveValidationResults(results, options) {
   try {
@@ -454,7 +490,7 @@ async function saveValidationResults(results, options) {
 }
 
 /**
- * Show help
+ * Displays usage instructions and available command-line options for the performance validation tool.
  */
 function showHelp() {
   console.log(`
@@ -497,14 +533,18 @@ ${colors.cyan}Examples:${colors.reset}
 }
 
 /**
- * Utility delay function
+ * Returns a Promise that resolves after a specified number of milliseconds.
+ * @param {number} ms - The delay duration in milliseconds.
+ * @return {Promise<void>} A Promise that resolves after the delay.
  */
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
- * Main validation function
+ * Entry point for the performance validation CLI tool.
+ *
+ * Parses command-line arguments, displays help if requested, and runs comprehensive performance validation across selected devices and scenarios. Exits the process with code 0 on success or 1 on failure. Logs errors and stack traces if validation fails and verbose mode is enabled.
  */
 async function main() {
   const options = parseArgs();
