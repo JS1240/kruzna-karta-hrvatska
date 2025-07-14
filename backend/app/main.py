@@ -65,25 +65,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Kruzna Karta Hrvatska API",
-    description="Backend API for Croatian Events Platform",
-    version="1.0.0",
-    debug=settings.debug,
+    title=settings.api.title,
+    description=settings.api.description,
+    version=settings.api.version,
+    debug=settings.api.debug,
     lifespan=lifespan,
 )
 
 # Custom CORS middleware to handle OPTIONS requests before route validation
 app.add_middleware(
     CustomCORSMiddleware,
-    allow_origins=[
-        settings.frontend_url,
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
-    allow_headers=["*"],
+    allow_origins=settings.api.cors_origins + [settings.frontend_url],
+    allow_credentials=settings.api.cors_credentials,
+    allow_methods=settings.api.cors_methods,
+    allow_headers=settings.api.cors_headers,
     expose_headers=["*"],
     max_age=600,
 )

@@ -183,16 +183,8 @@ docker-clean: ## Clean Docker containers and images
 	@docker system prune -f
 	@echo "$(GREEN)✓ Docker cleaned$(NC)"
 
-##@ Production Deployment
-deploy-staging: ## Deploy to staging environment
-	@echo "$(GREEN)Deploying to staging...$(NC)"
-	@docker compose -f docker-compose.yml -f docker-compose.staging.yml up --build -d
-	@echo "$(GREEN)✓ Deployed to staging$(NC)"
-
-deploy-prod: ## Deploy to production environment
-	@echo "$(GREEN)Deploying to production...$(NC)"
-	@docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
-	@echo "$(GREEN)✓ Deployed to production$(NC)"
+# Production deployment targets removed for streamlined development
+# These can be re-added when production deployment is needed
 
 ##@ Maintenance
 clean: ## Clean build artifacts and dependencies

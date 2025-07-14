@@ -10,7 +10,7 @@ import os
 import re
 import secrets
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -264,7 +264,7 @@ class SecurityHardening:
                 "table_name": table_name,
                 "record_id": record_id,
                 "ip_address": ip_address,
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(timezone.utc),
                 "session_id": self._get_current_session_id(),
             }
 
@@ -431,8 +431,8 @@ class GDPRCompliance:
                     "Regular compliance audits",
                     "Privacy by design principles",
                 ],
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
         ]
 
@@ -587,7 +587,7 @@ class GDPRCompliance:
                 "status": "completed",
                 "data": user_data,
                 "request_id": request.request_id,
-                "processed_at": datetime.utcnow().isoformat(),
+                "processed_at": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -629,7 +629,7 @@ class GDPRCompliance:
                 ),
                 {
                     "anon_email": f"erased_user_{request.user_id}@anonymized.local",
-                    "erased_at": datetime.utcnow(),
+                    "erased_at": datetime.now(timezone.utc),
                     "user_id": request.user_id,
                 },
             )
@@ -646,7 +646,7 @@ class GDPRCompliance:
                 ),
                 {
                     "user_id": request.user_id,
-                    "cutoff_date": datetime.utcnow() - timedelta(days=30),
+                    "cutoff_date": datetime.now(timezone.utc) - timedelta(days=30),
                 },
             )
             erasure_actions.append("Old interaction data deleted")
@@ -688,7 +688,7 @@ class GDPRCompliance:
                 {
                     "user_id": request.user_id,
                     "request_id": request.request_id,
-                    "erased_at": datetime.utcnow(),
+                    "erased_at": datetime.now(timezone.utc),
                     "actions": json.dumps(erasure_actions),
                 },
             )
@@ -700,7 +700,7 @@ class GDPRCompliance:
                 "status": "completed",
                 "actions": erasure_actions,
                 "request_id": request.request_id,
-                "processed_at": datetime.utcnow().isoformat(),
+                "processed_at": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -722,7 +722,7 @@ class GDPRCompliance:
                 ),
                 {
                     "user_id": user_id,
-                    "retention_cutoff": datetime.utcnow()
+                    "retention_cutoff": datetime.now(timezone.utc)
                     - timedelta(days=2555),  # 7 years
                 },
             ).fetchone()
@@ -770,7 +770,7 @@ class GDPRCompliance:
             portable_data = {
                 "export_info": {
                     "platform": "Kruzna Karta Hrvatska",
-                    "export_date": datetime.utcnow().isoformat(),
+                    "export_date": datetime.now(timezone.utc).isoformat(),
                     "format": "JSON",
                     "version": "1.0",
                 },
@@ -782,7 +782,7 @@ class GDPRCompliance:
                 "data": portable_data,
                 "format": "JSON",
                 "request_id": request.request_id,
-                "processed_at": datetime.utcnow().isoformat(),
+                "processed_at": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -821,7 +821,7 @@ class GDPRCompliance:
                 WHERE id = :user_id
             """
                 ),
-                {"restriction_date": datetime.utcnow(), "user_id": request.user_id},
+                {"restriction_date": datetime.now(timezone.utc), "user_id": request.user_id},
             )
 
             # Log restriction
@@ -835,7 +835,7 @@ class GDPRCompliance:
                 {
                     "user_id": request.user_id,
                     "request_id": request.request_id,
-                    "restricted_at": datetime.utcnow(),
+                    "restricted_at": datetime.now(timezone.utc),
                 },
             )
 
@@ -846,7 +846,7 @@ class GDPRCompliance:
                 "status": "completed",
                 "message": "Processing restriction applied",
                 "request_id": request.request_id,
-                "processed_at": datetime.utcnow().isoformat(),
+                "processed_at": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -863,7 +863,7 @@ class GDPRCompliance:
             cleanup_actions = []
 
             # Clean up old analytics data (90 days retention)
-            cutoff_analytics = datetime.utcnow() - timedelta(
+            cutoff_analytics = datetime.now(timezone.utc) - timedelta(
                 days=DataRetentionPeriod.ANALYTICS_DATA.value
             )
 
@@ -890,7 +890,7 @@ class GDPRCompliance:
             cleanup_actions.append(f"Deleted {result.rowcount} old user interactions")
 
             # Clean up old session data (30 days retention)
-            cutoff_sessions = datetime.utcnow() - timedelta(
+            cutoff_sessions = datetime.now(timezone.utc) - timedelta(
                 days=DataRetentionPeriod.SESSION_DATA.value
             )
 
@@ -906,7 +906,7 @@ class GDPRCompliance:
             cleanup_actions.append(f"Deleted {result.rowcount} old user sessions")
 
             # Clean up temporary data (7 days retention)
-            cutoff_temp = datetime.utcnow() - timedelta(
+            cutoff_temp = datetime.now(timezone.utc) - timedelta(
                 days=DataRetentionPeriod.TEMPORARY_DATA.value
             )
 
@@ -922,7 +922,7 @@ class GDPRCompliance:
             cleanup_actions.append(f"Deleted {result.rowcount} old search logs")
 
             # Anonymize old audit logs (keep structure but remove personal data)
-            cutoff_audit = datetime.utcnow() - timedelta(days=365)  # 1 year
+            cutoff_audit = datetime.now(timezone.utc) - timedelta(days=365)  # 1 year
 
             result = db.execute(
                 text(
@@ -948,7 +948,7 @@ class GDPRCompliance:
             return {
                 "status": "completed",
                 "actions": cleanup_actions,
-                "cleanup_date": datetime.utcnow().isoformat(),
+                "cleanup_date": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -997,7 +997,7 @@ class GDPRCompliance:
                 GROUP BY request_type
             """
                 ),
-                {"since_date": datetime.utcnow() - timedelta(days=30)},
+                {"since_date": datetime.now(timezone.utc) - timedelta(days=30)},
             ).fetchall()
 
             stats["recent_requests"] = {row.request_type: row.count for row in result}
@@ -1006,7 +1006,7 @@ class GDPRCompliance:
             retention_status = []
 
             for inventory_item in self.data_inventory:
-                cutoff_date = datetime.utcnow() - timedelta(
+                cutoff_date = datetime.now(timezone.utc) - timedelta(
                     days=inventory_item.retention_days
                 )
 
@@ -1033,7 +1033,7 @@ class GDPRCompliance:
             db.close()
 
             return {
-                "report_date": datetime.utcnow().isoformat(),
+                "report_date": datetime.now(timezone.utc).isoformat(),
                 "statistics": stats,
                 "data_inventory": [
                     {

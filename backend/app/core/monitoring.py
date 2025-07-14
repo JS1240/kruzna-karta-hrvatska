@@ -215,7 +215,7 @@ class PrometheusMonitoring:
             {
                 "version": "1.0.0",
                 "environment": os.getenv("ENVIRONMENT", "development"),
-                "database": settings.db_name,
+                "database": settings.database.name,
                 "python_version": "3.11",
             }
         )
@@ -269,14 +269,14 @@ class PrometheusMonitoring:
         # Metrics collection state
         self.last_collection_time = datetime.now()
         self.collection_interval = 30  # seconds
-        self.enabled = os.getenv("MONITORING_ENABLED", "true").lower() == "true"
+        self.enabled = settings.monitoring.enable_metrics
 
         # Cached database metrics and refresh settings
         # Metrics are refreshed only after this interval (default 60s) to avoid
         # excessive database queries. Adjust via DB_METRICS_REFRESH_INTERVAL
         # environment variable.
         self.db_metrics_refresh_interval = int(
-            os.getenv("DB_METRICS_REFRESH_INTERVAL", "60")
+            settings.monitoring.health_check_interval
         )  # seconds
         self.db_metrics_cache: Optional[DatabaseMetrics] = None
         self.db_metrics_last_updated = datetime.min
@@ -315,7 +315,7 @@ class PrometheusMonitoring:
                 GROUP BY state
             """
                 ),
-                {"db_name": settings.db_name},
+                {"db_name": settings.database.name},
             ).fetchall()
 
             active_connections = 0
@@ -337,7 +337,7 @@ class PrometheusMonitoring:
                 SELECT pg_database_size(:db_name) as size_bytes
             """
                 ),
-                {"db_name": settings.db_name},
+                {"db_name": settings.database.name},
             ).fetchone()
 
             database_size_bytes = db_size_result.size_bytes if db_size_result else 0
@@ -353,7 +353,7 @@ class PrometheusMonitoring:
                 WHERE dbid = (SELECT oid FROM pg_database WHERE datname = :db_name)
             """
                 ),
-                {"db_name": settings.db_name},
+                {"db_name": settings.database.name},
             ).fetchone()
 
             total_queries = (
@@ -434,7 +434,7 @@ class PrometheusMonitoring:
                 WHERE datname = :db_name
             """
                 ),
-                {"db_name": settings.db_name},
+                {"db_name": settings.database.name},
             ).fetchone()
 
             temp_files = (

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -240,7 +240,7 @@ def forgot_password(
     # Create password reset token
     reset_token = create_password_reset_token(user.email)
     user.password_reset_token = reset_token
-    user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+    user.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=1)
     db.commit()
 
     # Send reset email
@@ -265,7 +265,7 @@ def reset_password(reset_data: PasswordResetConfirm, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="User not found")
 
     # Check if token hasn't expired (double check)
-    if user.password_reset_expires and user.password_reset_expires < datetime.utcnow():
+    if user.password_reset_expires and user.password_reset_expires < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset token expired")
 
     # Update password

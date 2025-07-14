@@ -177,20 +177,22 @@ class VenueResponse(BaseModel):
 
 # Search and Filter Schemas
 class EventSearchParams(BaseModel):
-    q: Optional[str] = None  # Search query
-    category_id: Optional[int] = None
-    venue_id: Optional[int] = None
-    city: Optional[str] = None
-    date_from: Optional[date] = None
-    date_to: Optional[date] = None
-    is_featured: Optional[bool] = None
-    event_status: Optional[str] = "active"
-    tags: Optional[List[str]] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    radius_km: Optional[float] = None  # Search radius in kilometers
-    page: int = Field(default=1, ge=1)
-    size: int = Field(default=20, ge=1, le=100)
+    q: Optional[str] = Field(None, description="Search query for full-text search")
+    category_id: Optional[int] = Field(None, description="Filter by category ID")
+    venue_id: Optional[int] = Field(None, description="Filter by venue ID")
+    city: Optional[str] = Field(None, description="Filter by city")
+    date_from: Optional[date] = Field(None, description="Filter events from this date")
+    date_to: Optional[date] = Field(None, description="Filter events until this date")
+    is_featured: Optional[bool] = Field(None, description="Filter featured events")
+    event_status: Optional[str] = Field("active", description="Filter by event status")
+    tags: Optional[List[str]] = Field(None, description="Filter by tags")
+    latitude: Optional[float] = Field(None, description="Latitude for geographic search")
+    longitude: Optional[float] = Field(None, description="Longitude for geographic search")
+    radius_km: Optional[float] = Field(None, description="Search radius in kilometers")
+    language: Optional[str] = Field(None, description="Language code for translations")
+    page: int = Field(default=1, ge=1, description="Page number")
+    size: int = Field(default=20, ge=1, le=100, description="Page size")
+    use_cache: bool = Field(default=True, description="Use cached results for better performance")
 
 
 class VenueSearchParams(BaseModel):

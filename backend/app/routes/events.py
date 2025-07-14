@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 logger = logging.getLogger(__name__)
 
 from ..core.database import get_db
+from ..core.events_service import EventsService
 from ..core.performance import PerformanceService, get_performance_service
 from ..core.translation import (
     DEFAULT_LANGUAGE,
@@ -46,51 +47,32 @@ def get_language_from_header(accept_language: Optional[str] = Header(None)) -> s
 
 @router.get("/", response_model=EventResponse)
 def get_events(
-    q: Optional[str] = Query(None, description="Search query for full-text search"),
-    category_id: Optional[int] = Query(None, description="Filter by category ID"),
-    venue_id: Optional[int] = Query(None, description="Filter by venue ID"),
-    city: Optional[str] = Query(None, description="Filter by city"),
-    date_from: Optional[date] = Query(None, description="Filter events from this date"),
-    date_to: Optional[date] = Query(None, description="Filter events until this date"),
-    is_featured: Optional[bool] = Query(None, description="Filter featured events"),
-    event_status: Optional[str] = Query("active", description="Filter by event status"),
-    tags: Optional[List[str]] = Query(None, description="Filter by tags"),
-    latitude: Optional[float] = Query(
-        None, description="Latitude for geographic search"
-    ),
-    longitude: Optional[float] = Query(
-        None, description="Longitude for geographic search"
-    ),
-    radius_km: Optional[float] = Query(None, description="Search radius in kilometers"),
-    language: Optional[str] = Query(None, description="Language code for translations"),
-    page: int = Query(1, ge=1, description="Page number"),
-    size: int = Query(20, ge=1, le=100, description="Page size"),
-    use_cache: bool = Query(
-        True, description="Use cached results for better performance"
-    ),
+    search_params: EventSearchParams = Depends(),
     accept_language: Optional[str] = Header(None),
     db: Session = Depends(get_db),
     performance_service: PerformanceService = Depends(get_performance_service),
+    translation_service: TranslationService = Depends(get_translation_service),
 ):
     """Get events with comprehensive filtering, search, and geographic queries (optimized with caching)."""
-
-    # Determine language for translations
-    if not language:
-        language = get_language_from_header(accept_language)
-
-    # Use optimized service for simple queries (no search, no geographic filtering)
-    if use_cache and not q and latitude is None and longitude is None and not tags:
+    
+    # Create events service
+    events_service = EventsService(db, translation_service)
+    
+    # Use optimized performance service for simple queries (no search, no geographic filtering)
+    if (search_params.use_cache and not search_params.q and 
+        search_params.latitude is None and search_params.longitude is None and 
+        not search_params.tags):
         try:
             result = performance_service.get_events_optimized(
-                page=page,
-                size=size,
-                category_id=category_id,
-                venue_id=venue_id,
-                city=city,
-                date_from=date_from,
-                date_to=date_to,
-                is_featured=is_featured,
-                language=language,
+                page=search_params.page,
+                size=search_params.size,
+                category_id=search_params.category_id,
+                venue_id=search_params.venue_id,
+                city=search_params.city,
+                date_from=search_params.date_from,
+                date_to=search_params.date_to,
+                is_featured=search_params.is_featured,
+                language=search_params.language,
             )
 
             return EventResponse(
@@ -104,63 +86,8 @@ def get_events(
             # Fallback to non-cached version
             logger.warning(f"Cache fallback for events: {e}")
 
-    # Original non-cached implementation for complex queries
-    query = db.query(Event).options(joinedload(Event.category), joinedload(Event.venue))
-
-    # Apply filters
-    if q:
-        query = query.filter(Event.search_vector.match(q))
-
-    if category_id:
-        query = query.filter(Event.category_id == category_id)
-
-    if venue_id:
-        query = query.filter(Event.venue_id == venue_id)
-
-    if city:
-        query = query.filter(Event.location.ilike(f"%{city}%"))
-
-    if date_from:
-        query = query.filter(Event.date >= date_from)
-
-    if date_to:
-        query = query.filter(Event.date <= date_to)
-
-    if is_featured is not None:
-        query = query.filter(Event.is_featured == is_featured)
-
-    if event_status:
-        query = query.filter(Event.event_status == event_status)
-
-    if tags:
-        for tag in tags:
-            query = query.filter(Event.tags.any(tag))
-
-    # Geographic filtering
-    if latitude is not None and longitude is not None and radius_km is not None:
-        query = query.filter(
-            func.earth_distance(
-                func.ll_to_earth(Event.latitude, Event.longitude),
-                func.ll_to_earth(latitude, longitude),
-            )
-            <= radius_km * 1000
-        )
-
-    # Get total count and apply pagination
-    total = query.count()
-    skip = (page - 1) * size
-    pages = (total + size - 1) // size if total > 0 else 0
-
-    events = (
-        query.order_by(Event.is_featured.desc(), Event.date.asc(), Event.time.asc())
-        .offset(skip)
-        .limit(size)
-        .all()
-    )
-
-    return EventResponse(
-        events=events, total=total, page=page, size=len(events), pages=pages
-    )
+    # Use events service for all other queries
+    return events_service.search_events(search_params, accept_language)
 
 
 @router.get("/featured", response_model=EventResponse)

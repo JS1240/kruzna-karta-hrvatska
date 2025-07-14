@@ -3,7 +3,7 @@ Stripe payment processing service for event bookings.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, Optional
 
@@ -226,7 +226,7 @@ class StripeService:
                 "reason": reason,
                 "metadata": {
                     "original_payment_intent": payment_intent_id,
-                    "refund_timestamp": datetime.utcnow().isoformat(),
+                    "refund_timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             }
 

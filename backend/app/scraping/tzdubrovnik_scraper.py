@@ -14,23 +14,29 @@ from bs4 import BeautifulSoup, Tag
 
 from ..models.schemas import EventCreate
 
-# Bright Data configuration (shared across scrapers)
-USER = os.getenv("BRIGHTDATA_USER", "demo_user")
-PASSWORD = os.getenv("BRIGHTDATA_PASSWORD", "demo_password")
-BRIGHTDATA_HOST_RES = "brd.superproxy.io"
-BRIGHTDATA_PORT = int(os.getenv("BRIGHTDATA_PORT", 22225))
-SCRAPING_BROWSER_EP = f"https://{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
-PROXY = f"http://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
+# Import configuration
+from ..config.components import get_settings
 
-USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
-USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
+# Get global configuration
+_settings = get_settings()
+_scraping_config = _settings.scraping
+
+# BrightData configuration
+USER = _scraping_config.brightdata_user
+PASSWORD = _scraping_config.brightdata_password
+BRIGHTDATA_HOST_RES = _scraping_config.brightdata_host
+BRIGHTDATA_PORT = _scraping_config.brightdata_port
+SCRAPING_BROWSER_EP = _scraping_config.scraping_browser_endpoint
+PROXY = _scraping_config.proxy_url
+
+USE_SB = _scraping_config.use_scraping_browser
+USE_PROXY = _scraping_config.use_proxy
+
+HEADERS = _scraping_config.headers_dict
 
 BASE_URL = "https://visitdubrovnik.hr"
 EVENTS_URL = f"{BASE_URL}/attractions/event-calendar/"
 
-HEADERS = {
-    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0",
-}
 
 
 class DubrovnikTransformer:

@@ -20,6 +20,7 @@ from ..scraping.visitkarlovac_scraper import scrape_visitkarlovac_events
 from ..scraping.visitopatija_scraper import scrape_visitopatija_events
 from ..scraping.visitrijeka_scraper import scrape_visitrijeka_events
 from ..scraping.visitsplit_scraper import scrape_visitsplit_events
+from ..scraping.visitvarazdin_scraper import scrape_visitvarazdin_events
 from ..scraping.vukovar_scraper import scrape_vukovar_events
 from ..scraping.zadar_scraper import scrape_zadar_events
 
@@ -46,7 +47,7 @@ class EnhancedScrapeRequest(BaseModel):
 
 
 class SingleSourceRequest(BaseModel):
-    source: str  # "entrio", "croatia", "ulaznice", "infozagreb", "vukovar", "visitkarlovac", "visitopatija", "visitrijeka", "visitsplit", "zadar" or "tzdubrovnik"
+    source: str  # "entrio", "croatia", "ulaznice", "infozagreb", "vukovar", "visitkarlovac", "visitopatija", "visitvarazdin", "visitrijeka", "visitsplit", "zadar" or "tzdubrovnik"
 
     max_pages: int = 5
     quality_threshold: float = 60.0
@@ -441,6 +442,52 @@ async def quick_scrape_visitopatija(
         )
 
 
+@router.post("/visitvarazdin", response_model=ScrapeResponse)
+async def scrape_visitvarazdin(
+    request: ScrapeRequest, background_tasks: BackgroundTasks
+):
+    """Trigger VisitVarazdin.hr event scraping."""
+    try:
+        if request.max_pages <= 2:
+            result = await scrape_visitvarazdin_events(max_pages=request.max_pages)
+            return ScrapeResponse(**result)
+
+        import uuid
+
+        task_id = str(uuid.uuid4())
+
+        async def run_vv_scrape():
+            return await scrape_visitvarazdin_events(max_pages=request.max_pages)
+
+        background_tasks.add_task(run_vv_scrape)
+
+        return ScrapeResponse(
+            status="accepted",
+            message=f"VisitVarazdin scraping task started in background for {request.max_pages} pages",
+            task_id=task_id,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to start VisitVarazdin scraping: {str(e)}"
+        )
+
+
+@router.get("/visitvarazdin/quick", response_model=ScrapeResponse)
+async def quick_scrape_visitvarazdin(
+    max_pages: int = Query(
+        1, ge=1, le=3, description="Number of pages to scrape (1-3 for quick scraping)"
+    )
+):
+    """Quick VisitVarazdin.hr scraping."""
+    try:
+        result = await scrape_visitvarazdin_events(max_pages=max_pages)
+        return ScrapeResponse(**result)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"VisitVarazdin scraping failed: {str(e)}"
+        )
+
+
 @router.post("/visitsplit", response_model=ScrapeResponse)
 async def scrape_visitsplit(request: ScrapeRequest, background_tasks: BackgroundTasks):
     """Trigger VisitSplit.com event scraping."""
@@ -618,6 +665,12 @@ async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundT
                 )
                 results.append(("VisitOpatija.com", opatija_result))
 
+                # Scrape VisitVarazdin.hr
+                varazdin_result = await scrape_visitvarazdin_events(
+                    max_pages=request.max_pages
+                )
+                results.append(("VisitVarazdin.hr", varazdin_result))
+
                 # Scrape Ulaznice.hr
                 ulaznice_result = await scrape_ulaznice_events(
                     max_pages=request.max_pages
@@ -694,14 +747,18 @@ async def scrape_all_sites(request: ScrapeRequest, background_tasks: BackgroundT
 @router.get("/status")
 async def scraping_status():
     """Get scraping system status and configuration."""
-    import os
+    from ..config.components import get_settings
+    
+    settings = get_settings()
+    scraping_config = settings.scraping
 
     config = {
-        "use_proxy": os.getenv("USE_PROXY", "0") == "1",
-        "use_playwright": os.getenv("USE_PLAYWRIGHT", "1") == "1",
-        "use_scraping_browser": os.getenv("USE_SCRAPING_BROWSER", "0") == "1",
-        "brightdata_configured": bool(os.getenv("BRIGHTDATA_USER"))
-        and bool(os.getenv("BRIGHTDATA_PASSWORD")),
+        "use_proxy": scraping_config.use_proxy,
+        "use_playwright": scraping_config.use_playwright,
+        "use_scraping_browser": scraping_config.use_scraping_browser,
+        "brightdata_configured": bool(scraping_config.brightdata_user)
+        and bool(scraping_config.brightdata_password)
+        and scraping_config.brightdata_user != "demo_user",
     }
 
     return {
@@ -715,6 +772,7 @@ async def scraping_status():
             "turizamvukovar.hr",
             "visitkarlovac.hr",
             "visitopatija.com",
+            "visitvarazdin.hr",
             "visitrijeka.hr",
             "visitsplit.com",
             "zadar.travel",
@@ -737,6 +795,8 @@ async def scraping_status():
             "GET /scraping/visitkarlovac/quick": "VisitKarlovac.hr quick scraping (1-3 pages)",
             "POST /scraping/visitopatija": "VisitOpatija.com full scraping with background processing",
             "GET /scraping/visitopatija/quick": "VisitOpatija.com quick scraping (1-3 pages)",
+            "POST /scraping/visitvarazdin": "VisitVarazdin.hr full scraping with background processing",
+            "GET /scraping/visitvarazdin/quick": "VisitVarazdin.hr quick scraping (1-3 pages)",
             "POST /scraping/visitsplit": "VisitSplit.com full scraping with background processing",
             "GET /scraping/visitsplit/quick": "VisitSplit.com quick scraping (1-3 pages)",
             "POST /scraping/zadar": "Zadar Travel full scraping with background processing",
@@ -844,7 +904,7 @@ async def enhanced_single_source_scraping(
 ):
     """
     Enhanced single-source scraping with quality validation.
-    Scrape from a single source (entrio, croatia, ulaznice, infozagreb, vukovar, visitkarlovac, visitopatija, visitrijeka, visitsplit, zadar or tzdubrovnik) with full quality pipeline:
+    Scrape from a single source (entrio, croatia, ulaznice, infozagreb, vukovar, visitkarlovac, visitopatija, visitvarazdin, visitrijeka, visitsplit, zadar or tzdubrovnik) with full quality pipeline:
     - Advanced data validation and cleaning
     - Duplicate detection against existing database
     - Quality scoring and filtering
@@ -859,6 +919,7 @@ async def enhanced_single_source_scraping(
             "vukovar",
             "visitkarlovac",
             "visitopatija",
+            "visitvarazdin",
             "visitrijeka",
             "visitsplit",
             "zadar",
@@ -866,7 +927,7 @@ async def enhanced_single_source_scraping(
         ]:
             raise HTTPException(
                 status_code=400,
-                detail="Source must be entrio, croatia, ulaznice, infozagreb, vukovar, visitkarlovac, visitopatija, visitrijeka, visitsplit, zadar or tzdubrovnik",
+                detail="Source must be entrio, croatia, ulaznice, infozagreb, vukovar, visitkarlovac, visitopatija, visitvarazdin, visitrijeka, visitsplit, zadar or tzdubrovnik",
             )
 
         import uuid

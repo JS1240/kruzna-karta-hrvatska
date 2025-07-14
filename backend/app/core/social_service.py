@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, asc, desc, func, or_, text
@@ -601,7 +601,7 @@ class SocialService:
         if is_event_organizer and not is_review_author:
             if "organizer_response" in update_data:
                 review.organizer_response = update_data["organizer_response"]
-                review.organizer_responded_at = datetime.utcnow()
+                review.organizer_responded_at = datetime.now(timezone.utc)
         elif is_review_author:
             # Authors can update their review content
             for field, value in update_data.items():
@@ -699,7 +699,7 @@ class SocialService:
         connection.status = response_data.status
 
         if response_data.status == ConnectionStatus.ACCEPTED:
-            connection.accepted_at = datetime.utcnow()
+            connection.accepted_at = datetime.now(timezone.utc)
 
             # Update connection counts
             self._update_user_connection_count(connection.requester_id, 1)
@@ -880,7 +880,7 @@ class SocialService:
             return False
 
         attendance.checked_in = True
-        attendance.check_in_time = datetime.utcnow()
+        attendance.check_in_time = datetime.now(timezone.utc)
         attendance.check_in_location = location
 
         self.db.commit()
@@ -924,7 +924,7 @@ class SocialService:
             return False
 
         notification.is_read = True
-        notification.read_at = datetime.utcnow()
+        notification.read_at = datetime.now(timezone.utc)
         self.db.commit()
         return True
 
@@ -938,7 +938,7 @@ class SocialService:
                     SocialNotification.is_read == False,
                 )
             )
-            .update({"is_read": True, "read_at": datetime.utcnow()})
+            .update({"is_read": True, "read_at": datetime.now(timezone.utc)})
         )
 
         self.db.commit()
@@ -1089,7 +1089,7 @@ class SocialService:
             if trend:
                 trend.usage_count += 1
                 trend.daily_usage += 1
-                trend.last_used = datetime.utcnow()
+                trend.last_used = datetime.now(timezone.utc)
             else:
                 trend = HashtagTrend(hashtag=hashtag, usage_count=1, daily_usage=1)
                 self.db.add(trend)

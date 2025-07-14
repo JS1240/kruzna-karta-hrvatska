@@ -1,11 +1,11 @@
 import secrets
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Union
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError, JWTClaimsError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
@@ -35,6 +35,21 @@ class AuthenticationError(HTTPException):
         )
 
 
+class TokenExpiredError(AuthenticationError):
+    def __init__(self, detail: str = "Token has expired"):
+        super().__init__(detail=detail)
+
+
+class InvalidTokenError(AuthenticationError):
+    def __init__(self, detail: str = "Invalid token"):
+        super().__init__(detail=detail)
+
+
+class TokenTypeError(AuthenticationError):
+    def __init__(self, detail: str = "Invalid token type"):
+        super().__init__(detail=detail)
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
     return pwd_context.verify(plain_password, hashed_password)
@@ -54,15 +69,16 @@ def generate_random_token(length: int = 32) -> str:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create an access token."""
     to_encode = data.copy()
+    now = datetime.now(timezone.utc)
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = now + timedelta(
             minutes=settings.access_token_expire_minutes
         )
 
     to_encode.update(
-        {"exp": expire, "type": ACCESS_TOKEN_TYPE, "iat": datetime.utcnow()}
+        {"exp": expire, "type": ACCESS_TOKEN_TYPE, "iat": now}
     )
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
@@ -70,68 +86,88 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create a refresh token."""
     to_encode = data.copy()
+    now = datetime.now(timezone.utc)
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(days=30)  # Refresh tokens last 30 days
+        expire = now + timedelta(days=30)  # Refresh tokens last 30 days
 
     to_encode.update(
-        {"exp": expire, "type": REFRESH_TOKEN_TYPE, "iat": datetime.utcnow()}
+        {"exp": expire, "type": REFRESH_TOKEN_TYPE, "iat": now}
     )
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
 def create_email_verification_token(email: str) -> str:
     """Create an email verification token."""
-    expire = datetime.utcnow() + timedelta(
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(
         hours=24
     )  # Email verification expires in 24 hours
     to_encode = {
         "email": email,
         "exp": expire,
         "type": EMAIL_VERIFICATION_TYPE,
-        "iat": datetime.utcnow(),
+        "iat": now,
     }
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
 def create_password_reset_token(email: str) -> str:
     """Create a password reset token."""
-    expire = datetime.utcnow() + timedelta(hours=1)  # Password reset expires in 1 hour
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(hours=1)  # Password reset expires in 1 hour
     to_encode = {
         "email": email,
         "exp": expire,
         "type": PASSWORD_RESET_TYPE,
-        "iat": datetime.utcnow(),
+        "iat": now,
     }
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
 def verify_token(token: str, expected_type: str) -> Optional[dict]:
-    """Verify and decode a token."""
+    """Verify and decode a token with proper error handling."""
     try:
         payload = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
         )
         if payload.get("type") != expected_type:
-            return None
+            raise TokenTypeError(f"Expected {expected_type} token")
         return payload
+    except ExpiredSignatureError:
+        raise TokenExpiredError()
+    except JWTClaimsError:
+        raise InvalidTokenError("Invalid token claims")
     except JWTError:
-        return None
+        raise InvalidTokenError("Token decode failed")
 
 
 def get_user_from_token(token: str, db: Session) -> Optional[User]:
     """Get user from access token."""
-    payload = verify_token(token, ACCESS_TOKEN_TYPE)
-    if payload is None:
-        return None
+    try:
+        payload = verify_token(token, ACCESS_TOKEN_TYPE)
+        if payload is None:
+            return None
 
-    user_id: int = payload.get("sub")
-    if user_id is None:
-        return None
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise InvalidTokenError("Missing user ID in token")
+        
+        # Validate user_id is an integer
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            raise InvalidTokenError("Invalid user ID format in token")
 
-    user = db.query(User).filter(User.id == user_id).first()
-    return user
+        user = db.query(User).filter(User.id == user_id).first()
+        return user
+    except (TokenExpiredError, InvalidTokenError, TokenTypeError):
+        # Let these specific auth errors bubble up
+        raise
+    except Exception as e:
+        # Convert any unexpected errors to InvalidTokenError
+        raise InvalidTokenError(f"Token validation failed: {str(e)}")
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
@@ -161,7 +197,7 @@ async def get_current_user(
         raise AuthenticationError("User account is disabled")
 
     # Update last login time
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
 
     return user

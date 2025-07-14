@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from math import asin, cos, radians, sin, sqrt
 from typing import Any, Dict, List, Optional, Tuple
@@ -492,7 +492,7 @@ class VenueManagementService:
             return False
 
         booking.booking_status = BookingStatus.CANCELLED
-        booking.cancelled_at = datetime.utcnow()
+        booking.cancelled_at = datetime.now(timezone.utc)
         booking.cancellation_reason = reason
 
         # Free up availability slots
@@ -590,7 +590,7 @@ class VenueManagementService:
 
         # Handle venue response
         if "venue_response" in update_data:
-            update_data["venue_responded_at"] = datetime.utcnow()
+            update_data["venue_responded_at"] = datetime.now(timezone.utc)
 
         for field, value in update_data.items():
             setattr(review, field, value)
@@ -648,9 +648,9 @@ class VenueManagementService:
         ).scalar() or Decimal("0")
 
         # Calculate occupancy rate (last 12 months)
-        year_ago = datetime.utcnow() - timedelta(days=365)
+        year_ago = datetime.now(timezone.utc) - timedelta(days=365)
         occupancy_rate = self._calculate_occupancy_rate(
-            venue_id, year_ago, datetime.utcnow()
+            venue_id, year_ago, datetime.now(timezone.utc)
         )
 
         # Most popular months
@@ -838,16 +838,16 @@ class VenueManagementService:
     ):
         """Handle booking status changes"""
         if new_status == BookingStatus.CONFIRMED:
-            booking.confirmed_at = datetime.utcnow()
+            booking.confirmed_at = datetime.now(timezone.utc)
         elif new_status == BookingStatus.COMPLETED:
-            booking.completed_at = datetime.utcnow()
+            booking.completed_at = datetime.now(timezone.utc)
             # Update venue statistics
             venue = booking.venue
             venue.total_bookings += 1
             venue.total_revenue = (
                 venue.total_revenue or Decimal("0")
             ) + booking.total_cost
-            venue.last_booking_at = datetime.utcnow()
+            venue.last_booking_at = datetime.now(timezone.utc)
 
     def _update_venue_rating(self, venue_id: int):
         """Update venue average rating and review count"""
