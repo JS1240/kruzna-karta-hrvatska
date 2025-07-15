@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bundle Size Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #374151;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            font-weight: 500;
+            color: #64748b;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .metric-change {
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+        }
+        
+        .metric-change.positive {
+            color: #dc2626;
+        }
+        
+        .metric-change.negative {
+            color: #16a34a;
+        }
+        
+        .metric-change.neutral {
+            color: #64748b;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-top: 1rem;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .alerts {
+            margin-top: 2rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+        
+        .alert.warning {
+            background: #fef3cd;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        
+        .alert.critical {
+            background: #fee2e2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+        
+        .alert.info {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1d4ed8;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-good {
+            background: #16a34a;
+        }
+        
+        .status-warning {
+            background: #f59e0b;
+        }
+        
+        .status-critical {
+            background: #dc2626;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #64748b;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📦 Bundle Size Dashboard</h1>
+        <p>Monitor and track your application's bundle size over time</p>
+    </div>
+    
+    <div class="container">
+        <div id="loading" class="loading">
+            <div>Loading bundle data...</div>
+        </div>
+        
+        <div id="error" class="error" style="display: none;">
+            <h3>Unable to load bundle data</h3>
+            <p>Make sure to run <code>npm run build</code> and generate monitoring reports.</p>
+        </div>
+        
+        <div id="dashboard" style="display: none;">
+            <div class="dashboard-grid">
+                <!-- Current Bundle Sizes -->
+                <div class="card">
+                    <h3>📊 Current Bundle Sizes</h3>
+                    <div id="current-sizes">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+                
+                <!-- Bundle Status -->
+                <div class="card">
+                    <h3>🚦 Bundle Status</h3>
+                    <div id="bundle-status">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+                
+                <!-- Size Trends Chart -->
+                <div class="card full-width">
+                    <h3>📈 Size Trends</h3>
+                    <div class="chart-container">
+                        <canvas id="trendsChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Chunk Breakdown Chart -->
+                <div class="card">
+                    <h3>🍰 Chunk Breakdown</h3>
+                    <div class="chart-container">
+                        <canvas id="chunksChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Recent Changes -->
+                <div class="card">
+                    <h3>📋 Recent Changes</h3>
+                    <div id="recent-changes">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alerts -->
+            <div id="alerts" class="alerts">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Bundle Size Dashboard - Generated automatically by bundle monitoring tools</p>
+        <p>Last updated: <span id="last-updated"></span></p>
+    </div>
+
+    <script>
+        // Dashboard functionality
+        class BundleDashboard {
+            constructor() {
+                this.data = null;
+                this.history = null;
+                this.alerts = null;
+                this.charts = {};
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    await this.loadData();
+                    this.render();
+                } catch (error) {
+                    this.showError();
+                    console.error('Dashboard initialization failed:', error);
+                }
+            }
+            
+            async loadData() {
+                // Try to load monitoring report
+                try {
+                    const reportResponse = await fetch('./bundle-monitor-report.json');
+                    if (reportResponse.ok) {
+                        this.data = await reportResponse.json();
+                    }
+                } catch (error) {
+                    console.warn('Could not load monitoring report');
+                }
+                
+                // Try to load history
+                try {
+                    const historyResponse = await fetch('./bundle-size-history.json');
+                    if (historyResponse.ok) {
+                        this.history = await historyResponse.json();
+                    }
+                } catch (error) {
+                    console.warn('Could not load bundle history');
+                }
+                
+                // Try to load alerts
+                try {
+                    const alertsResponse = await fetch('./bundle-alerts.json');
+                    if (alertsResponse.ok) {
+                        this.alerts = await alertsResponse.json();
+                    }
+                } catch (error) {
+                    console.warn('Could not load alerts');
+                }
+                
+                // If no data is available, show error
+                if (!this.data && !this.history) {
+                    throw new Error('No bundle data available');
+                }
+            }
+            
+            render() {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                
+                this.renderCurrentSizes();
+                this.renderBundleStatus();
+                this.renderRecentChanges();
+                this.renderAlerts();
+                this.renderCharts();
+                this.renderLastUpdated();
+            }
+            
+            renderCurrentSizes() {
+                const container = document.getElementById('current-sizes');
+                const sizes = this.data?.currentSizes || {};
+                
+                if (Object.keys(sizes).length === 0) {
+                    container.innerHTML = '<div class="metric"><span class="metric-label">No data available</span></div>';
+                    return;
+                }
+                
+                const sortedSizes = Object.entries(sizes)
+                    .sort((a, b) => b[1] - a[1]);
+                
+                container.innerHTML = sortedSizes
+                    .map(([name, size]) => `
+                        <div class="metric">
+                            <span class="metric-label">${name}</span>
+                            <span class="metric-value">${size} KB</span>
+                        </div>
+                    `).join('');
+            }
+            
+            renderBundleStatus() {
+                const container = document.getElementById('bundle-status');
+                const totalSize = this.data?.totalSize || 0;
+                const alerts = this.alerts || [];
+                
+                const criticalAlerts = alerts.filter(a => a.type === 'critical' && !a.resolved).length;
+                const warningAlerts = alerts.filter(a => a.type === 'warning' && !a.resolved).length;
+                
+                let status = 'good';
+                let statusText = 'Healthy';
+                
+                if (criticalAlerts > 0) {
+                    status = 'critical';
+                    statusText = 'Critical Issues';
+                } else if (warningAlerts > 0) {
+                    status = 'warning';
+                    statusText = 'Needs Attention';
+                }
+                
+                container.innerHTML = `
+                    <div class="metric">
+                        <span class="metric-label">Overall Status</span>
+                        <span class="metric-value">
+                            <span class="status-indicator status-${status}"></span>
+                            ${statusText}
+                        </span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Bundle Size</span>
+                        <span class="metric-value">${totalSize} KB</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Critical Alerts</span>
+                        <span class="metric-value">${criticalAlerts}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Warning Alerts</span>
+                        <span class="metric-value">${warningAlerts}</span>
+                    </div>
+                `;
+            }
+            
+            renderRecentChanges() {
+                const container = document.getElementById('recent-changes');
+                const changes = this.data?.changes || [];
+                
+                if (changes.length === 0) {
+                    container.innerHTML = '<div class="metric"><span class="metric-label">No recent changes</span></div>';
+                    return;
+                }
+                
+                container.innerHTML = changes
+                    .slice(0, 5) // Show top 5 changes
+                    .map(change => {
+                        const changeClass = change.change > 0 ? 'positive' : 
+                                          change.change < 0 ? 'negative' : 'neutral';
+                        const changeSymbol = change.change > 0 ? '+' : '';
+                        
+                        return `
+                            <div class="metric">
+                                <span class="metric-label">${change.chunk}</span>
+                                <span class="metric-value">
+                                    ${change.currentSize} KB
+                                    <span class="metric-change ${changeClass}">
+                                        ${changeSymbol}${change.change} KB
+                                    </span>
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+            }
+            
+            renderAlerts() {
+                const container = document.getElementById('alerts');
+                const alerts = (this.alerts || [])
+                    .filter(alert => !alert.resolved)
+                    .slice(0, 10); // Show last 10 unresolved alerts
+                
+                if (alerts.length === 0) {
+                    container.innerHTML = `
+                        <div class="alert info">
+                            <h4>✅ No Active Alerts</h4>
+                            <p>All bundle size metrics are within acceptable limits.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <h3>🚨 Active Alerts</h3>
+                    ${alerts.map(alert => `
+                        <div class="alert ${alert.type}">
+                            <h4>${alert.type.toUpperCase()}: ${alert.message}</h4>
+                            <p><small>${new Date(alert.timestamp).toLocaleString()}</small></p>
+                        </div>
+                    `).join('')}
+                `;
+            }
+            
+            renderCharts() {
+                this.renderTrendsChart();
+                this.renderChunksChart();
+            }
+            
+            renderTrendsChart() {
+                const ctx = document.getElementById('trendsChart').getContext('2d');
+                const history = this.history || [];
+                
+                if (history.length < 2) {
+                    ctx.canvas.parentElement.innerHTML = '<p style="text-align: center; color: #64748b;">Not enough data for trends</p>';
+                    return;
+                }
+                
+                const labels = history.map(entry => 
+                    new Date(entry.timestamp).toLocaleDateString()
+                );
+                
+                const totalSizes = history.map(entry => entry.totalSize);
+                const criticalSizes = history.map(entry => entry.criticalSize || 0);
+                
+                this.charts.trends = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Total Bundle Size',
+                                data: totalSizes,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.1,
+                                fill: true
+                            },
+                            {
+                                label: 'Critical Path Size',
+                                data: criticalSizes,
+                                borderColor: '#dc2626',
+                                backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                                tension: 0.1,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Size (KB)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            renderChunksChart() {
+                const ctx = document.getElementById('chunksChart').getContext('2d');
+                const sizes = this.data?.currentSizes || {};
+                
+                if (Object.keys(sizes).length === 0) {
+                    ctx.canvas.parentElement.innerHTML = '<p style="text-align: center; color: #64748b;">No chunk data available</p>';
+                    return;
+                }
+                
+                const sortedChunks = Object.entries(sizes)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 8); // Show top 8 chunks
+                
+                const colors = [
+                    '#3b82f6', '#ef4444', '#10b981', '#f59e0b',
+                    '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
+                ];
+                
+                this.charts.chunks = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: sortedChunks.map(([name]) => name),
+                        datasets: [{
+                            data: sortedChunks.map(([, size]) => size),
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            renderLastUpdated() {
+                const lastUpdated = document.getElementById('last-updated');
+                const timestamp = this.data?.timestamp || new Date().toISOString();
+                lastUpdated.textContent = new Date(timestamp).toLocaleString();
+            }
+            
+            showError() {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new BundleDashboard();
+        });
+    </script>
+</body>
+</html>

@@ -36,14 +36,18 @@ const Index = () => {
               blurType="background"
               blurIntensity="light"
               responsive={true}
+              overlayMode="medium"
+              overlayStyle="glass"
+              textContrast="auto"
+              overlayPadding="p-8"
               className="rounded-lg overflow-hidden"
             >
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10 p-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="md:w-1/2">
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-brand-primary dark:text-brand-white mb-4 font-sreda transition-colors duration-300">
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-brand-primary dark:text-brand-white mb-4 font-sreda transition-colors duration-300 drop-shadow-lg">
                     {t("home.title")}
                   </h1>
-                  <p className="text-lg text-brand-black dark:text-gray-300 mb-6 font-josefin transition-colors duration-300">
+                  <p className="text-lg text-brand-black dark:text-brand-white mb-6 font-josefin transition-colors duration-300 drop-shadow-md">
                     {t("home.subtitle")}
                   </p>
 
@@ -57,21 +61,21 @@ const Index = () => {
                   />
 
                   <div className="mt-6 flex flex-wrap gap-4">
-                    <div className="flex items-center gap-2 text-sm text-brand-black dark:text-gray-300 transition-colors duration-300">
+                    <div className="flex items-center gap-2 text-sm text-brand-black dark:text-brand-white transition-colors duration-300 drop-shadow-sm">
                       <CalendarIcon
                         className="text-brand-primary dark:text-blue-400"
                         size={16}
                       />
                       <span>{t("home.features.updated")}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-brand-black dark:text-gray-300 transition-colors duration-300">
+                    <div className="flex items-center gap-2 text-sm text-brand-black dark:text-brand-white transition-colors duration-300 drop-shadow-sm">
                       <MapPinIcon
                         className="text-brand-primary dark:text-blue-400"
                         size={16}
                       />
                       <span>{t("home.features.cities")}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-brand-black dark:text-gray-300 transition-colors duration-300">
+                    <div className="flex items-center gap-2 text-sm text-brand-black dark:text-brand-white transition-colors duration-300 drop-shadow-sm">
                       <HeartIcon
                         className="text-brand-primary dark:text-blue-400"
                         size={16}
@@ -81,7 +85,7 @@ const Index = () => {
                     {eventsError && (
                       <button
                         onClick={refetch}
-                        className="flex items-center gap-2 text-sm text-brand-primary dark:text-blue-400 hover:underline transition-colors duration-300"
+                        className="flex items-center gap-2 text-sm text-brand-primary dark:text-blue-400 hover:underline transition-colors duration-300 drop-shadow-sm"
                       >
                         <RefreshCw size={16} />
                         <span>Refresh Events</span>

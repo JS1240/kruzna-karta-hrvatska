@@ -2,10 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { initializeAnimation, destroyAnimation, getAnimation, AnimationType } from '../utils/animationUtils';
 import { BRAND_COLORS, validateBrandColorContrast } from '../utils/colorUtils';
 import AnimatedBackground from '../components/AnimatedBackground';
+import { globalPerformanceMonitor, type PerformanceMetrics } from '../utils/performanceMonitor';
 
 /**
  * Animation Development Test Page
  * Provides a testing environment for animations during development
+ * 
+ * Features:
+ * - Basic animation component testing
+ * - Performance monitoring demos (T5.1)
+ * - FPS tracking and visualization
+ * - Automatic performance adjustment testing
+ * - Memory usage monitoring
  */
 
 interface AnimationTest {
@@ -14,6 +22,14 @@ interface AnimationTest {
   type: AnimationType;
   intensity: 'low' | 'medium' | 'high';
   description: string;
+}
+
+interface PerformanceTestState {
+  [key: string]: {
+    metrics: PerformanceMetrics | null;
+    isMonitoring: boolean;
+    history: PerformanceMetrics[];
+  };
 }
 
 const animationTests: AnimationTest[] = [
@@ -66,11 +82,32 @@ export const AnimationTestPage: React.FC = () => {
   const [performanceData, setPerformanceData] = useState<any[]>([]);
   const [colorValidation, setColorValidation] = useState<any[]>([]);
   const animationRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  
+  // T5.1: Performance monitoring state
+  const [performanceTestState, setPerformanceTestState] = useState<PerformanceTestState>({});
+  const [globalPerformanceMetrics, setGlobalPerformanceMetrics] = useState<any>(null);
+  const [showPerformanceDemo, setShowPerformanceDemo] = useState(false);
+  const performanceUpdateInterval = useRef<number | null>(null);
 
   useEffect(() => {
     // Run color validation on mount
     const validation = validateBrandColorContrast();
     setColorValidation(validation);
+    
+    // T5.1: Setup global performance monitoring update
+    const updateGlobalMetrics = () => {
+      const aggregated = globalPerformanceMonitor.getAggregatedMetrics();
+      setGlobalPerformanceMetrics(aggregated);
+    };
+    
+    // Update global metrics every second
+    performanceUpdateInterval.current = window.setInterval(updateGlobalMetrics, 1000);
+    
+    return () => {
+      if (performanceUpdateInterval.current) {
+        clearInterval(performanceUpdateInterval.current);
+      }
+    };
   }, []);
 
   const startTest = async (test: AnimationTest) => {
@@ -1499,12 +1536,266 @@ export const AnimationTestPage: React.FC = () => {
           </div>
         </div>
 
+        {/* T5.1: Performance Monitoring Demo */}
+        <div className="bg-green-50 p-6 rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-brand-primary">Performance Monitoring Demo (T5.1)</h2>
+            <button
+              onClick={() => setShowPerformanceDemo(!showPerformanceDemo)}
+              className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+            >
+              {showPerformanceDemo ? 'Hide' : 'Show'} Performance Demo
+            </button>
+          </div>
+          
+          {showPerformanceDemo && (
+            <div className="space-y-6">
+              {/* Global Performance Metrics */}
+              <div className="bg-white p-4 rounded-lg border">
+                <h3 className="font-semibold mb-3 text-brand-primary">Global Performance Metrics</h3>
+                {globalPerformanceMetrics ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 p-3 rounded">
+                      <div className="text-sm font-medium text-brand-primary">Total Animations</div>
+                      <div className="text-2xl font-bold">{globalPerformanceMetrics.totalAnimations}</div>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded">
+                      <div className="text-sm font-medium text-brand-primary">Average FPS</div>
+                      <div className="text-2xl font-bold">{globalPerformanceMetrics.averageFPS.toFixed(1)}</div>
+                    </div>
+                    <div className="bg-yellow-50 p-3 rounded">
+                      <div className="text-sm font-medium text-brand-primary">Lowest FPS</div>
+                      <div className="text-2xl font-bold">{globalPerformanceMetrics.lowestFPS.toFixed(1)}</div>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded">
+                      <div className="text-sm font-medium text-brand-primary">Highest FPS</div>
+                      <div className="text-2xl font-bold">{globalPerformanceMetrics.highestFPS.toFixed(1)}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-brand-black/70">No active performance monitoring</p>
+                )}
+              </div>
+              
+              {/* Performance Test Animations */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* FPS Monitoring Test */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-brand-primary">FPS Monitoring Test</h3>
+                  <div className="h-64 rounded-lg overflow-hidden border">
+                    <AnimatedBackground
+                      id="fps-monitor-test"
+                      performance="high"
+                      intensity={0.8}
+                      opacity={0.4}
+                      enableFrameRateMonitoring={true}
+                      showFPSOverlay={true}
+                      autoPerformanceAdjustment={false}
+                      onPerformanceChange={(mode, metrics) => {
+                        console.log('Performance change:', mode, metrics);
+                        setPerformanceTestState(prev => ({
+                          ...prev,
+                          'fps-monitor-test': {
+                            metrics,
+                            isMonitoring: true,
+                            history: prev['fps-monitor-test']?.history ? [...prev['fps-monitor-test'].history.slice(-19), metrics] : [metrics]
+                          }
+                        }));
+                      }}
+                      onPerformanceUpdate={(metrics) => {
+                        setPerformanceTestState(prev => ({
+                          ...prev,
+                          'fps-monitor-test': {
+                            ...prev['fps-monitor-test'],
+                            metrics,
+                            isMonitoring: true
+                          }
+                        }));
+                      }}
+                    >
+                      <div className="h-full flex items-center justify-center">
+                        <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 text-center">
+                          <h4 className="font-bold text-brand-primary mb-2">FPS Monitor Test</h4>
+                          <p className="text-sm text-brand-black/70 mb-2">High intensity with live FPS overlay</p>
+                          {performanceTestState['fps-monitor-test']?.metrics && (
+                            <div className="text-xs space-y-1">
+                              <div>FPS: {performanceTestState['fps-monitor-test'].metrics.currentFPS.toFixed(1)}</div>
+                              <div>Mode: {performanceTestState['fps-monitor-test'].metrics.performanceMode}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </AnimatedBackground>
+                  </div>
+                </div>
+                
+                {/* Auto Performance Adjustment Test */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-brand-primary">Auto Performance Adjustment</h3>
+                  <div className="h-64 rounded-lg overflow-hidden border">
+                    <AnimatedBackground
+                      id="auto-performance-test"
+                      performance="high"
+                      intensity={1.0}
+                      opacity={0.5}
+                      enableFrameRateMonitoring={true}
+                      showFPSOverlay={true}
+                      autoPerformanceAdjustment={true}
+                      performanceThresholds={{
+                        mediumThreshold: 45,
+                        lowThreshold: 30,
+                        criticalThreshold: 20
+                      }}
+                      onPerformanceChange={(mode, metrics) => {
+                        console.log('Auto-adjustment triggered:', mode, metrics);
+                      }}
+                    >
+                      <div className="h-full flex items-center justify-center">
+                        <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 text-center">
+                          <h4 className="font-bold text-brand-primary mb-2">Auto Adjustment</h4>
+                          <p className="text-sm text-brand-black/70">Performance auto-adjusts when FPS drops</p>
+                        </div>
+                      </div>
+                    </AnimatedBackground>
+                  </div>
+                </div>
+                
+                {/* Memory Usage Monitoring */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-brand-primary">Memory Usage Monitor</h3>
+                  <div className="h-64 rounded-lg overflow-hidden border">
+                    <AnimatedBackground
+                      id="memory-monitor-test"
+                      performance="high"
+                      intensity={0.9}
+                      opacity={0.4}
+                      enableFrameRateMonitoring={true}
+                      showFPSOverlay={true}
+                      onHighMemoryUsage={(metrics) => {
+                        console.warn('High memory usage detected:', metrics);
+                      }}
+                    >
+                      <div className="h-full flex items-center justify-center">
+                        <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 text-center">
+                          <h4 className="font-bold text-brand-primary mb-2">Memory Monitor</h4>
+                          <p className="text-sm text-brand-black/70">Tracks memory usage in real-time</p>
+                        </div>
+                      </div>
+                    </AnimatedBackground>
+                  </div>
+                </div>
+                
+                {/* Performance Comparison */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-brand-primary">Performance Comparison</h3>
+                  <div className="grid grid-cols-3 gap-2 h-64">
+                    <div className="rounded border overflow-hidden">
+                      <AnimatedBackground
+                        id="comparison-low"
+                        performance="low"
+                        intensity={0.3}
+                        opacity={0.2}
+                        enableFrameRateMonitoring={true}
+                        showFPSOverlay={true}
+                      >
+                        <div className="h-full flex items-center justify-center">
+                          <div className="bg-white/90 backdrop-blur-sm rounded p-2 text-center">
+                            <div className="text-xs font-bold text-brand-primary">Low</div>
+                          </div>
+                        </div>
+                      </AnimatedBackground>
+                    </div>
+                    <div className="rounded border overflow-hidden">
+                      <AnimatedBackground
+                        id="comparison-medium"
+                        performance="medium"
+                        intensity={0.5}
+                        opacity={0.3}
+                        enableFrameRateMonitoring={true}
+                        showFPSOverlay={true}
+                      >
+                        <div className="h-full flex items-center justify-center">
+                          <div className="bg-white/90 backdrop-blur-sm rounded p-2 text-center">
+                            <div className="text-xs font-bold text-brand-primary">Medium</div>
+                          </div>
+                        </div>
+                      </AnimatedBackground>
+                    </div>
+                    <div className="rounded border overflow-hidden">
+                      <AnimatedBackground
+                        id="comparison-high"
+                        performance="high"
+                        intensity={0.8}
+                        opacity={0.4}
+                        enableFrameRateMonitoring={true}
+                        showFPSOverlay={true}
+                      >
+                        <div className="h-full flex items-center justify-center">
+                          <div className="bg-white/90 backdrop-blur-sm rounded p-2 text-center">
+                            <div className="text-xs font-bold text-brand-primary">High</div>
+                          </div>
+                        </div>
+                      </AnimatedBackground>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Performance Monitoring Features */}
+              <div className="bg-white p-4 rounded-lg border">
+                <h3 className="font-semibold mb-3 text-brand-primary">Performance Monitoring Features (T5.1)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium mb-2 text-brand-primary">Real-time FPS Tracking</h4>
+                    <ul className="text-sm text-brand-black/80 space-y-1">
+                      <li>• RequestAnimationFrame-based FPS calculation</li>
+                      <li>• Rolling average FPS over configurable time window</li>
+                      <li>• Device-specific targets (60fps desktop, 30fps mobile)</li>
+                      <li>• Performance threshold detection and warnings</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-2 text-brand-primary">Automatic Optimization</h4>
+                    <ul className="text-sm text-brand-black/80 space-y-1">
+                      <li>• Performance mode auto-switching (high→medium→low→critical)</li>
+                      <li>• Memory usage monitoring and warnings</li>
+                      <li>• Frame drop detection and reporting</li>
+                      <li>• Visibility change handling (pause/resume)</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-2 text-brand-primary">Developer Tools</h4>
+                    <ul className="text-sm text-brand-black/80 space-y-1">
+                      <li>• Live FPS overlay with color-coded status</li>
+                      <li>• Performance statistics and history</li>
+                      <li>• Memory usage display (when available)</li>
+                      <li>• Performance event callbacks for custom handling</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-2 text-brand-primary">Integration</h4>
+                    <ul className="text-sm text-brand-black/80 space-y-1">
+                      <li>• Seamless integration with AnimatedBackground component</li>
+                      <li>• VANTA.js topology animation monitoring</li>
+                      <li>• Global performance manager for multiple animations</li>
+                      <li>• Non-intrusive monitoring with minimal overhead</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Development Notes */}
         <div className="bg-blue-50 p-6 rounded-lg">
           <h2 className="text-xl font-semibold mb-4 text-brand-primary">Development Notes</h2>
           <ul className="space-y-2 text-brand-primary/80">
             <li>• Animations respect <code>prefers-reduced-motion</code> settings</li>
             <li>• Performance monitoring shows memory usage in real-time</li>
+            <li>• Frame rate monitoring with automatic performance optimization (T5.1)</li>
+            <li>• Real-time FPS tracking with device-specific targets (60fps desktop, 30fps mobile)</li>
+            <li>• Automatic performance mode switching when FPS drops below thresholds</li>
             <li>• Mobile devices automatically use lower intensity settings</li>
             <li>• All color combinations are validated for WCAG 2.1 AA compliance</li>
             <li>• Animations automatically resize when window size changes</li>

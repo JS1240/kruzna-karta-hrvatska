@@ -1,6 +1,13 @@
 import { VantaTopologyManager, createTopologyAnimation } from './vantaUtils';
 import { P5Performance, createP5Instance, cleanupP5Instance, P5AnimationConfig } from './p5Utils';
 import { BRAND_COLORS, hexToDecimal } from './colorUtils';
+import { 
+  globalPerformanceMonitor, 
+  FrameRateMonitor, 
+  type PerformanceMetrics, 
+  type PerformanceCallbacks,
+  type PerformanceThresholds 
+} from './performanceMonitor';
 
 /**
  * Animation initialization utilities
@@ -16,6 +23,14 @@ export interface AnimationConfig {
   respectReducedMotion?: boolean;
   enablePerformanceMonitoring?: boolean;
   customOptions?: Record<string, any>;
+  /** Performance monitoring callbacks (T5.1) */
+  performanceCallbacks?: PerformanceCallbacks;
+  /** Custom performance thresholds (T5.1) */
+  performanceThresholds?: Partial<PerformanceThresholds>;
+  /** Target FPS for performance monitoring (auto-detected if not provided) */
+  fpsTarget?: number;
+  /** Enable automatic performance adjustment based on FPS */
+  autoPerformanceAdjustment?: boolean;
 }
 
 export interface AnimationInstance {
@@ -26,6 +41,14 @@ export interface AnimationInstance {
   destroy: () => void;
   resize: () => void;
   updateConfig: (config: Record<string, any>) => void;
+  /** Performance monitor instance (T5.1) */
+  performanceMonitor?: FrameRateMonitor;
+  /** Get current performance metrics (T5.1) */
+  getPerformanceMetrics?: () => PerformanceMetrics | null;
+  /** Start performance monitoring (T5.1) */
+  startPerformanceMonitoring?: (callbacks?: PerformanceCallbacks) => void;
+  /** Stop performance monitoring (T5.1) */
+  stopPerformanceMonitoring?: () => void;
 }
 
 /**
@@ -33,11 +56,13 @@ export interface AnimationInstance {
  */
 export class AnimationManager {
   private animations: Map<string, AnimationInstance> = new Map();
-  private performanceMonitor: PerformanceMonitor;
+  private legacyPerformanceMonitor: PerformanceMonitor;
+  private globalPerformanceCallbacks: PerformanceCallbacks = {};
 
   constructor() {
-    this.performanceMonitor = new PerformanceMonitor();
+    this.legacyPerformanceMonitor = new PerformanceMonitor();
     this.setupGlobalListeners();
+    this.setupGlobalPerformanceCallbacks();
   }
 
   /**
@@ -76,9 +101,9 @@ export class AnimationManager {
 
       this.animations.set(id, animationInstance);
 
-      // Start performance monitoring if enabled
+      // Start performance monitoring if enabled (T5.1)
       if (config.enablePerformanceMonitoring) {
-        this.performanceMonitor.startMonitoring(id, animationInstance);
+        this.startEnhancedPerformanceMonitoring(id, animationInstance, config);
       }
 
       console.log(`Animation ${id} initialized successfully`);
@@ -198,7 +223,9 @@ export class AnimationManager {
     if (animation) {
       animation.destroy();
       this.animations.delete(id);
-      this.performanceMonitor.stopMonitoring(id);
+      this.legacyPerformanceMonitor.stopMonitoring(id);
+      // Stop enhanced performance monitoring
+      globalPerformanceMonitor.stopMonitoring(id);
       console.log(`Animation ${id} destroyed`);
       return true;
     }
@@ -258,9 +285,11 @@ export class AnimationManager {
     // Handle visibility change (pause animations when tab is hidden)
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        this.performanceMonitor.pauseMonitoring();
+        this.legacyPerformanceMonitor.pauseMonitoring();
+        globalPerformanceMonitor.pauseAll();
       } else {
-        this.performanceMonitor.resumeMonitoring();
+        this.legacyPerformanceMonitor.resumeMonitoring();
+        globalPerformanceMonitor.resumeAll();
       }
     });
 
@@ -274,10 +303,152 @@ export class AnimationManager {
       }
     });
   }
+  
+  /**
+   * Setup global performance callbacks (T5.1)
+   */
+  private setupGlobalPerformanceCallbacks(): void {
+    this.globalPerformanceCallbacks = {
+      onPerformanceModeChange: (mode, metrics) => {
+        console.log(`Global performance mode change: ${mode} (${metrics.averageFPS.toFixed(1)} FPS)`);
+        
+        // Auto-adjust performance for all animations if critical
+        if (mode === 'critical') {
+          this.handleCriticalPerformance(metrics);
+        }
+      },
+      onPerformanceDrop: (metrics) => {
+        console.warn(`Global performance drop detected: ${metrics.averageFPS.toFixed(1)} FPS`);
+      },
+      onHighMemoryUsage: (metrics) => {
+        const memoryMB = metrics.memoryUsage ? Math.round(metrics.memoryUsage.usedJSHeapSize / 1024 / 1024) : 'unknown';
+        console.warn(`High memory usage detected: ${memoryMB} MB`);
+        
+        // Consider reducing animation intensity
+        this.handleHighMemoryUsage(metrics);
+      }
+    };
+    
+    globalPerformanceMonitor.setGlobalCallbacks(this.globalPerformanceCallbacks);
+  }
+  
+  /**
+   * Start enhanced performance monitoring for an animation (T5.1)
+   */
+  private startEnhancedPerformanceMonitoring(
+    id: string, 
+    animationInstance: AnimationInstance, 
+    config: AnimationConfig
+  ): void {
+    const combinedCallbacks: PerformanceCallbacks = {
+      ...this.globalPerformanceCallbacks,
+      ...config.performanceCallbacks
+    };
+    
+    const monitor = globalPerformanceMonitor.startMonitoring(
+      id,
+      config.performanceThresholds,
+      combinedCallbacks
+    );
+    
+    // Enhance animation instance with performance monitoring methods
+    animationInstance.performanceMonitor = monitor;
+    animationInstance.getPerformanceMetrics = () => globalPerformanceMonitor.getMetrics(id);
+    animationInstance.startPerformanceMonitoring = (callbacks) => {
+      const newCallbacks = { ...this.globalPerformanceCallbacks, ...callbacks };
+      globalPerformanceMonitor.stopMonitoring(id);
+      globalPerformanceMonitor.startMonitoring(id, config.performanceThresholds, newCallbacks);
+    };
+    animationInstance.stopPerformanceMonitoring = () => {
+      globalPerformanceMonitor.stopMonitoring(id);
+    };
+    
+    console.log(`Enhanced performance monitoring started for animation: ${id}`);
+  }
+  
+  /**
+   * Handle critical performance by reducing animation complexity
+   */
+  private handleCriticalPerformance(metrics: PerformanceMetrics): void {
+    console.warn('Critical performance detected - considering animation adjustments');
+    
+    // In a real implementation, this could:
+    // 1. Reduce particle counts
+    // 2. Switch to lower performance modes
+    // 3. Pause non-essential animations
+    // 4. Switch to static backgrounds
+    
+    this.animations.forEach((animation, id) => {
+      if (animation.type === 'vanta-topology') {
+        console.log(`Considering performance reduction for animation: ${id}`);
+        // Could implement automatic performance adjustment here
+      }
+    });
+  }
+  
+  /**
+   * Handle high memory usage
+   */
+  private handleHighMemoryUsage(metrics: PerformanceMetrics): void {
+    console.warn('High memory usage detected - considering cleanup');
+    
+    // In a real implementation, this could:
+    // 1. Force garbage collection (if available)
+    // 2. Reduce texture quality
+    // 3. Limit animation complexity
+    // 4. Clean up unused resources
+  }
+  
+  /**
+   * Get aggregated performance metrics for all animations (T5.1)
+   */
+  getAggregatedPerformanceMetrics() {
+    return globalPerformanceMonitor.getAggregatedMetrics();
+  }
+  
+  /**
+   * Get performance metrics for a specific animation (T5.1)
+   */
+  getAnimationPerformanceMetrics(id: string): PerformanceMetrics | null {
+    return globalPerformanceMonitor.getMetrics(id);
+  }
+  
+  /**
+   * Enable performance monitoring for an existing animation (T5.1)
+   */
+  enablePerformanceMonitoring(
+    id: string, 
+    callbacks?: PerformanceCallbacks,
+    thresholds?: Partial<PerformanceThresholds>
+  ): boolean {
+    const animation = this.animations.get(id);
+    if (!animation) {
+      console.warn(`Cannot enable performance monitoring: Animation ${id} not found`);
+      return false;
+    }
+    
+    const combinedCallbacks = { ...this.globalPerformanceCallbacks, ...callbacks };
+    globalPerformanceMonitor.startMonitoring(id, thresholds, combinedCallbacks);
+    
+    // Add monitoring methods to animation instance
+    animation.getPerformanceMetrics = () => globalPerformanceMonitor.getMetrics(id);
+    animation.stopPerformanceMonitoring = () => globalPerformanceMonitor.stopMonitoring(id);
+    
+    console.log(`Performance monitoring enabled for animation: ${id}`);
+    return true;
+  }
+  
+  /**
+   * Disable performance monitoring for an animation (T5.1)
+   */
+  disablePerformanceMonitoring(id: string): boolean {
+    return globalPerformanceMonitor.stopMonitoring(id);
+  }
 }
 
 /**
- * Performance monitoring for animations
+ * Legacy Performance monitoring for animations
+ * @deprecated Use the enhanced PerformanceMonitor from performanceMonitor.ts instead
  */
 class PerformanceMonitor {
   private monitoredAnimations: Map<string, {

@@ -1,0 +1,167 @@
+# Bundle Size CI/CD Integration
+# 
+# GitHub Actions workflow example for automated bundle size monitoring
+# Add this to your .github/workflows/ directory
+
+name: Bundle Size Monitor
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  bundle-size-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        # Fetch full history for trend analysis
+        fetch-depth: 0
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: frontend
+      run: npm ci
+    
+    - name: Build application
+      working-directory: frontend
+      run: npm run build
+    
+    - name: Check bundle size limits
+      id: bundle-check
+      working-directory: frontend
+      run: |
+        npm run bundle:enforce:strict --ci
+      continue-on-error: true
+    
+    - name: Record bundle sizes
+      working-directory: frontend
+      run: npm run bundle:monitor:record
+    
+    - name: Analyze bundle trends
+      working-directory: frontend
+      run: npm run bundle:monitor:trends
+    
+    - name: Generate bundle report
+      working-directory: frontend
+      run: npm run bundle:monitor --report
+    
+    - name: Generate bundle dashboard
+      working-directory: frontend
+      run: npm run bundle:dashboard
+    
+    - name: Upload bundle analysis artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: bundle-analysis
+        path: |
+          frontend/dist/bundle-*.json
+          frontend/dist/bundle-dashboard.html
+          frontend/dist/stats.html
+        retention-days: 30
+    
+    - name: Comment PR with bundle analysis
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          try {
+            const reportPath = 'frontend/dist/bundle-monitor-report.json';
+            if (fs.existsSync(reportPath)) {
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+              
+              let comment = '## 📦 Bundle Size Analysis\\n\\n';
+              comment += `**Total Bundle Size:** ${report.totalSize} KB\\n\\n`;
+              
+              if (report.changes && report.changes.length > 0) {
+                comment += '### Changes\\n';
+                report.changes.forEach(change => {
+                  const emoji = change.change > 0 ? '📈' : '📉';
+                  const sign = change.change > 0 ? '+' : '';
+                  comment += `- ${emoji} **${change.chunk}**: ${change.previousSize}KB → ${change.currentSize}KB (${sign}${change.change}KB)\\n`;
+                });
+                comment += '\\n';
+              }
+              
+              if (report.alerts && report.alerts.length > 0) {
+                comment += '### ⚠️ Alerts\\n';
+                report.alerts.forEach(alert => {
+                  const emoji = alert.type === 'critical' ? '🚨' : '⚠️';
+                  comment += `- ${emoji} **${alert.type.toUpperCase()}**: ${alert.message}\\n`;
+                });
+                comment += '\\n';
+              }
+              
+              if (report.insights && report.insights.length > 0) {
+                comment += '### 💡 Insights\\n';
+                report.insights.forEach(insight => {
+                  comment += `- ${insight}\\n`;
+                });
+                comment += '\\n';
+              }
+              
+              comment += '[View detailed analysis](${{ steps.bundle-check.outputs.artifact-url }})';
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+          } catch (error) {
+            console.error('Failed to post bundle analysis comment:', error);
+          }
+    
+    - name: Fail if bundle size limits exceeded
+      if: steps.bundle-check.outcome == 'failure'
+      run: |
+        echo "❌ Bundle size limits exceeded!"
+        echo "Check the bundle analysis report for optimization recommendations."
+        exit 1
+
+  # Optional: Deploy bundle dashboard to GitHub Pages
+  deploy-dashboard:
+    if: github.ref == 'refs/heads/main'
+    needs: bundle-size-check
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Download bundle analysis
+      uses: actions/download-artifact@v3
+      with:
+        name: bundle-analysis
+        path: ./bundle-dashboard
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v3
+    
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: ./bundle-dashboard
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v2

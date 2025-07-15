@@ -7,6 +7,11 @@ import {
   Bookmark as BookmarkFilled,
   Sun as SunFilled,
   Moon as MoonFilled,
+  Home,
+  Calendar,
+  MapPin,
+  Heart,
+  User,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { Button } from "./ui/button";
@@ -20,6 +25,7 @@ import {
 import Logo from "./Logo";
 import Auth from "./Auth";
 import NotificationCenter from "./NotificationCenter";
+import { MobileNavigation, detectTouchDevice } from "./mobile";
 
 const Header = () => {
   const [mounted, setMounted] = useState(false);
@@ -31,11 +37,31 @@ const Header = () => {
     setMounted(true);
   }, []);
 
+  // Detect device type for mobile navigation
+  const device = detectTouchDevice();
+
+  // Mobile navigation items
+  const mobileNavItems = [
+    { id: 'home', label: t("nav.home"), href: '/', icon: Home },
+    { id: 'about', label: t("nav.about"), href: '/about', icon: Calendar },
+    { id: 'venues', label: t("nav.venues"), href: '/venues', icon: MapPin },
+    { id: 'favorites', label: 'Favorites', href: '/favorites', icon: Heart },
+    { id: 'profile', label: 'Profile', href: '/profile', icon: User },
+  ];
+
   return (
     <header className="sticky top-0 z-50 bg-gradient-to-r from-white via-red-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 backdrop-blur-sm transition-colors duration-300">
       <div className="container mx-auto flex justify-between items-center h-24 px-4">
-        {/* Left: Logo and Title */}
-        <div className="flex items-center min-w-0 flex-shrink-0">
+        {/* Left: Mobile Menu + Logo */}
+        <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+          {/* Mobile Navigation - Show on mobile/tablet */}
+          {(device.isMobile || device.isTablet) && (
+            <MobileNavigation 
+              items={mobileNavItems}
+              className="md:hidden"
+            />
+          )}
+          
           <Link to="/" className="flex items-center gap-2">
             <Logo className="h-8 w-auto" />
           </Link>
@@ -48,7 +74,7 @@ const Header = () => {
             className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/"
                 ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md  border-2 border-brand-primary"
-                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
+                : "text-brand-black dark:text-brand-white hover:bg-brand-accent-cream"
             }`}
           >
             {t("nav.home")}
@@ -58,7 +84,7 @@ const Header = () => {
             className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/about"
                 ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md border-2 border-brand-primary"
-                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
+                : "text-brand-black dark:text-brand-white hover:bg-brand-accent-cream"
             }`}
           >
             {t("nav.about")}
@@ -68,7 +94,7 @@ const Header = () => {
             className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/venues"
                 ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md border-2 border-brand-primary"
-                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
+                : "text-brand-black dark:text-brand-white hover:bg-brand-accent-cream"
             }`}
           >
             {t("nav.venues")}
@@ -78,7 +104,7 @@ const Header = () => {
             className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/popular"
                 ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md border-2 border-brand-primary"
-                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
+                : "text-brand-black dark:text-brand-white hover:bg-brand-accent-cream"
             }`}
           >
             {t("nav.popular")}
@@ -88,7 +114,7 @@ const Header = () => {
             className={`text-lg font-bold transition-all duration-300 ease-in-out hover:text-brand-black hover:scale-110 hover:bg-brand-accent-cream px-4 py-2 rounded-lg transform hover:-translate-y-1 hover:shadow-lg ${
               location.pathname === "/community"
                 ? "text-brand-black bg-brand-accent-cream scale-105 shadow-md border-2 border-brand-primary"
-                : "text-brand-black dark:text-gray-300 hover:bg-brand-accent-cream"
+                : "text-brand-black dark:text-brand-white hover:bg-brand-accent-cream"
             }`}
           >
             Community
