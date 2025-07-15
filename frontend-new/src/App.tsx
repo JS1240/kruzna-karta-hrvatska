@@ -123,7 +123,7 @@ const HomePage: React.FC = () => {
       <HeroSection />
       
       {/* Map Section */}
-      <section id="map" className="py-16">
+      <section id="map" className="py-8">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -144,18 +144,17 @@ const HomePage: React.FC = () => {
               onToggle={() => setIsFilterOpen(!isFilterOpen)}
             />
           </div>
+        </div>
 
-          
-          {/* Full Width Map */}
-          <div className="w-full">
-            <EventMap
-              events={events}
-              loading={false}
-              onEventClick={handleEventClick}
-              height="800px"
-              className="w-full"
-            />
-          </div>
+        {/* Map with horizontal margins */}
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <EventMap
+            events={events}
+            loading={false}
+            onEventClick={handleEventClick}
+            height="850px"
+            className="w-full"
+          />
         </div>
       </section>
       
