@@ -166,23 +166,142 @@
   }
   
   .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex items-center justify-center text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    /* Brick button design - sharp corners */
+    border-radius: 0;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
   
   .btn-primary {
-    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+    background: hsl(var(--primary-500));
+    border-color: hsl(var(--primary-600));
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: hsl(var(--primary-600));
+    border-color: hsl(var(--primary-700));
+  }
+  
+  .btn-primary:focus {
+    --tw-ring-color: hsl(var(--primary-500));
   }
   
   .btn-secondary {
-    @apply bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-500;
+    background: hsl(var(--secondary-100));
+    border-color: hsl(var(--secondary-200));
+    color: hsl(var(--secondary-800));
+  }
+  
+  .btn-secondary:hover {
+    background: hsl(var(--secondary-200));
+    border-color: hsl(var(--secondary-300));
+  }
+  
+  .btn-secondary:focus {
+    --tw-ring-color: hsl(var(--secondary-500));
   }
   
   .btn-outline {
-    @apply border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500;
+    background: transparent;
+    border-color: hsl(var(--primary-300));
+    color: hsl(var(--primary-600));
+  }
+  
+  .btn-outline:hover {
+    background: hsl(var(--primary-50));
+    border-color: hsl(var(--primary-400));
+    color: hsl(var(--primary-700));
+  }
+  
+  .btn-outline:focus {
+    --tw-ring-color: hsl(var(--primary-500));
   }
   
   .card {
     @apply rounded-lg border border-gray-200 bg-white shadow-sm;
+  }
+  
+  /* Frosted Glass Card Styles */
+  .card-glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .card-glass:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  /* Glass card with brand accent */
+  .card-glass-primary {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(var(--primary-300) / 0.3);
+    border-radius: 12px;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .card-glass-primary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: hsl(var(--primary-400) / 0.4);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  /* Dark mode glass card adjustments */
+  .dark .card-glass {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  .dark .card-glass:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .dark .card-glass-primary {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: hsl(var(--primary-400) / 0.2);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  .dark .card-glass-primary:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: hsl(var(--primary-300) / 0.3);
   }
   
   .input {

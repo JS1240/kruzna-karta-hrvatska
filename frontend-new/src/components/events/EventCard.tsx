@@ -47,8 +47,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   }, [event.event_status]);
 
   const baseClasses = clsx(
-    'bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group',
-    'border border-gray-200 hover:border-primary-300',
+    'card-glass-primary cursor-pointer group',
     className
   );
 
@@ -58,15 +57,20 @@ export const EventCard: React.FC<EventCardProps> = ({
   );
 
   const imageClasses = clsx(
-    'w-full object-cover rounded-t-xl',
+    'w-full object-cover',
     variant === 'compact' ? 'h-32' : 'h-48',
     variant === 'featured' ? 'h-56' : ''
+  );
+  
+  const imageContainerClasses = clsx(
+    'relative overflow-hidden',
+    'rounded-t-xl' // Keep rounded top for image container
   );
 
   return (
     <div className={baseClasses} onClick={handleClick}>
       {event.image && (
-        <div className="relative overflow-hidden">
+        <div className={imageContainerClasses}>
           <img
             src={event.image}
             alt={event.title}

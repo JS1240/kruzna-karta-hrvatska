@@ -13,7 +13,7 @@ interface FeaturedEventsProps {
 }
 
 const FeaturedEventSkeleton: React.FC = () => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 animate-pulse">
+  <div className="card-glass animate-pulse">
     <div className="h-48 bg-gray-200 rounded-t-xl"></div>
     <div className="p-4">
       <div className="h-6 bg-gray-200 rounded mb-2"></div>
@@ -38,7 +38,7 @@ const FeaturedEventHero: React.FC<{
 
   return (
     <div
-      className="relative h-96 rounded-xl overflow-hidden cursor-pointer group"
+      className="relative h-96 card-glass-primary overflow-hidden cursor-pointer group"
       onClick={() => onClick?.(event)}
     >
       {event.image && (
