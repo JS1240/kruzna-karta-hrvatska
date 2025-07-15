@@ -5,7 +5,7 @@ from typing import Any, Optional, Union
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt, ExpiredSignatureError, JWTClaimsError
+from jose import JWTError, jwt, ExpiredSignatureError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
@@ -137,8 +137,6 @@ def verify_token(token: str, expected_type: str) -> Optional[dict]:
         return payload
     except ExpiredSignatureError:
         raise TokenExpiredError()
-    except JWTClaimsError:
-        raise InvalidTokenError("Invalid token claims")
     except JWTError:
         raise InvalidTokenError("Token decode failed")
 

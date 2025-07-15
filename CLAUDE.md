@@ -381,3 +381,15 @@ Play a chime when long‐running front-end build or test tasks finish:
 afplay /System/Library/Sounds/Glass.aiff
 ```
 
+---
+
+# External Documentation
+
+Mapbox documentation:
+- [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/)
+- [Mapbox Style Specification](https://docs.mapbox.com/mapbox-gl-js/style-spec/)
+- [Mapbox Vector Tiles](https://docs.mapbox.com/vector-tiles/)
+- [Mapbox API Reference](https://docs.mapbox.com/api/)
+- [Mapbox Studio](https://docs.mapbox.com/studio/)
+- [Mapbox SDKs](https://docs.mapbox.com/sdk/)
+- [Mapbox GL JS Examples](https://docs.mapbox.com/mapbox-gl-js/examples/)
