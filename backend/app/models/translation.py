@@ -70,7 +70,7 @@ class EventTranslation(Base):
     )
 
     # Relationships
-    event = relationship("Event")
+    event = relationship("Event", back_populates="translations")
     language = relationship("Language")
     translator = relationship("User", foreign_keys=[translated_by])
     reviewer = relationship("User", foreign_keys=[reviewed_by])

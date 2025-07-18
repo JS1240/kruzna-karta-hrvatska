@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session, joinedload
 
 logger = logging.getLogger(__name__)
 
-from ..core.database import get_db
+from ..core.database import get_db, safe_db_operation, health_check_db, reset_database_connections
 from ..core.events_service import EventsService
+from ..core.geocoding_service import geocoding_service
 from ..core.performance import PerformanceService, get_performance_service
 from ..core.translation import (
     DEFAULT_LANGUAGE,
@@ -45,95 +46,137 @@ def get_language_from_header(accept_language: Optional[str] = Header(None)) -> s
     return DEFAULT_LANGUAGE
 
 
+# Safe wrapper functions for EventsService operations
+def _safe_search_events(search_params: EventSearchParams, accept_language: Optional[str] = None):
+    """Safe wrapper for EventsService.search_events with retry logic."""
+    def _search_operation(db: Session):
+        from ..core.translation import get_translation_service
+        translation_service = get_translation_service()
+        events_service = EventsService(db, translation_service)
+        return events_service.search_events(search_params, accept_language)
+    
+    return safe_db_operation(_search_operation)
+
+
+def _safe_get_featured_events(page: int = 1, size: int = 10):
+    """Safe wrapper for getting featured events with retry logic."""
+    def _featured_operation(db: Session):
+        from ..core.translation import get_translation_service
+        translation_service = get_translation_service()
+        events_service = EventsService(db, translation_service)
+        
+        # Build search params for featured events
+        search_params = EventSearchParams(
+            page=page,
+            size=size,
+            is_featured=True
+        )
+        return events_service.search_events(search_params)
+    
+    return safe_db_operation(_featured_operation)
+
+
+def _safe_get_events_paginated(search_params: EventSearchParams):
+    """Safe wrapper for EventsService.get_events_paginated with retry logic."""
+    def _paginated_operation(db: Session):
+        from ..core.translation import get_translation_service
+        translation_service = get_translation_service()
+        events_service = EventsService(db, translation_service)
+        
+        events, total, pages = events_service.get_events_paginated(search_params)
+        return {
+            "events": events,
+            "total": total,
+            "pages": pages,
+            "page": search_params.page,
+            "size": search_params.size
+        }
+    
+    return safe_db_operation(_paginated_operation)
+
+
 @router.get("/", response_model=EventResponse)
 def get_events(
     search_params: EventSearchParams = Depends(),
     accept_language: Optional[str] = Header(None),
-    db: Session = Depends(get_db),
-    performance_service: PerformanceService = Depends(get_performance_service),
-    translation_service: TranslationService = Depends(get_translation_service),
 ):
-    """Get events with comprehensive filtering, search, and geographic queries (optimized with caching)."""
-    
-    # Create events service
-    events_service = EventsService(db, translation_service)
-    
-    # Use optimized performance service for simple queries (no search, no geographic filtering)
-    if (search_params.use_cache and not search_params.q and 
-        search_params.latitude is None and search_params.longitude is None and 
-        not search_params.tags):
-        try:
-            result = performance_service.get_events_optimized(
-                page=search_params.page,
-                size=search_params.size,
-                category_id=search_params.category_id,
-                venue_id=search_params.venue_id,
-                city=search_params.city,
-                date_from=search_params.date_from,
-                date_to=search_params.date_to,
-                is_featured=search_params.is_featured,
-                language=search_params.language,
-            )
+    """Get events with comprehensive filtering, search, and geographic queries (safe database operations)."""
+    try:
+        logger.info(f"Getting events with params: page={search_params.page}, size={search_params.size}")
+        
+        # For simple queries, try optimized performance service first
+        if (search_params.use_cache and not search_params.q and 
+            search_params.latitude is None and search_params.longitude is None and 
+            not search_params.tags):
+            
+            def _performance_operation(db: Session):
+                performance_service = get_performance_service(db)
+                result = performance_service.get_events_optimized(
+                    page=search_params.page,
+                    size=search_params.size,
+                    category_id=search_params.category_id,
+                    venue_id=search_params.venue_id,
+                    city=search_params.city,
+                    date_from=search_params.date_from,
+                    date_to=search_params.date_to,
+                    is_featured=search_params.is_featured,
+                    language=search_params.language,
+                )
+                
+                return EventResponse(
+                    events=[schemas.Event(**event_data) for event_data in result["events"]],
+                    total=result["total"],
+                    page=result["page"],
+                    size=result["size"],
+                    pages=result["pages"],
+                )
+            
+            try:
+                return safe_db_operation(_performance_operation)
+            except Exception as e:
+                logger.warning(f"Performance service fallback for events: {e}")
+                # Fall through to regular events service
 
-            return EventResponse(
-                events=[schemas.Event(**event_data) for event_data in result["events"]],
-                total=result["total"],
-                page=result["page"],
-                size=result["size"],
-                pages=result["pages"],
-            )
-        except Exception as e:
-            # Fallback to non-cached version
-            logger.warning(f"Cache fallback for events: {e}")
-
-    # Use events service for all other queries
-    return events_service.search_events(search_params, accept_language)
+        # Use safe events service for all other queries
+        return _safe_search_events(search_params, accept_language)
+        
+    except Exception as e:
+        logger.error(f"Error in get_events endpoint: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error retrieving events: {str(e)}"
+        )
 
 
 @router.get("/featured", response_model=EventResponse)
 def get_featured_events(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db),
 ):
-    """Get featured events."""
-    query = (
-        db.query(Event)
-        .options(joinedload(Event.category), joinedload(Event.venue))
-        .filter(Event.is_featured == True, Event.event_status == "active")
-    )
-
-    total = query.count()
-    skip = (page - 1) * size
-    pages = (total + size - 1) // size if total > 0 else 0
-
-    events = query.order_by(Event.date.asc()).offset(skip).limit(size).all()
-
-    return EventResponse(
-        events=events, total=total, page=page, size=len(events), pages=pages
-    )
+    """Get featured events with safe database operations."""
+    try:
+        logger.info(f"Getting featured events: page={page}, size={size}")
+        return _safe_get_featured_events(page, size)
+    except Exception as e:
+        logger.error(f"Error in get_featured_events endpoint: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error retrieving featured events: {str(e)}"
+        )
 
 
 @router.get("/search", response_model=EventResponse)
-def search_events(params: EventSearchParams = Depends(), db: Session = Depends(get_db)):
-    """Advanced event search with all filters."""
-    return get_events(
-        q=params.q,
-        category_id=params.category_id,
-        venue_id=params.venue_id,
-        city=params.city,
-        date_from=params.date_from,
-        date_to=params.date_to,
-        is_featured=params.is_featured,
-        event_status=params.event_status,
-        tags=params.tags,
-        latitude=params.latitude,
-        longitude=params.longitude,
-        radius_km=params.radius_km,
-        page=params.page,
-        size=params.size,
-        db=db,
-    )
+def search_events(params: EventSearchParams = Depends()):
+    """Advanced event search with all filters using safe database operations."""
+    try:
+        logger.info(f"Searching events with query: {params.q}")
+        return _safe_search_events(params)
+    except Exception as e:
+        logger.error(f"Error in search_events endpoint: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error searching events: {str(e)}"
+        )
 
 
 @router.get("/nearby", response_model=EventResponse)
@@ -365,3 +408,183 @@ def get_croatian_event_recommendations(
         ],
         "cultural_categories": cultural_categories,
     }
+
+
+@router.post("/geocode")
+async def geocode_events(
+    limit: int = Query(50, ge=1, le=200, description="Number of events to geocode"),
+    db: Session = Depends(get_db),
+):
+    """Geocode events that don't have coordinates yet."""
+    try:
+        # Find events without coordinates
+        events_without_coords = (
+            db.query(Event)
+            .filter(
+                and_(
+                    or_(Event.latitude.is_(None), Event.longitude.is_(None)),
+                    Event.location.isnot(None),
+                    Event.location != "",
+                )
+            )
+            .limit(limit)
+            .all()
+        )
+
+        if not events_without_coords:
+            return {
+                "message": "No events found that need geocoding",
+                "geocoded_count": 0,
+                "total_checked": 0,
+            }
+
+        # Prepare venues for batch geocoding
+        venues_to_geocode = []
+        for event in events_without_coords:
+            venues_to_geocode.append((event.location, ""))
+
+        # Batch geocode venues
+        geocoding_results = await geocoding_service.batch_geocode_venues(
+            venues_to_geocode
+        )
+
+        # Update events with coordinates
+        geocoded_count = 0
+        for event in events_without_coords:
+            if event.location in geocoding_results:
+                result = geocoding_results[event.location]
+                event.latitude = result.latitude
+                event.longitude = result.longitude
+                geocoded_count += 1
+                logger.info(
+                    f"Geocoded event {event.id}: {event.location} → {result.latitude}, {result.longitude}"
+                )
+
+        # Commit changes
+        db.commit()
+
+        return {
+            "message": f"Successfully geocoded {geocoded_count} events",
+            "geocoded_count": geocoded_count,
+            "total_checked": len(events_without_coords),
+            "geocoding_results": [
+                {
+                    "location": location,
+                    "latitude": result.latitude,
+                    "longitude": result.longitude,
+                    "confidence": result.confidence,
+                    "accuracy": result.accuracy,
+                }
+                for location, result in geocoding_results.items()
+            ],
+        }
+
+    except Exception as e:
+        logger.error(f"Error geocoding events: {e}")
+        raise HTTPException(status_code=500, detail=f"Error geocoding events: {str(e)}")
+
+
+def _get_geocoding_status_data(db: Session):
+    """Internal function to get geocoding status data."""
+    # Count total events (only active ones)
+    total_events = db.query(Event).filter(Event.event_status == "active").count()
+
+    # Count events with coordinates
+    events_with_coords = (
+        db.query(Event)
+        .filter(
+            and_(
+                Event.event_status == "active",
+                Event.latitude.isnot(None),
+                Event.longitude.isnot(None),
+            )
+        )
+        .count()
+    )
+
+    # Count events without coordinates but with location
+    events_need_geocoding = (
+        db.query(Event)
+        .filter(
+            and_(
+                Event.event_status == "active",
+                or_(Event.latitude.is_(None), Event.longitude.is_(None)),
+                Event.location.isnot(None),
+                Event.location != "",
+            )
+        )
+        .count()
+    )
+
+    # Count events without location
+    events_without_location = (
+        db.query(Event)
+        .filter(
+            and_(
+                Event.event_status == "active",
+                or_(Event.location.is_(None), Event.location == "")
+            )
+        )
+        .count()
+    )
+
+    geocoding_percentage = round(
+        (events_with_coords / total_events * 100) if total_events > 0 else 0, 1
+    )
+
+    return {
+        "total_events": total_events,
+        "events_with_coordinates": events_with_coords,
+        "events_need_geocoding": events_need_geocoding,
+        "events_without_location": events_without_location,
+        "geocoding_percentage": geocoding_percentage,
+    }
+
+
+@router.get("/geocoding-status/")
+def get_geocoding_status():
+    """Get the current geocoding status for events."""
+    try:
+        # Use safe database operation with retry logic
+        result = safe_db_operation(_get_geocoding_status_data)
+        
+        logger.info(f"Geocoding status: {result['events_with_coordinates']}/{result['total_events']} events geocoded ({result['geocoding_percentage']}%)")
+        
+        return result
+
+    except Exception as e:
+        logger.error(f"Error getting geocoding status: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error getting geocoding status: {str(e)}"
+        )
+
+
+@router.get("/db-health/")
+def get_database_health():
+    """Get database health status and connection info."""
+    try:
+        health_result = health_check_db()
+        logger.info(f"Database health check: {health_result['status']}")
+        return health_result
+    except Exception as e:
+        logger.error(f"Error checking database health: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+
+@router.post("/db-reset/")
+def reset_database_pool():
+    """Reset database connection pool (admin endpoint)."""
+    try:
+        reset_success = reset_database_connections()
+        if reset_success:
+            return {"status": "success", "message": "Database connections reset"}
+        else:
+            return {"status": "failed", "message": "Failed to reset connections"}
+    except Exception as e:
+        logger.error(f"Error resetting database: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error resetting database: {str(e)}"
+        )

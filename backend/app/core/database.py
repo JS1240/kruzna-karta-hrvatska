@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
@@ -62,16 +62,73 @@ def receive_after_cursor_execute(
 
 
 def get_db():
-    """Enhanced database dependency with performance monitoring."""
+    """Enhanced database dependency with robust transaction handling."""
     db = SessionLocal()
     try:
         yield db
     except Exception as e:
-        logger.error(f"Database session error: {e}")
-        db.rollback()
+        logger.error(f"Database session error: {e}", exc_info=True)
+        try:
+            # Ensure we rollback any failed transaction
+            db.rollback()
+        except Exception as rollback_error:
+            logger.error(f"Failed to rollback transaction: {rollback_error}")
+            # If rollback fails, close and recreate session
+            try:
+                db.close()
+            except:
+                pass
+            db = SessionLocal()
         raise
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception as close_error:
+            logger.warning(f"Error closing database session: {close_error}")
+
+
+def get_fresh_db_session():
+    """Get a fresh database session with error handling."""
+    try:
+        return SessionLocal()
+    except Exception as e:
+        logger.error(f"Failed to create database session: {e}")
+        raise
+
+
+def safe_db_operation(operation_func, *args, **kwargs):
+    """Execute database operation with automatic retry and error handling."""
+    max_retries = 3
+    for attempt in range(max_retries):
+        db = None
+        try:
+            db = get_fresh_db_session()
+            result = operation_func(db, *args, **kwargs)
+            return result
+        except Exception as e:
+            if db:
+                try:
+                    db.rollback()
+                except:
+                    pass
+                try:
+                    db.close()
+                except:
+                    pass
+            
+            # Check if this is a transaction error that we can retry
+            if "transaction is aborted" in str(e).lower() and attempt < max_retries - 1:
+                logger.warning(f"Transaction error on attempt {attempt + 1}, retrying...")
+                continue
+            else:
+                logger.error(f"Database operation failed after {attempt + 1} attempts: {e}")
+                raise
+        finally:
+            if db:
+                try:
+                    db.close()
+                except:
+                    pass
 
 
 def get_db_pool_status():
@@ -86,12 +143,33 @@ def get_db_pool_status():
     }
 
 
-def health_check_db():
-    """Perform database health check."""
+def reset_database_connections():
+    """Reset database connection pool to clear any failed transactions."""
     try:
+        # Dispose of all connections in the pool
+        engine.dispose()
+        logger.info("Database connection pool reset successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to reset database connections: {e}")
+        return False
+
+
+def health_check_db():
+    """Perform comprehensive database health check."""
+    try:
+        # Test basic connectivity
         db = SessionLocal()
-        db.execute("SELECT 1")
-        db.close()
+        try:
+            db.execute(text("SELECT 1"))
+            db.commit()
+            
+            # Test event table access (the problematic table)
+            db.execute(text("SELECT COUNT(*) FROM events LIMIT 1"))
+            db.commit()
+            
+        finally:
+            db.close()
 
         pool_status = get_db_pool_status()
 
@@ -99,9 +177,21 @@ def health_check_db():
             "status": "healthy",
             "database_connected": True,
             "pool_status": pool_status,
+            "connectivity": "ok",
+            "event_table": "accessible"
         }
     except Exception as e:
-        return {"status": "unhealthy", "database_connected": False, "error": str(e)}
+        logger.error(f"Database health check failed: {e}")
+        
+        # Try to reset connections if health check fails
+        reset_success = reset_database_connections()
+        
+        return {
+            "status": "unhealthy",
+            "database_connected": False,
+            "error": str(e),
+            "reset_attempted": reset_success,
+        }
 
 
 # Import time for query timing

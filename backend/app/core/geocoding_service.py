@@ -195,6 +195,10 @@ class GeocodingService:
                 return True
                 
         except Exception as e:
+            # If table doesn't exist, log warning but don't fail
+            if "does not exist" in str(e).lower() or "relation" in str(e).lower():
+                logger.warning(f"venue_coordinates table does not exist, skipping cache for {venue_name}")
+                return False
             logger.error(f"Failed to cache venue coordinates for {venue_name}: {e}")
             return False
 
@@ -234,7 +238,11 @@ class GeocodingService:
                     )
                     
         except Exception as e:
-            logger.error(f"Failed to get cached coordinates for {venue_name}: {e}")
+            # If table doesn't exist, log debug message but don't fail
+            if "does not exist" in str(e).lower() or "relation" in str(e).lower():
+                logger.debug(f"venue_coordinates table does not exist, no cache available for {venue_name}")
+            else:
+                logger.error(f"Failed to get cached coordinates for {venue_name}: {e}")
             
         return None
 

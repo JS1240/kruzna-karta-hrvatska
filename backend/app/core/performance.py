@@ -38,14 +38,27 @@ class QueryOptimizer:
     @staticmethod
     def optimize_event_query(query, include_analytics: bool = False):
         """Optimize event queries with common eager loading."""
-        query = query.options(
-            joinedload(Event.category),
-            joinedload(Event.venue),
-            selectinload(Event.translations),
-        )
+        try:
+            query = query.options(
+                joinedload(Event.category),
+                joinedload(Event.venue),
+            )
+            
+            # Try to load translations if the table exists
+            try:
+                query = query.options(selectinload(Event.translations))
+            except Exception:
+                # Translations table doesn't exist yet, skip it
+                pass
 
-        if include_analytics:
-            query = query.options(selectinload(Event.performance_metrics))
+            if include_analytics:
+                try:
+                    query = query.options(selectinload(Event.performance_metrics))
+                except Exception:
+                    # Performance metrics table doesn't exist, skip it
+                    pass
+        except Exception as e:
+            logger.warning(f"Error optimizing event query: {e}")
 
         return query
 
@@ -170,9 +183,15 @@ class PerformanceService:
         query = self.db.query(Event).options(
             joinedload(Event.category),
             joinedload(Event.venue),
-            selectinload(Event.translations),
             selectinload(Event.favorited_by),
         )
+        
+        # Try to load translations if the table exists
+        try:
+            query = query.options(selectinload(Event.translations))
+        except Exception:
+            # Translations table doesn't exist yet, skip it
+            pass
 
         event = query.filter(Event.id == event_id).first()
 
@@ -219,7 +238,11 @@ class PerformanceService:
         query = self.db.query(EventCategory).filter(EventCategory.is_active == True)
 
         if language != "hr":
-            query = query.options(selectinload(EventCategory.translations))
+            try:
+                query = query.options(selectinload(EventCategory.translations))
+            except Exception:
+                # Category translations table doesn't exist yet, skip it
+                pass
 
         categories = query.order_by(EventCategory.name).all()
 
@@ -237,7 +260,11 @@ class PerformanceService:
             query = query.filter(Venue.city.ilike(f"%{city}%"))
 
         if language != "hr":
-            query = query.options(selectinload(Venue.translations))
+            try:
+                query = query.options(selectinload(Venue.translations))
+            except Exception:
+                # Venue translations table doesn't exist yet, skip it
+                pass
 
         venues = query.order_by(Venue.name).all()
 

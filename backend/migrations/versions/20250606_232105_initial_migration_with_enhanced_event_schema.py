@@ -57,7 +57,7 @@ def upgrade() -> None:
     # Create events table with enhanced schema
     op.create_table('events',
         sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=500), nullable=False),
+        sa.Column('title', sa.String(length=500), nullable=False),
         sa.Column('time', sa.String(length=50), nullable=False),
         sa.Column('date', sa.Date(), nullable=False),
         sa.Column('price', sa.String(length=100), nullable=True),
@@ -78,6 +78,13 @@ def upgrade() -> None:
         sa.Column('age_restriction', sa.String(length=50), nullable=True),
         sa.Column('ticket_types', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('tags', postgresql.ARRAY(sa.Text()), nullable=True),
+        
+        # User-generated event fields
+        sa.Column('organizer_id', sa.Integer(), nullable=True),
+        sa.Column('approval_status', sa.String(length=20), nullable=True, default='pending'),
+        sa.Column('platform_commission_rate', sa.Numeric(precision=5, scale=2), nullable=True, default=5.0),
+        sa.Column('is_user_generated', sa.Boolean(), nullable=True, default=False),
+        
         sa.Column('slug', sa.String(length=600), nullable=True),
         sa.Column('search_vector', postgresql.TSVECTOR(), nullable=True),
         sa.Column('end_date', sa.Date(), nullable=True),
@@ -92,20 +99,24 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['venue_id'], ['venues.id'], ),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('slug'),
-        sa.CheckConstraint('date >= CURRENT_DATE - INTERVAL '1 year'', name='events_date_check'),
+        sa.CheckConstraint("date >= CURRENT_DATE - INTERVAL '1 year'", name='events_date_check'),
         sa.CheckConstraint('end_date IS NULL OR end_date >= date', name='events_end_date_check'),
-        sa.CheckConstraint('event_status IN ('active', 'cancelled', 'postponed', 'sold_out', 'draft')', name='events_status_check'),
-        sa.CheckConstraint('source IN ('entrio', 'croatia', 'manual', 'api', 'facebook', 'eventbrite')', name='events_source_check')
+        sa.CheckConstraint("event_status IN ('active', 'cancelled', 'postponed', 'sold_out', 'draft')", name='events_status_check'),
+        sa.CheckConstraint("source IN ('entrio', 'croatia', 'manual', 'api', 'facebook', 'eventbrite', 'user_generated')", name='events_source_check'),
+        sa.CheckConstraint("approval_status IN ('pending', 'approved', 'rejected')", name='events_approval_check')
     )
     
     # Create indexes
     op.create_index('idx_events_date', 'events', ['date'])
     op.create_index('idx_events_location', 'events', ['location'])
-    op.create_index('idx_events_name', 'events', ['name'])
+    op.create_index('idx_events_title', 'events', ['title'])
     op.create_index('idx_events_category', 'events', ['category_id'])
     op.create_index('idx_events_venue', 'events', ['venue_id'])
     op.create_index('idx_events_source', 'events', ['source'])
     op.create_index('idx_events_status', 'events', ['event_status'])
+    op.create_index('idx_events_organizer', 'events', ['organizer_id'])
+    op.create_index('idx_events_approval', 'events', ['approval_status'])
+    op.create_index('idx_events_user_generated', 'events', ['is_user_generated'])
     op.create_index('idx_events_featured', 'events', ['is_featured'], postgresql_where=sa.text('is_featured = true'))
     op.create_index('idx_events_date_status', 'events', ['date', 'event_status'])
     op.create_index('idx_events_tags', 'events', ['tags'], postgresql_using='gin')
@@ -118,7 +129,7 @@ def upgrade() -> None:
     op.create_index('idx_categories_slug', 'event_categories', ['slug'])
     
     # Create GIN indexes for full-text search
-    op.execute('CREATE INDEX IF NOT EXISTS idx_events_location_gin ON events USING gin(to_tsvector('simple', location))')
+    op.execute("CREATE INDEX IF NOT EXISTS idx_events_location_gin ON events USING gin(to_tsvector('simple', location))")
     op.execute('CREATE INDEX IF NOT EXISTS idx_events_search ON events USING gin(search_vector)')
 
 

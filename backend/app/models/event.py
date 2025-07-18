@@ -94,6 +94,11 @@ class Event(Base):
     event_organizer = relationship(
         "User", foreign_keys=[organizer_id], back_populates="organized_events"
     )
+    
+    # Translation relationships
+    translations = relationship(
+        "EventTranslation", back_populates="event", cascade="all, delete-orphan"
+    )
 
     # Constraints
     __table_args__ = (

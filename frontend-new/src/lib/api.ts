@@ -80,12 +80,12 @@ class ApiClient {
       }
     });
 
-    const endpoint = `/events?${searchParams.toString()}`;
+    const endpoint = `/events/?${searchParams.toString()}`;
     return this.request<EventResponse>(endpoint);
   }
 
   async getEvent(id: number): Promise<Event> {
-    return this.request<Event>(`/events/${id}`);
+    return this.request<Event>(`/events/${id}/`);
   }
 
   async getFeaturedEvents(page = 1, size = 10): Promise<EventResponse> {
@@ -94,7 +94,7 @@ class ApiClient {
       size: size.toString(),
     });
     
-    return this.request<EventResponse>(`/events/featured?${searchParams.toString()}`);
+    return this.request<EventResponse>(`/events/featured/?${searchParams.toString()}`);
   }
 
   async searchEvents(params: EventSearchParams): Promise<EventResponse> {
@@ -110,7 +110,7 @@ class ApiClient {
       }
     });
 
-    const endpoint = `/events/search?${searchParams.toString()}`;
+    const endpoint = `/events/search/?${searchParams.toString()}`;
     return this.request<EventResponse>(endpoint);
   }
 
@@ -129,15 +129,17 @@ class ApiClient {
       size: size.toString(),
     });
 
-    return this.request<EventResponse>(`/events/nearby?${searchParams.toString()}`);
+    return this.request<EventResponse>(`/events/nearby/?${searchParams.toString()}`);
   }
 
   async getCategories(): Promise<EventCategory[]> {
-    return this.request<EventCategory[]>('/categories');
+    const response = await this.request<{categories: EventCategory[], total: number}>('/categories/');
+    return response.categories;
   }
 
   async getVenues(): Promise<Venue[]> {
-    return this.request<Venue[]>('/venues');
+    const response = await this.request<{venues: Venue[], total: number}>('/venues/');
+    return response.venues;
   }
 
   async getEventsByCategory(categoryId: number, page = 1, size = 20): Promise<EventResponse> {
@@ -174,6 +176,37 @@ class ApiClient {
     });
 
     return this.request<EventResponse>(`/events?${searchParams.toString()}`);
+  }
+
+  async geocodeEvents(limit = 50): Promise<{
+    message: string;
+    geocoded_count: number;
+    total_checked: number;
+    geocoding_results: Array<{
+      location: string;
+      latitude: number;
+      longitude: number;
+      confidence: number;
+      accuracy: string;
+    }>;
+  }> {
+    const searchParams = new URLSearchParams({
+      limit: limit.toString(),
+    });
+
+    return this.request(`/events/geocode/?${searchParams.toString()}`, {
+      method: 'POST',
+    });
+  }
+
+  async getGeocodingStatus(): Promise<{
+    total_events: number;
+    events_with_coordinates: number;
+    events_need_geocoding: number;
+    events_without_location: number;
+    geocoding_percentage: number;
+  }> {
+    return this.request('/events/geocoding-status/');
   }
 }
 

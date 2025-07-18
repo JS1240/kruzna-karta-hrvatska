@@ -5,6 +5,9 @@ import { Event, MapBounds } from '@/types/event';
 import { format } from 'date-fns';
 import clsx from 'clsx';
 
+// Make mapbox-gl available globally
+(window as any).mapboxgl = mapboxgl;
+
 interface EventMapProps {
   events: Event[];
   loading?: boolean;
@@ -79,6 +82,7 @@ export const EventMap: React.FC<EventMapProps> = ({
     );
   }, [events]);
 
+
   // Initialize map (only once)
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -109,7 +113,6 @@ export const EventMap: React.FC<EventMapProps> = ({
 
       // Set up event handlers
       map.current.on('load', () => {
-        console.log('Map loaded successfully');
         setMapLoaded(true);
         setMapError(null);
       });
@@ -147,14 +150,15 @@ export const EventMap: React.FC<EventMapProps> = ({
         map.current = null;
       }
     };
-  }, []); // Empty dependency array - initialize only once
+  }, [mapContainer.current]); // Re-run when mapContainer ref changes
 
   // Update map data when events change
   useEffect(() => {
     if (!mapLoaded || !map.current || validEvents.length === 0) return;
 
-    // Convert events to GeoJSON
-    const eventsGeoJSON: GeoJSON.FeatureCollection = {
+    try {
+      // Convert events to GeoJSON
+      const eventsGeoJSON: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features: validEvents.map(event => {
         const category = inferEventCategory(event.title, event.description || '');
@@ -181,7 +185,6 @@ export const EventMap: React.FC<EventMapProps> = ({
       }),
     };
 
-    try {
       // Remove existing source and layers if they exist
       if (map.current.getSource('events')) {
         if (map.current.getLayer('event-points')) {
@@ -218,7 +221,7 @@ export const EventMap: React.FC<EventMapProps> = ({
         const props = feature.properties;
 
         // Create popup
-        const popup = new mapboxgl.Popup({
+        new mapboxgl.Popup({
           closeButton: true,
           closeOnClick: true,
           maxWidth: '300px',
@@ -257,17 +260,22 @@ export const EventMap: React.FC<EventMapProps> = ({
 
     } catch (error) {
       console.error('Failed to add events to map:', error);
+      setMapError('Failed to display events on map');
     }
   }, [mapLoaded, validEvents, onEventClick]);
 
   // Fit map to show all events
   const fitMapToEvents = () => {
     if (map.current && validEvents.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
-      validEvents.forEach(event => {
-        bounds.extend([event.longitude!, event.latitude!]);
-      });
-      map.current.fitBounds(bounds, { padding: 50 });
+      try {
+        const bounds = new mapboxgl.LngLatBounds();
+        validEvents.forEach(event => {
+          bounds.extend([event.longitude!, event.latitude!]);
+        });
+        map.current.fitBounds(bounds, { padding: 50 });
+      } catch (error) {
+        console.error('Failed to fit map to events:', error);
+      }
     }
   };
 

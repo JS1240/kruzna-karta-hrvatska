@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 from datetime import date, datetime, timedelta
@@ -19,6 +20,9 @@ from ..config.components import get_settings
 
 # Get global configuration
 _settings = get_settings()
+
+# Set up logging
+logger = logging.getLogger(__name__)
 _scraping_config = _settings.scraping
 
 # BrightData configuration
@@ -248,7 +252,7 @@ class DubrovnikRequestsScraper:
             return events
             
         except Exception as e:
-            print(f"Error scraping calendar page: {e}")
+            logger.error(f"Error scraping calendar page: {e}")
             return []
 
     async def close(self) -> None:
@@ -286,7 +290,7 @@ class DubrovnikPlaywrightScraper:
                 page = await context.new_page()
                 
                 try:
-                    print(f"Navigating to {EVENTS_URL}")
+                    logger.info(f"Navigating to {EVENTS_URL}")
                     await page.goto(EVENTS_URL, wait_until="networkidle", timeout=30000)
                     await page.wait_for_timeout(3000)
                     
@@ -295,15 +299,15 @@ class DubrovnikPlaywrightScraper:
                     
                     # Navigate through months
                     for month_offset in range(months_ahead + 1):
-                        print(f"Processing month {month_offset + 1}/{months_ahead + 1}")
+                        logger.info(f"Processing month {month_offset + 1}/{months_ahead + 1}")
                         
                         # Get current month info
                         month_text = await page.text_content(".calendar-title-text .current-date")
-                        print(f"Current month: {month_text}")
+                        logger.info(f"Current month: {month_text}")
                         
                         # Find all event dates in current month
                         event_dates = await page.query_selector_all("button.calendar-dates-day.event-date")
-                        print(f"Found {len(event_dates)} event dates in this month")
+                        logger.info(f"Found {len(event_dates)} event dates in this month")
                         
                         # Click each event date
                         for i, date_button in enumerate(event_dates):
@@ -314,11 +318,11 @@ class DubrovnikPlaywrightScraper:
                                 
                                 # Extract events for this date
                                 events = await self.extract_events_from_page(page)
-                                print(f"Found {len(events)} events for date {i + 1}")
+                                logger.info(f"Found {len(events)} events for date {i + 1}")
                                 all_events.extend(events)
                                 
                             except Exception as e:
-                                print(f"Error clicking date {i + 1}: {e}")
+                                logger.error(f"Error clicking date {i + 1}: {e}")
                                 continue
                         
                         # Move to next month (except on last iteration)
@@ -329,24 +333,24 @@ class DubrovnikPlaywrightScraper:
                                     await next_button.click()
                                     await page.wait_for_timeout(2000)
                                 else:
-                                    print("Next month button not found")
+                                    logger.warning("Next month button not found")
                                     break
                             except Exception as e:
-                                print(f"Error navigating to next month: {e}")
+                                logger.error(f"Error navigating to next month: {e}")
                                 break
                     
                 except Exception as e:
-                    print(f"Error during calendar scraping: {e}")
+                    logger.error(f"Error during calendar scraping: {e}")
                 
                 await browser.close()
             
             return all_events
             
         except ImportError:
-            print("Playwright not available")
+            logger.warning("Playwright not available")
             return []
         except Exception as e:
-            print(f"Playwright error: {e}")
+            logger.error(f"Playwright error: {e}")
             return []
 
     async def extract_events_from_page(self, page) -> List[Dict]:
@@ -406,7 +410,7 @@ class DubrovnikPlaywrightScraper:
             return events_data
             
         except Exception as e:
-            print(f"Error extracting events: {e}")
+            logger.error(f"Error extracting events: {e}")
             return []
 
 
@@ -428,7 +432,7 @@ class DubrovnikScraper:
             
             # If Playwright fails, fallback to requests
             if not raw:
-                print("Playwright returned no results, falling back to requests approach")
+                logger.warning("Playwright returned no results, falling back to requests approach")
                 raw = await self.requests_scraper.scrape_calendar_page()
                 await self.requests_scraper.close()
         else:
@@ -477,7 +481,7 @@ class DubrovnikScraper:
                     except Exception as e:
                         # Skip duplicate or invalid events
                         db.rollback()
-                        print(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
+                        logger.warning(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
                         # Continue with the next event
                         continue
                 
@@ -488,7 +492,7 @@ class DubrovnikScraper:
             return 0
         except Exception as e:
             db.rollback()
-            print(f"Database error in Dubrovnik scraper: {e}")
+            logger.error(f"Database error in Dubrovnik scraper: {e}")
             raise
         finally:
             db.close()

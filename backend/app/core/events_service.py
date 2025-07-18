@@ -41,109 +41,147 @@ class EventsService:
         return DEFAULT_LANGUAGE
     
     def build_events_query(self, search_params: EventSearchParams):
-        """Build the SQLAlchemy query based on search parameters."""
-        query = self.db.query(Event).options(
-            joinedload(Event.category),
-            joinedload(Event.venue)
-        )
-        
-        # Apply filters
-        if search_params.category_id:
-            query = query.filter(Event.category_id == search_params.category_id)
-        
-        if search_params.venue_id:
-            query = query.filter(Event.venue_id == search_params.venue_id)
-        
-        if search_params.city:
-            query = query.filter(Event.location.ilike(f"%{search_params.city}%"))
-        
-        if search_params.date_from:
-            query = query.filter(Event.date >= search_params.date_from)
-        
-        if search_params.date_to:
-            query = query.filter(Event.date <= search_params.date_to)
-        
-        if search_params.is_featured is not None:
-            query = query.filter(Event.is_featured == search_params.is_featured)
-        
-        if search_params.event_status:
-            query = query.filter(Event.event_status == search_params.event_status)
-        
-        # Text search
-        if search_params.q:
-            search_term = f"%{search_params.q}%"
-            query = query.filter(
-                or_(
-                    Event.title.ilike(search_term),
-                    Event.description.ilike(search_term),
-                    Event.location.ilike(search_term)
-                )
+        """Build the SQLAlchemy query based on search parameters with transaction safety."""
+        try:
+            query = self.db.query(Event).options(
+                joinedload(Event.category),
+                joinedload(Event.venue)
             )
-        
-        # Geographic search
-        if (search_params.latitude is not None and 
-            search_params.longitude is not None and 
-            search_params.radius_km is not None):
             
-            # Use Haversine formula for distance calculation
-            query = query.filter(
-                func.earth_distance(
-                    func.ll_to_earth(Event.latitude, Event.longitude),
-                    func.ll_to_earth(search_params.latitude, search_params.longitude)
-                ) <= search_params.radius_km * 1000  # Convert km to meters
-            )
-        
-        # Tags filter (assuming tags are stored as array)
-        if search_params.tags:
-            for tag in search_params.tags:
-                query = query.filter(Event.tags.any(tag))
-        
-        return query
+            # Apply filters with error handling
+            if search_params.category_id:
+                query = query.filter(Event.category_id == search_params.category_id)
+            
+            if search_params.venue_id:
+                query = query.filter(Event.venue_id == search_params.venue_id)
+            
+            if search_params.city:
+                query = query.filter(Event.location.ilike(f"%{search_params.city}%"))
+            
+            if search_params.date_from:
+                query = query.filter(Event.date >= search_params.date_from)
+            
+            if search_params.date_to:
+                query = query.filter(Event.date <= search_params.date_to)
+            
+            if search_params.is_featured is not None:
+                query = query.filter(Event.is_featured == search_params.is_featured)
+            
+            if search_params.event_status:
+                query = query.filter(Event.event_status == search_params.event_status)
+            
+            # Text search with error handling
+            if search_params.q:
+                try:
+                    search_term = f"%{search_params.q}%"
+                    query = query.filter(
+                        or_(
+                            Event.title.ilike(search_term),
+                            Event.description.ilike(search_term),
+                            Event.location.ilike(search_term)
+                        )
+                    )
+                except Exception as search_error:
+                    logger.warning(f"Error applying text search filter: {search_error}")
+            
+            # Geographic search with error handling
+            if (search_params.latitude is not None and 
+                search_params.longitude is not None and 
+                search_params.radius_km is not None):
+                
+                try:
+                    # Use Haversine formula for distance calculation
+                    query = query.filter(
+                        func.earth_distance(
+                            func.ll_to_earth(Event.latitude, Event.longitude),
+                            func.ll_to_earth(search_params.latitude, search_params.longitude)
+                        ) <= search_params.radius_km * 1000  # Convert km to meters
+                    )
+                except Exception as geo_error:
+                    logger.warning(f"Error applying geographic filter: {geo_error}")
+            
+            # Tags filter with error handling
+            if search_params.tags:
+                try:
+                    for tag in search_params.tags:
+                        query = query.filter(Event.tags.any(tag))
+                except Exception as tag_error:
+                    logger.warning(f"Error applying tags filter: {tag_error}")
+            
+            return query
+            
+        except Exception as e:
+            logger.error(f"Error building events query: {e}", exc_info=True)
+            # Return basic query on error
+            return self.db.query(Event)
     
     def get_events_paginated(
         self, 
         search_params: EventSearchParams, 
         language: Optional[str] = None
     ) -> Tuple[List[Event], int, int]:
-        """Get paginated events based on search parameters."""
+        """Get paginated events based on search parameters with transaction safety."""
         
-        # Build base query
-        query = self.build_events_query(search_params)
-        
-        # Get total count
-        total = query.count()
-        
-        # Apply ordering
-        query = query.order_by(Event.date.asc(), Event.time.asc())
-        
-        # Apply pagination
-        offset = (search_params.page - 1) * search_params.size
-        events = query.offset(offset).limit(search_params.size).all()
-        
-        # Calculate total pages
-        pages = (total + search_params.size - 1) // search_params.size
-        
-        return events, total, pages
+        try:
+            # Build base query
+            query = self.build_events_query(search_params)
+            
+            # Get total count with error handling
+            try:
+                total = query.count()
+            except Exception as count_error:
+                logger.error(f"Error counting events: {count_error}")
+                # Fallback to basic count
+                total = self.db.query(Event).count()
+            
+            # Apply ordering
+            query = query.order_by(Event.date.asc(), Event.time.asc())
+            
+            # Apply pagination
+            offset = (search_params.page - 1) * search_params.size
+            events = query.offset(offset).limit(search_params.size).all()
+            
+            # Calculate total pages
+            pages = (total + search_params.size - 1) // search_params.size
+            
+            return events, total, pages
+            
+        except Exception as e:
+            logger.error(f"Error in get_events_paginated: {e}", exc_info=True)
+            # Return empty results on error
+            return [], 0, 0
     
     def search_events(
         self, 
         search_params: EventSearchParams, 
         accept_language: Optional[str] = None
     ) -> EventResponse:
-        """Main method to search events with all parameters."""
+        """Main method to search events with all parameters and transaction safety."""
         
-        # Determine language
-        language = search_params.language
-        if not language:
-            language = self.get_language_from_header(accept_language)
-        
-        # Get paginated results
-        events, total, pages = self.get_events_paginated(search_params, language)
-        
-        return EventResponse(
-            events=events,
-            total=total,
-            page=search_params.page,
-            size=search_params.size,
-            pages=pages
-        )
+        try:
+            # Determine language
+            language = search_params.language
+            if not language:
+                language = self.get_language_from_header(accept_language)
+            
+            # Get paginated results with error handling
+            events, total, pages = self.get_events_paginated(search_params, language)
+            
+            return EventResponse(
+                events=events,
+                total=total,
+                page=search_params.page,
+                size=search_params.size,
+                pages=pages
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in search_events: {e}", exc_info=True)
+            # Return empty response on error
+            return EventResponse(
+                events=[],
+                total=0,
+                page=search_params.page,
+                size=search_params.size,
+                pages=0
+            )

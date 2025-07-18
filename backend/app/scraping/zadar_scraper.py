@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 from datetime import date
@@ -19,6 +20,9 @@ from ..config.components import get_settings
 
 # Get global configuration
 _settings = get_settings()
+
+# Set up logging
+logger = logging.getLogger(__name__)
 _scraping_config = _settings.scraping
 
 # BrightData configuration
@@ -301,8 +305,8 @@ class ZadarRequestsScraper:
         # Since this is a JavaScript SPA, the static HTML won't have events
         # The actual events need to be scraped using Playwright when available
         if not containers and "Loading..." in resp.text:
-            print("Detected Nuxt.js SPA - static HTML has no events content")
-            print("Playwright is required to scrape events from this JavaScript application")
+            logger.warning("Detected Nuxt.js SPA - static HTML has no events content")
+            logger.warning("Playwright is required to scrape events from this JavaScript application")
             return [], None
         
         # Fallback selectors if Vue.js structure not found
@@ -327,7 +331,7 @@ class ZadarRequestsScraper:
                         data.update({k: v for k, v in detail.items() if v})
                     except Exception as e:
                         # Log but don't fail the whole scraping
-                        print(f"Warning: Could not fetch details from {link}: {e}")
+                        logger.warning(f"Warning: Could not fetch details from {link}: {e}")
                 
                 # Only add events that have at least title and date
                 if data.get("title") and data.get("date"):
@@ -357,29 +361,29 @@ class ZadarRequestsScraper:
         current_url = EVENTS_URL
         page = 0
         
-        print(f"Starting Zadar scraper from {EVENTS_URL}")
+        logger.info(f"Starting Zadar scraper from {EVENTS_URL}")
         
         while current_url and page < max_pages:
             page += 1
-            print(f"Scraping page {page}: {current_url}")
+            logger.info(f"Scraping page {page}: {current_url}")
             
             try:
                 events, next_url = await self.scrape_events_page(current_url)
-                print(f"Found {len(events)} events on page {page}")
+                logger.info(f"Found {len(events)} events on page {page}")
                 all_events.extend(events)
                 
                 if not next_url or not events:
-                    print(f"No more pages or events found after page {page}")
+                    logger.info(f"No more pages or events found after page {page}")
                     break
                     
                 current_url = next_url
                 await asyncio.sleep(1)  # Be respectful
                 
             except Exception as e:
-                print(f"Error scraping page {page}: {e}")
+                logger.error(f"Error scraping page {page}: {e}")
                 break
         
-        print(f"Total events scraped: {len(all_events)}")
+        logger.info(f"Total events scraped: {len(all_events)}")
         return all_events
 
     async def close(self) -> None:
@@ -418,7 +422,7 @@ class ZadarPlaywrightScraper:
                 page = await context.new_page()
                 
                 try:
-                    print(f"Navigating to {EVENTS_URL}")
+                    logger.info(f"Navigating to {EVENTS_URL}")
                     await page.goto(EVENTS_URL, wait_until="networkidle", timeout=30000)
                     
                     # Wait for content to load
@@ -491,21 +495,21 @@ class ZadarPlaywrightScraper:
                         }
                     """)
                     
-                    print(f"Found {len(events_data)} events via Playwright")
+                    logger.info(f"Found {len(events_data)} events via Playwright")
                     all_events.extend(events_data)
                     
                 except Exception as e:
-                    print(f"Error scraping with Playwright: {e}")
+                    logger.error(f"Error scraping with Playwright: {e}")
                 
                 await browser.close()
             
             return all_events
             
         except ImportError:
-            print("Playwright not available, falling back to requests approach")
+            logger.warning("Playwright not available, falling back to requests approach")
             return []
         except Exception as e:
-            print(f"Playwright error: {e}")
+            logger.error(f"Playwright error: {e}")
             return []
 
 
@@ -526,7 +530,7 @@ class ZadarScraper:
             
             # If Playwright fails or returns no results, fallback to requests
             if not raw:
-                print("Playwright returned no results, falling back to requests approach")
+                logger.warning("Playwright returned no results, falling back to requests approach")
                 raw = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
                 await self.requests_scraper.close()
         else:
@@ -573,7 +577,7 @@ class ZadarScraper:
                     except Exception as e:
                         # Skip duplicate or invalid events
                         db.rollback()
-                        print(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
+                        logger.warning(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
                         continue
                 
                 db.commit()
@@ -582,7 +586,7 @@ class ZadarScraper:
             return 0
         except Exception as e:
             db.rollback()
-            print(f"Database error in Zadar scraper: {e}")
+            logger.error(f"Database error in Zadar scraper: {e}")
             raise
         finally:
             db.close()
