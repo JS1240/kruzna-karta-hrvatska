@@ -23,7 +23,7 @@ def upgrade() -> None:
     op.create_table(
         'venue_coordinates',
         sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('venue_name', sa.String(500), nullable=False, index=True),
+        sa.Column('venue_name', sa.String(500), nullable=False),
         sa.Column('latitude', sa.Numeric(10, 8), nullable=False),
         sa.Column('longitude', sa.Numeric(11, 8), nullable=False),
         sa.Column('accuracy', sa.String(50), nullable=True),
@@ -34,7 +34,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
-        sa.Index('idx_venue_coordinates_name', 'venue_name'),
         sa.Index('idx_venue_coordinates_location', 'latitude', 'longitude'),
     )
     

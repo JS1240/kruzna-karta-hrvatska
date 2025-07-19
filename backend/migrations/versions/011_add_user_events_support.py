@@ -1,7 +1,7 @@
 """add user events support
 
 Revision ID: 011_add_user_events_support
-Revises: 20250606_234628_add_translation_tables
+Revises: 010_add_social_features
 Create Date: 2025-01-08 12:00:00.000000
 
 """

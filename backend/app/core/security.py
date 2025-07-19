@@ -133,15 +133,32 @@ class SecurityHardening:
 
     def _get_or_create_encryption_key(self) -> bytes:
         """Get or create encryption key for data protection."""
+        
+        # Priority 1: Load key from environment variable (recommended)
+        env_key = os.getenv("ENCRYPTION_KEY")
+        if env_key:
+            try:
+                logger.info("Using encryption key from ENCRYPTION_KEY environment variable")
+                return base64.urlsafe_b64decode(env_key.encode())
+            except Exception as e:
+                logger.error(f"Failed to decode ENCRYPTION_KEY environment variable: {e}")
+                # Continue to fallback methods
+        
+        # Priority 2: Load key from file (legacy, with security warning)
         key_file = os.getenv("ENCRYPTION_KEY_FILE", "./encryption.key")
 
         try:
-            # Try to load existing key
+            # Try to load existing key from file
             if os.path.exists(key_file):
+                logger.warning(
+                    "Using file-based encryption key. For improved security, "
+                    "consider using ENCRYPTION_KEY environment variable instead."
+                )
                 with open(key_file, "rb") as f:
                     return f.read()
 
-            # Generate new key
+            # Priority 3: Generate new key (last resort)
+            logger.warning("No encryption key found. Generating new key.")
             password = os.getenv(
                 "ENCRYPTION_PASSWORD", "kruzna_karta_default_password"
             ).encode()
@@ -156,7 +173,7 @@ class SecurityHardening:
 
             key = base64.urlsafe_b64encode(kdf.derive(password))
 
-            # Save key securely
+            # Save key securely to file
             os.makedirs(os.path.dirname(key_file), exist_ok=True)
             with open(key_file, "wb") as f:
                 f.write(key)
@@ -165,11 +182,16 @@ class SecurityHardening:
             os.chmod(key_file, 0o600)
 
             logger.info(f"Generated new encryption key: {key_file}")
+            logger.warning(
+                "For production use, set ENCRYPTION_KEY environment variable "
+                f"with this value: {key.decode()}"
+            )
             return key
 
         except Exception as e:
             logger.error(f"Failed to manage encryption key: {e}")
-            # Fallback to environment-based key
+            # Final fallback: generate temporary key
+            logger.warning("Using temporary encryption key - data may not persist across restarts")
             return Fernet.generate_key()
 
     def encrypt_sensitive_data(self, data: str) -> str:

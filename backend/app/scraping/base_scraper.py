@@ -31,13 +31,13 @@ BRIGHTDATA_USER = _scraping_config.brightdata_user
 BRIGHTDATA_PASSWORD = _scraping_config.brightdata_password
 BRIGHTDATA_HOST_RES = _scraping_config.brightdata_host
 BRIGHTDATA_PORT = _scraping_config.brightdata_port
-SCRAPING_BROWSER_EP = _scraping_config.scraping_browser_endpoint
-PROXY = _scraping_config.proxy_url
+SCRAPING_BROWSER_EP = _scraping_config.scraping_browser_endpoint()
+PROXY = _scraping_config.proxy_url()
 
-USE_SCRAPING_BROWSER = _scraping_config.use_scraping_browser
-USE_PROXY = _scraping_config.use_proxy
+USE_SCRAPING_BROWSER = _scraping_config.use_scraping_browser()
+USE_PROXY = _scraping_config.use_proxy()
 
-DEFAULT_HEADERS = _scraping_config.headers_dict
+DEFAULT_HEADERS = _scraping_config.headers_dict()
 
 # Common Croatian month translations
 CROATIAN_MONTHS = {
