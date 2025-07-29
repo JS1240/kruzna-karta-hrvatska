@@ -1,5 +1,6 @@
 import logging
 from datetime import date
+from decimal import Decimal
 from math import asin, cos, radians, sin, sqrt
 from typing import List, Optional
 
@@ -8,6 +9,24 @@ from sqlalchemy import and_, func, or_, text
 from sqlalchemy.orm import Session, joinedload
 
 logger = logging.getLogger(__name__)
+
+
+def convert_decimal_coordinates(event):
+    """Convert Decimal coordinates to float for proper JSON serialization."""
+    if hasattr(event, 'latitude') and isinstance(event.latitude, Decimal):
+        event.latitude = float(event.latitude)
+    if hasattr(event, 'longitude') and isinstance(event.longitude, Decimal):
+        event.longitude = float(event.longitude)
+    
+    # Also handle venue coordinates if present
+    if hasattr(event, 'venue') and event.venue:
+        venue = event.venue
+        if hasattr(venue, 'latitude') and isinstance(venue.latitude, Decimal):
+            venue.latitude = float(venue.latitude)
+        if hasattr(venue, 'longitude') and isinstance(venue.longitude, Decimal):
+            venue.longitude = float(venue.longitude)
+    
+    return event
 
 from ..core.database import get_db, safe_db_operation, health_check_db, reset_database_connections
 from ..core.events_service import EventsService
@@ -50,7 +69,6 @@ def get_language_from_header(accept_language: Optional[str] = Header(None)) -> s
 def _safe_search_events(search_params: EventSearchParams, accept_language: Optional[str] = None):
     """Safe wrapper for EventsService.search_events with retry logic."""
     def _search_operation(db: Session):
-        from ..core.translation import get_translation_service
         translation_service = get_translation_service()
         events_service = EventsService(db, translation_service)
         return events_service.search_events(search_params, accept_language)
@@ -61,7 +79,6 @@ def _safe_search_events(search_params: EventSearchParams, accept_language: Optio
 def _safe_get_featured_events(page: int = 1, size: int = 10):
     """Safe wrapper for getting featured events with retry logic."""
     def _featured_operation(db: Session):
-        from ..core.translation import get_translation_service
         translation_service = get_translation_service()
         events_service = EventsService(db, translation_service)
         
@@ -79,7 +96,6 @@ def _safe_get_featured_events(page: int = 1, size: int = 10):
 def _safe_get_events_paginated(search_params: EventSearchParams):
     """Safe wrapper for EventsService.get_events_paginated with retry logic."""
     def _paginated_operation(db: Session):
-        from ..core.translation import get_translation_service
         translation_service = get_translation_service()
         events_service = EventsService(db, translation_service)
         
@@ -105,7 +121,8 @@ def get_events(
         logger.info(f"Getting events with params: page={search_params.page}, size={search_params.size}")
         
         # For simple queries, try optimized performance service first
-        if (search_params.use_cache and not search_params.q and 
+        # Temporarily disabled to ensure coordinate conversion works
+        if False and (search_params.use_cache and not search_params.q and 
             search_params.latitude is None and search_params.longitude is None and 
             not search_params.tags):
             
@@ -135,7 +152,8 @@ def get_events(
                 return safe_db_operation(_performance_operation)
             except Exception as e:
                 logger.warning(f"Performance service fallback for events: {e}")
-                # Fall through to regular events service
+                # Fall through to regular events service but preserve exception context
+                raise
 
         # Use safe events service for all other queries
         return _safe_search_events(search_params, accept_language)
@@ -481,7 +499,7 @@ async def geocode_events(
 
     except Exception as e:
         logger.error(f"Error geocoding events: {e}")
-        raise HTTPException(status_code=500, detail=f"Error geocoding events: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error geocoding events: {str(e)}") from e
 
 
 def _get_geocoding_status_data(db: Session):
@@ -588,3 +606,104 @@ def reset_database_pool():
         raise HTTPException(
             status_code=500, detail=f"Error resetting database: {str(e)}"
         )
+
+
+@router.get("/debug-coordinates/")
+def debug_coordinates(db: Session = Depends(get_db)):
+    """Debug endpoint to check coordinate values."""
+    try:
+        event = db.query(Event).filter(Event.id == 7).first()
+        if not event:
+            return {"error": "Event not found"}
+        
+        result = {
+            "event_id": event.id,
+            "title": event.title,
+            "latitude_raw": event.latitude,
+            "longitude_raw": event.longitude,
+            "latitude_type": type(event.latitude).__name__,
+            "longitude_type": type(event.longitude).__name__,
+            "latitude_str": str(event.latitude) if event.latitude else None,
+            "longitude_str": str(event.longitude) if event.longitude else None,
+        }
+        
+        if event.latitude:
+            result["latitude_float"] = float(event.latitude)
+        if event.longitude:
+            result["longitude_float"] = float(event.longitude)
+            
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in debug_coordinates: {e}", exc_info=True)
+        return {"error": str(e)}
+
+
+@router.get("/data-integrity/")
+def check_data_integrity(db: Session = Depends(get_db)):
+    """Check critical data integrity issues that could cause UI problems."""
+    try:
+        issues = []
+        warnings = []
+        
+        # Check for events with missing coordinates
+        events_without_coords = db.query(Event).filter(
+            or_(Event.latitude.is_(None), Event.longitude.is_(None))
+        ).count()
+        
+        if events_without_coords > 0:
+            issues.append(f"{events_without_coords} events missing coordinates - will not appear on map")
+        
+        # Check for featured events with issues
+        featured_events_with_coords = db.query(Event).filter(
+            and_(
+                Event.is_featured == True,
+                Event.latitude.isnot(None),
+                Event.longitude.isnot(None)
+            )
+        ).count()
+        
+        total_featured = db.query(Event).filter(Event.is_featured == True).count()
+        
+        if featured_events_with_coords < total_featured:
+            issues.append(f"{total_featured - featured_events_with_coords} featured events missing coordinates")
+        
+        # Check API response serialization by testing actual endpoints
+        try:
+            events_response = _safe_search_events(EventSearchParams(page=1, size=1))
+            if events_response and hasattr(events_response, 'events') and len(events_response.events) > 0:
+                test_event = events_response.events[0]
+                if hasattr(test_event, 'latitude') and test_event.latitude is None:
+                    issues.append("API serialization issue: coordinates returning null")
+        except Exception as api_error:
+            issues.append(f"API test failed: {str(api_error)}")
+        
+        # Check database connection health
+        try:
+            db.execute(text("SELECT 1")).scalar()
+        except Exception as db_error:
+            issues.append(f"Database connection issue: {str(db_error)}")
+        
+        return {
+            "status": "healthy" if len(issues) == 0 else "issues_found",
+            "total_events": db.query(Event).count(),
+            "featured_events": total_featured,
+            "events_with_coordinates": db.query(Event).filter(
+                and_(Event.latitude.isnot(None), Event.longitude.isnot(None))
+            ).count(),
+            "issues": issues,
+            "warnings": warnings,
+            "checks_performed": [
+                "coordinate_completeness",
+                "featured_event_coordinates", 
+                "api_serialization",
+                "database_connectivity"
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in data_integrity check: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "error": str(e)
+        }

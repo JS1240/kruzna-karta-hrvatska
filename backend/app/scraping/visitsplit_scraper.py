@@ -33,8 +33,8 @@ HEADERS = {
 }
 
 
-class VisitSplitTransformer:
-    """Transform raw VisitSplit event data to :class:`EventCreate`."""
+class VisitSplitDataTransformer:
+    """Transform raw VisitSplit event data to :class:`EventCreate` with enhanced address extraction."""
 
     CRO_MONTHS = {
         "january": 1, "siječnja": 1, "siječanj": 1,
@@ -69,7 +69,7 @@ class VisitSplitTransformer:
                         day, month, year = m.groups()
                         if month.isdigit():
                             return date(int(year), int(month), int(day))
-                        month_num = VisitSplitTransformer.CRO_MONTHS.get(month.lower())
+                        month_num = VisitSplitDataTransformer.CRO_MONTHS.get(month.lower())
                         if month_num:
                             return date(int(year), month_num, int(day))
                     elif pattern.startswith(r"(\d{4})"):
@@ -102,12 +102,136 @@ class VisitSplitTransformer:
     @staticmethod
     def clean_text(text: str) -> str:
         return " ".join(text.split()) if text else ""
+    
+    @staticmethod
+    def extract_location(data: Dict) -> str:
+        """Extract and format location from VisitSplit event data with enhanced address support."""
+        # Priority order: detected_address > venue_address > venue + city > location > city > venue (with Split) > default
+        
+        # Highest priority: detected_address from detailed scraping
+        if data.get("detected_address"):
+            return data["detected_address"].strip()
+        
+        # Second priority: venue_address from enhanced parsing
+        if data.get("venue_address"):
+            venue_address = data["venue_address"].strip()
+            # If we have city info and it's not in venue_address, add it
+            if data.get("city") and data["city"] not in venue_address:
+                return f"{venue_address}, {data['city']}"
+            return venue_address
+        
+        # Third priority: combine venue and city for fuller context
+        venue = data.get("venue", "").strip()
+        city = data.get("city", "Split").strip()
+        
+        if venue and city and city not in venue:
+            return f"{venue}, {city}"
+        elif venue:
+            return venue
+        
+        # Fourth priority: location field from popover data
+        location = data.get("location", "").strip()
+        if location and location != "Split":
+            if city and city not in location:
+                return f"{location}, {city}"
+            return location
+        
+        # Fifth priority: city (Split by default)
+        if city:
+            return city
+        
+        # Sixth priority: venue with Split added if not present
+        if venue:
+            if "Split" not in venue:
+                return f"{venue}, Split"
+            return venue
+        
+        # Fallback
+        return "Split"
+    
+    @staticmethod
+    def parse_location_from_text(text: str) -> Dict[str, str]:
+        """Parse location information from event text using Split-specific patterns."""
+        result = {}
+        
+        if not text:
+            return result
+        
+        # Pattern 1: Lokacija field from popover data
+        lokacija_match = re.search(r"Lokacija:\s*([^\n\r]+)", text, re.IGNORECASE)
+        if lokacija_match:
+            result["venue_address"] = lokacija_match.group(1).strip()
+        
+        # Pattern 2: Address in parentheses format: "(Obala kneza Branimira 19)"
+        parentheses_match = re.search(r"\(([^)]+\d+[^)]*)\)", text)
+        if parentheses_match:
+            potential_address = parentheses_match.group(1).strip()
+            # Validate it looks like an address (contains street name + number)
+            if re.search(r"[A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+", potential_address):
+                result["detected_address"] = potential_address
+        
+        # Pattern 3: Enhanced Split-specific venue recognition
+        split_venues = [
+            # Historic and cultural venues
+            "Trg Peristil", "Podrumi Dioklecijanove palače", "HNK Split", "Galerija umjetnina",
+            "Muzej grada Splita", "Arheološki muzej Split", "Etnografski muzej Split",
+            "Gradska knjižnica Split", "Dom mladih Split", "Kino Zlatna vrata",
+            "Kulturni centar Split", "Prokurative", "Riva Split", "Marjan",
+            "Culture HUB Croatia", "Diocletian's Palace", "Split Park Festival",
+            # Additional Split venues discovered
+            "Kino Centaurus", "Art paviljon", "Galerija Kula", "Muzej hrvatskih arheoloških spomenika",
+            "Umjetnička galerija Split", "Gradski muzej Split", "Split City Museum",
+            "Dioklecijan's Palace", "Peristyle", "Cathedral of Saint Domnius",
+            "Bacvice Beach", "Poljud Stadium", "Spaladium Arena"
+        ]
+        
+        for venue in split_venues:
+            if venue in text:
+                if not result.get("venue"):
+                    result["venue"] = venue
+                break
+        
+        # Pattern 4: Enhanced Croatian address patterns for Split region
+        address_patterns = [
+            # Full address with postal code: "Plančićeva 2, 21000 Split"
+            r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?\s*,?\s*21000\s+Split)",
+            # Street with number: "Plančićeva 2", "Obala kneza Branimira 19"
+            r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?)",
+            # Postal code with city: "21000 Split"
+            r"(21000\s+Split(?:[^\n,]*)?)",
+            # Split-specific street patterns with Croatian prefixes
+            r"((?:Obala|Riva|Trg|Ulica|Put|Poljana|Peristil|Prokurative)\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]*\d*[a-z]?)",
+            # General Croatian address with number (broader pattern)
+            r"([A-ZČĆĐŠŽ][a-zčćđšž]{2,}\s+(?:[A-ZČĆĐŠŽ][a-zčćđšž\s]*\s+)?\d+[a-z]?)"
+        ]
+        
+        for pattern in address_patterns:
+            matches = re.findall(pattern, text)
+            if matches:
+                result["detected_address"] = matches[0].strip()
+                break
+        
+        # Extract Split as city if present
+        if "Split" in text and not result.get("city"):
+            result["city"] = "Split"
+        
+        return result
 
     @classmethod
     def transform(cls, data: Dict) -> Optional[EventCreate]:
         try:
             name = cls.clean_text(data.get("title", ""))
-            location = cls.clean_text(data.get("location", "Split"))
+            
+            # Parse location information from description and other text fields
+            full_text = data.get("description", "") or data.get("full_text", "")
+            location_info = cls.parse_location_from_text(full_text)
+            
+            # Merge parsed location info with existing data
+            enhanced_data = {**data, **location_info}
+            
+            # Use enhanced location extraction
+            location = cls.extract_location(enhanced_data)
+            
             description = cls.clean_text(data.get("description", ""))
             price = cls.clean_text(data.get("price", ""))
 
@@ -209,6 +333,75 @@ class VisitSplitRequestsScraper:
                     print(f"All retry attempts failed for {url}")
         
         raise RuntimeError(f"Request failed for {url} after {max_retries} attempts: {last_exception}")
+
+    async def fetch_event_details(self, event_url: str) -> Dict:
+        """Fetch detailed address information from individual event page."""
+        try:
+            resp = await self.fetch(event_url)
+            soup = BeautifulSoup(resp.text, "html.parser")
+            details = {}
+            
+            # Extract enhanced location information from event detail page
+            page_text = soup.get_text()
+            
+            # Extract Lokacija field from detail pages
+            lokacija_match = re.search(r"Lokacija:\s*([^\n\r]+)", page_text, re.IGNORECASE)
+            if lokacija_match:
+                details["venue_address"] = lokacija_match.group(1).strip()
+            
+            # Look for detailed address patterns in page content
+            address_patterns = [
+                # Address in parentheses: "(Obala kneza Branimira 19)"
+                r"\(([^)]+\d+[^)]*)\)",
+                # Full address: "Plančićeva 2"
+                r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?)",
+                # Split postal code + address: "21000 Split, Riva 12"
+                r"(21000\s+Split[^\n]*)"
+            ]
+            
+            for pattern in address_patterns:
+                matches = re.findall(pattern, page_text)
+                if matches:
+                    # Get the first clean match that looks like an address
+                    for match in matches:
+                        match = match.strip()
+                        if re.search(r"[A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+", match):
+                            details["detected_address"] = match
+                            break
+                    if details.get("detected_address"):
+                        break
+            
+            # Extract Split-specific venue information
+            split_venues = [
+                # Historic and cultural venues
+                "Trg Peristil", "Podrumi Dioklecijanove palače", "HNK Split", "Galerija umjetnina",
+                "Muzej grada Splita", "Arheološki muzej Split", "Etnografski muzej Split",
+                "Gradska knjižnica Split", "Dom mladih Split", "Kino Zlatna vrata",
+                "Kulturni centar Split", "Prokurative", "Riva Split", "Marjan",
+                "Culture HUB Croatia", "Diocletian's Palace", "Split Park Festival",
+                # Additional Split venues
+                "Kino Centaurus", "Art paviljon", "Galerija Kula", "Muzej hrvatskih arheoloških spomenika",
+                "Umjetnička galerija Split", "Gradski muzej Split", "Split City Museum",
+                "Dioklecijan's Palace", "Peristyle", "Cathedral of Saint Domnius"
+            ]
+            
+            for venue in split_venues:
+                if venue in page_text and not details.get("venue"):
+                    details["venue"] = venue
+                    break
+            
+            # Ensure Split is recognized as city
+            if "Split" in page_text and not details.get("city"):
+                details["city"] = "Split"
+            
+            # Store full page text for further processing
+            details["full_text"] = page_text
+            
+            return details
+            
+        except Exception as e:
+            print(f"Error fetching event details from {event_url}: {e}")
+            return {}
 
     async def parse_event_detail(self, url: str) -> Dict:
         resp = await self.fetch(url)
@@ -321,16 +514,74 @@ class VisitSplitRequestsScraper:
             if desc_text:
                 data["description"] = desc_text
                 
-                # Try to extract location and time from description
+                # Enhanced location extraction from description
                 if "Lokacija:" in desc_text:
                     loc_match = re.search(r"Lokacija:\s*([^\n\r]+)", desc_text)
                     if loc_match:
-                        data["location"] = loc_match.group(1).strip()
+                        location_text = loc_match.group(1).strip()
+                        data["location"] = location_text
+                        
+                        # Check if location contains address in parentheses
+                        parentheses_match = re.search(r"\(([^)]+\d+[^)]*)\)", location_text)
+                        if parentheses_match:
+                            potential_address = parentheses_match.group(1).strip()
+                            # Validate it looks like an address
+                            if re.search(r"[A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+", potential_address):
+                                data["detected_address"] = potential_address
+                                # Extract venue name before parentheses
+                                venue_match = re.search(r"^([^(]+)\s*\(", location_text)
+                                if venue_match:
+                                    data["venue"] = venue_match.group(1).strip()
                 
+                # Extract time information
                 if "Vrijeme:" in desc_text:
                     time_match = re.search(r"Vrijeme:\s*([^\n\r]+)", desc_text)
                     if time_match:
                         data["time"] = time_match.group(1).strip()
+                
+                # Look for Split-specific venues in description
+                split_venues = [
+                    # Historic and cultural venues  
+                    "Trg Peristil", "Podrumi Dioklecijanove palače", "HNK Split", "Galerija umjetnina",
+                    "Muzej grada Splita", "Arheološki muzej Split", "Etnografski muzej Split",
+                    "Gradska knjižnica Split", "Dom mladih Split", "Kino Zlatna vrata",
+                    "Kulturni centar Split", "Prokurative", "Riva Split", "Marjan",
+                    "Culture HUB Croatia", "Diocletian's Palace", "Split Park Festival",
+                    # Additional Split venues
+                    "Kino Centaurus", "Art paviljon", "Galerija Kula"
+                ]
+                
+                for venue in split_venues:
+                    if venue in desc_text and not data.get("venue"):
+                        data["venue"] = venue
+                        break
+                
+                # Apply general Croatian address pattern detection
+                if not data.get("detected_address"):
+                    address_patterns = [
+                        # Address in parentheses format
+                        r"\(([^)]+\d+[^)]*)\)",
+                        # Street name with number: "Plančićeva 2"
+                        r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?)",
+                        # Split postal code patterns
+                        r"(21000\s+Split[^\n]*)"
+                    ]
+                    
+                    for pattern in address_patterns:
+                        matches = re.findall(pattern, desc_text)
+                        if matches:
+                            for match in matches:
+                                match = match.strip()
+                                # Validate it's a real address
+                                if re.search(r"[A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+", match):
+                                    data["detected_address"] = match
+                                    break
+                            if data.get("detected_address"):
+                                break
+                
+                # Ensure Split is recognized as city
+                if "Split" in desc_text:
+                    data["city"] = "Split"
         
         return data
 
@@ -465,27 +716,398 @@ class VisitSplitRequestsScraper:
         await self.client.aclose()
 
 
+class VisitSplitPlaywrightScraper:
+    """Playwright scraper for enhanced VisitSplit calendar and detail page extraction."""
+
+    async def fetch_event_details(self, page, event_url: str) -> Dict:
+        """Fetch detailed address information from individual event page using Playwright."""
+        try:
+            await page.goto(event_url, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2000)  # Wait for content to load
+            
+            # Extract detailed location information from event detail page
+            event_details = await page.evaluate("""
+                () => {
+                    const details = {};
+                    
+                    // Extract text content from the entire page
+                    const pageText = document.body.textContent;
+                    
+                    // Extract Lokacija field
+                    const locationMatch = pageText.match(/Lokacija:\\s*([^\\n\\r]+)/i);
+                    if (locationMatch) {
+                        details.venue_address = locationMatch[1].trim();
+                    }
+                    
+                    // Look for address patterns in parentheses: "(Obala kneza Branimira 19)"
+                    const parenthesesPattern = /\\(([^)]+\\d+[^)]*)\\)/g;
+                    const parenthesesMatches = [...pageText.matchAll(parenthesesPattern)];
+                    if (parenthesesMatches.length > 0) {
+                        for (const match of parenthesesMatches) {
+                            const potentialAddress = match[1].trim();
+                            // Validate it looks like an address (Croatian pattern)
+                            if (/[A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+/.test(potentialAddress)) {
+                                details.detected_address = potentialAddress;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Look for Split-specific venues
+                    const splitVenues = [
+                        "Trg Peristil", "Podrumi Dioklecijanove palače", "HNK Split", "Galerija umjetnina",
+                        "Muzej grada Splita", "Arheološki muzej Split", "Etnografski muzej Split",
+                        "Gradska knjižnica Split", "Dom mladih Split", "Kino Zlatna vrata",
+                        "Kulturni centar Split", "Prokurative", "Riva Split", "Marjan",
+                        "Culture HUB Croatia", "Diocletian's Palace", "Split Park Festival",
+                        "Kino Centaurus", "Art paviljon", "Galerija Kula"
+                    ];
+                    
+                    for (const venue of splitVenues) {
+                        if (pageText.includes(venue)) {
+                            details.venue = venue;
+                            break;
+                        }
+                    }
+                    
+                    // Look for general Croatian address patterns
+                    if (!details.detected_address) {
+                        const addressPatterns = [
+                            // Street name with number: "Plančićeva 2"
+                            /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+[a-z]?)/g,
+                            // Split postal code + address: "21000 Split, Riva 12"
+                            /(21000\\s+Split[^\\n]*)/g
+                        ];
+                        
+                        for (const pattern of addressPatterns) {
+                            const matches = [...pageText.matchAll(pattern)];
+                            if (matches.length > 0) {
+                                for (const match of matches) {
+                                    const potentialAddress = match[1].trim();
+                                    if (/[A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+/.test(potentialAddress)) {
+                                        details.detected_address = potentialAddress;
+                                        break;
+                                    }
+                                }
+                                if (details.detected_address) break;
+                            }
+                        }
+                    }
+                    
+                    // Ensure Split is recognized as city
+                    if (pageText.includes("Split")) {
+                        details.city = "Split";
+                    }
+                    
+                    // Store full page text for further processing
+                    details.full_text = pageText;
+                    
+                    return details;
+                }
+            """)
+            
+            return event_details
+            
+        except Exception as e:
+            print(f"Error fetching event details from {event_url}: {e}")
+            return {}
+
+    async def scrape_with_playwright(self, start_url: str = None, max_pages: int = 5, fetch_details: bool = False) -> List[Dict]:
+        """Scrape events using Playwright with enhanced calendar navigation and address extraction."""
+        try:
+            from playwright.async_api import async_playwright
+            
+            all_events = []
+            
+            async with async_playwright() as p:
+                # Configure browser with proxy if needed
+                if USE_PROXY:
+                    browser = await p.chromium.launch(
+                        headless=True,
+                        proxy={"server": PROXY}
+                    )
+                else:
+                    browser = await p.chromium.launch(headless=True)
+                
+                context = await browser.new_context(
+                    viewport={'width': 1920, 'height': 1080},
+                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+                )
+                
+                page = await context.new_page()
+                
+                try:
+                    # Start with main events page or generate monthly URLs
+                    base_url = start_url or f"{BASE_URL}/hr/434/dogadanja"
+                    print(f"Navigating to {base_url}")
+                    await page.goto(base_url, wait_until="domcontentloaded", timeout=30000)
+                    await page.wait_for_timeout(3000)
+                    
+                    # Handle cookie consent if present
+                    try:
+                        cookie_button = await page.query_selector('button:has-text("Prihvati")')
+                        if cookie_button:
+                            await cookie_button.click()
+                            await page.wait_for_timeout(1000)
+                    except:
+                        pass
+                    
+                    # Generate monthly URLs for comprehensive scraping
+                    monthly_urls = []
+                    current_date = datetime.now()
+                    for i in range(max_pages):
+                        month_url = f"{BASE_URL}/hr/434/dogadanja/m-{current_date.year}-{current_date.month:02d}-1"
+                        monthly_urls.append(month_url)
+                        # Move to next month
+                        if current_date.month == 12:
+                            current_date = current_date.replace(year=current_date.year + 1, month=1)
+                        else:
+                            current_date = current_date.replace(month=current_date.month + 1)
+                    
+                    for i, month_url in enumerate(monthly_urls):
+                        print(f"Scraping month {i+1}/{len(monthly_urls)}: {month_url}")
+                        
+                        try:
+                            await page.goto(month_url, wait_until="domcontentloaded", timeout=30000)
+                            await page.wait_for_timeout(3000)
+                            
+                            # Extract events from calendar using JavaScript
+                            events_data = await page.evaluate("""
+                                () => {
+                                    const events = [];
+                                    
+                                    // Find calendar table
+                                    const calendarTable = document.querySelector('table.event-calendar');
+                                    if (!calendarTable) return events;
+                                    
+                                    // Find all calendar cells with events
+                                    const cells = calendarTable.querySelectorAll('tr td');
+                                    
+                                    cells.forEach(cell => {
+                                        // Check if cell has day number
+                                        const daySpan = cell.querySelector('span.day');
+                                        if (!daySpan) return;
+                                        
+                                        const day = daySpan.textContent.trim();
+                                        if (!day.match(/^\\d+$/)) return;
+                                        
+                                        // Skip cells marked as "not-this-month"
+                                        if (cell.classList.contains('not-this-month')) return;
+                                        
+                                        // Look for event list in this cell
+                                        const eventList = cell.querySelector('ul.events');
+                                        if (!eventList) return;
+                                        
+                                        const eventItems = eventList.querySelectorAll('li');
+                                        eventItems.forEach(item => {
+                                            const eventData = {};
+                                            
+                                            // Extract title and link from main anchor
+                                            const mainLink = item.querySelector('a');
+                                            if (mainLink) {
+                                                eventData.title = mainLink.textContent.trim();
+                                                eventData.link = mainLink.href;
+                                            }
+                                            
+                                            // Set date based on calendar position
+                                            const urlMatch = window.location.href.match(/m-(\\d{4})-(\\d{1,2})-/);
+                                            if (urlMatch) {
+                                                const year = urlMatch[1];
+                                                const month = urlMatch[2];
+                                                eventData.date = `${day.padStart(2, '0')}.${month.padStart(2, '0')}.${year}`;
+                                            }
+                                            
+                                            // Look for popover with additional details
+                                            const popover = item.querySelector('.event-popover');
+                                            if (popover) {
+                                                // Extract enhanced popover data
+                                                const popoverTitle = popover.querySelector('h6 a');
+                                                if (popoverTitle && !eventData.title) {
+                                                    eventData.title = popoverTitle.textContent.trim();
+                                                    eventData.link = popoverTitle.href;
+                                                }
+                                                
+                                                const popoverImg = popover.querySelector('img');
+                                                if (popoverImg && popoverImg.src) {
+                                                    eventData.image = popoverImg.src;
+                                                }
+                                                
+                                                const popoverDesc = popover.querySelector('p');
+                                                if (popoverDesc) {
+                                                    const descText = popoverDesc.textContent;
+                                                    eventData.description = descText;
+                                                    
+                                                    // Extract location from popover description
+                                                    const locationMatch = descText.match(/Lokacija:\\s*([^\\n\\r]+)/i);
+                                                    if (locationMatch) {
+                                                        eventData.location = locationMatch[1].trim();
+                                                        
+                                                        // Check for address in parentheses
+                                                        const parenthesesMatch = locationMatch[1].match(/\\(([^)]+\\d+[^)]*)\\)/);
+                                                        if (parenthesesMatch) {
+                                                            eventData.detected_address = parenthesesMatch[1].trim();
+                                                        }
+                                                    }
+                                                    
+                                                    // Extract time
+                                                    const timeMatch = descText.match(/Vrijeme:\\s*([^\\n\\r]+)/i);
+                                                    if (timeMatch) {
+                                                        eventData.time = timeMatch[1].trim();
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // Only add if we have meaningful data
+                                            if (eventData.title || eventData.link) {
+                                                events.push(eventData);
+                                            }
+                                        });
+                                    });
+                                    
+                                    return events;
+                                }
+                            """)
+                            
+                            valid_events = [
+                                event for event in events_data
+                                if event.get("title") or event.get("link")
+                            ]
+                            
+                            # Fetch detailed address information if requested
+                            if fetch_details and valid_events:
+                                print(f"Fetching detailed address info for {len(valid_events)} events...")
+                                enhanced_events = []
+                                
+                                for j, event in enumerate(valid_events):
+                                    if event.get("link"):
+                                        try:
+                                            # Rate limiting - fetch details for every 2nd event
+                                            if j % 2 == 0:
+                                                details = await self.fetch_event_details(page, event["link"])
+                                                if details:
+                                                    # Merge detailed information
+                                                    event.update(details)
+                                                    print(f"Enhanced event {j+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
+                                                
+                                                # Add delay between detail fetches
+                                                await page.wait_for_timeout(1500)
+                                            
+                                            enhanced_events.append(event)
+                                            
+                                        except Exception as e:
+                                            print(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                            enhanced_events.append(event)  # Add original event even if detail fetch fails
+                                    else:
+                                        enhanced_events.append(event)
+                                
+                                valid_events = enhanced_events
+                            
+                            all_events.extend(valid_events)
+                            print(f"Month {i+1}: Found {len(valid_events)} events (Total: {len(all_events)})")
+                            
+                            # Add delay between months
+                            if i < len(monthly_urls) - 1:
+                                await page.wait_for_timeout(2000)
+                        
+                        except Exception as e:
+                            print(f"Error scraping month {month_url}: {e}")
+                            continue
+                    
+                except Exception as e:
+                    print(f"Error during scraping: {e}")
+                
+                await browser.close()
+            
+            return all_events
+            
+        except ImportError:
+            print("Playwright not available, falling back to requests approach")
+            return []
+        except Exception as e:
+            print(f"Playwright error: {e}")
+            return []
+
+
 class VisitSplitScraper:
     """High level scraper for VisitSplit.com."""
 
     def __init__(self) -> None:
         self.requests_scraper = VisitSplitRequestsScraper()
-        self.transformer = VisitSplitTransformer()
+        self.playwright_scraper = VisitSplitPlaywrightScraper()
+        self.transformer = VisitSplitDataTransformer()
 
     async def scrape_events(self, max_pages: int = 5, start_date: Optional[datetime] = None, 
-                          concurrent: bool = False) -> List[EventCreate]:
-        """Scrape events from VisitSplit calendar across 12 months."""
-        raw = await self.requests_scraper.scrape_12_months_events(
-            start_date=start_date, 
-            concurrent_requests=concurrent
-        )
-        events: List[EventCreate] = []
-        for item in raw:
-            event = self.transformer.transform(item)
+                          concurrent: bool = False, use_playwright: bool = True, 
+                          fetch_details: bool = False) -> List[EventCreate]:
+        """Scrape events from VisitSplit calendar with optional enhanced address extraction."""
+        all_events: List[EventCreate] = []
+        raw_events = []
+        
+        if use_playwright:
+            # Try Playwright first for enhanced extraction
+            print("Using Playwright for enhanced VisitSplit scraping...")
+            try:
+                raw_events = await self.playwright_scraper.scrape_with_playwright(
+                    max_pages=max_pages,
+                    fetch_details=fetch_details
+                )
+                print(f"Playwright extracted {len(raw_events)} raw events")
+            except Exception as e:
+                print(f"Playwright failed: {e}, falling back to requests approach")
+                raw_events = []
+        
+        # If Playwright fails or is disabled, use requests approach
+        if not raw_events:
+            print("Using requests/BeautifulSoup approach...")
+            try:
+                raw_events = await self.requests_scraper.scrape_12_months_events(
+                    start_date=start_date, 
+                    concurrent_requests=concurrent
+                )
+                
+                # Enhance with detail fetching if requested
+                if fetch_details and raw_events:
+                    print(f"Fetching detailed address info for {len(raw_events)} events...")
+                    enhanced_events = []
+                    
+                    for i, event in enumerate(raw_events):
+                        if event.get("link"):
+                            try:
+                                # Rate limiting - fetch details for every 3rd event
+                                if i % 3 == 0:
+                                    details = await self.requests_scraper.fetch_event_details(event["link"])
+                                    if details:
+                                        # Merge detailed information
+                                        event.update(details)
+                                        print(f"Enhanced event {i+1}/{len(raw_events)}: {event.get('title', 'Unknown')}")
+                                    
+                                    # Add delay between detail fetches
+                                    await asyncio.sleep(1)
+                                
+                                enhanced_events.append(event)
+                                
+                            except Exception as e:
+                                print(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                enhanced_events.append(event)  # Add original event even if detail fetch fails
+                        else:
+                            enhanced_events.append(event)
+                    
+                    raw_events = enhanced_events
+                
+                print(f"Requests approach extracted {len(raw_events)} raw events")
+            except Exception as e:
+                print(f"Requests approach also failed: {e}")
+                raw_events = []
+        
+        # Transform raw data to EventCreate objects
+        for raw_event in raw_events:
+            event = self.transformer.transform(raw_event)
             if event:
-                events.append(event)
+                all_events.append(event)
+        
         await self.requests_scraper.close()
-        return events
+        print(f"Transformed {len(all_events)} valid events from {len(raw_events)} raw events")
+        return all_events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
         from sqlalchemy import select, tuple_
@@ -521,16 +1143,21 @@ class VisitSplitScraper:
             db.close()
 
 
-async def scrape_visitsplit_events(max_pages: int = 5) -> Dict:
+async def scrape_visitsplit_events(max_pages: int = 5, use_playwright: bool = True, fetch_details: bool = False) -> Dict:
     scraper = VisitSplitScraper()
     try:
-        events = await scraper.scrape_events(max_pages=max_pages)
+        events = await scraper.scrape_events(
+            max_pages=max_pages,
+            use_playwright=use_playwright,
+            fetch_details=fetch_details
+        )
         saved = scraper.save_events_to_database(events)
         return {
             "status": "success",
             "scraped_events": len(events),
             "saved_events": saved,
-            "message": f"Scraped {len(events)} events from VisitSplit.com, saved {saved} new events",
+            "message": f"Scraped {len(events)} events from VisitSplit.com, saved {saved} new events" + 
+                      (f" (with enhanced address extraction)" if fetch_details else ""),
         }
     except Exception as e:
         return {"status": "error", "message": f"VisitSplit scraping failed: {e}"}

@@ -44,13 +44,16 @@ class EnhancedScrapeRequest(BaseModel):
     max_pages_per_source: int = 5
     quality_threshold: float = 60.0
     enable_duplicate_detection: bool = True
+    use_playwright: bool = True
+    fetch_details: bool = False
 
 
 class SingleSourceRequest(BaseModel):
     source: str  # "entrio", "croatia", "ulaznice", "infozagreb", "vukovar", "visitkarlovac", "visitopatija", "visitvarazdin", "visitrijeka", "visitsplit", "zadar" or "tzdubrovnik"
-
     max_pages: int = 5
     quality_threshold: float = 60.0
+    use_playwright: bool = True
+    fetch_details: bool = False
 
 
 async def run_scraping_task(max_pages: int, task_id: str):
@@ -469,7 +472,7 @@ async def scrape_visitvarazdin(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to start VisitVarazdin scraping: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/visitvarazdin/quick", response_model=ScrapeResponse)
@@ -485,7 +488,7 @@ async def quick_scrape_visitvarazdin(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"VisitVarazdin scraping failed: {str(e)}"
-        )
+        ) from e
 
 
 @router.post("/visitsplit", response_model=ScrapeResponse)
@@ -778,6 +781,28 @@ async def scraping_status():
             "zadar.travel",
             "tzdubrovnik.hr",
         ],
+        "enhanced_scrapers": [
+            {
+                "site": "ulaznice.hr",
+                "features": ["playwright", "address_extraction", "detail_fetching"],
+                "description": "Enhanced Ulaznice.hr scraper with Croatian address pattern detection"
+            },
+            {
+                "site": "visitrijeka.hr", 
+                "features": ["playwright", "address_extraction", "detail_fetching"],
+                "description": "Enhanced VisitRijeka.hr scraper with Rijeka-specific venue recognition"
+            },
+            {
+                "site": "visitsplit.com",
+                "features": ["playwright", "address_extraction", "detail_fetching"],
+                "description": "Enhanced VisitSplit.com scraper with Split-specific address extraction"
+            },
+            {
+                "site": "visitopatija.com",
+                "features": ["playwright", "address_extraction", "detail_fetching"],
+                "description": "Enhanced VisitOpatija.com scraper with Opatija region address detection"
+            }
+        ],
         "endpoints": {
             "POST /scraping/entrio": "Entrio.hr full scraping with background processing",
             "GET /scraping/entrio/quick": "Entrio.hr quick scraping (1-3 pages)",
@@ -804,8 +829,8 @@ async def scraping_status():
             "POST /scraping/tzdubrovnik": "TzDubrovnik.hr full scraping with background processing",
             "GET /scraping/tzdubrovnik/quick": "TzDubrovnik.hr quick scraping (1-3 pages)",
             "POST /scraping/all": "Scrape all supported sites",
-            "POST /scraping/enhanced/pipeline": "Enhanced scraping pipeline with quality validation",
-            "POST /scraping/enhanced/single": "Enhanced single source scraping",
+            "POST /scraping/enhanced/pipeline": "Enhanced scraping pipeline with quality validation and address extraction",
+            "POST /scraping/enhanced/single": "Enhanced single source scraping with Playwright and address extraction",
             "GET /scraping/status": "System status",
         },
     }
@@ -822,7 +847,9 @@ async def enhanced_scraping_pipeline(
     Enhanced scraping pipeline with comprehensive quality validation and duplicate detection.
 
     This endpoint runs the full enhanced pipeline that includes:
-    - Multi-source scraping (Entrio.hr + Croatia.hr + Ulaznice.hr + InfoZagreb.hr + VisitKarlovac.hr)
+    - Multi-source scraping (all 12 supported sites with enhanced address extraction)
+    - Playwright browser automation for enhanced scrapers (Ulaznice, VisitRijeka, VisitSplit, VisitOpatija)
+    - Optional detailed address fetching from individual event pages
     - Data quality validation with configurable thresholds
     - Advanced duplicate detection (batch + database)
     - Comprehensive performance reporting
@@ -838,6 +865,8 @@ async def enhanced_scraping_pipeline(
             result = await run_enhanced_scraping_pipeline(
                 max_pages_per_source=request.max_pages_per_source,
                 quality_threshold=request.quality_threshold,
+                use_playwright=request.use_playwright,
+                fetch_details=request.fetch_details,
             )
 
             # Extract summary for response
@@ -870,6 +899,8 @@ async def enhanced_scraping_pipeline(
                 result = await run_enhanced_scraping_pipeline(
                     max_pages_per_source=request.max_pages_per_source,
                     quality_threshold=request.quality_threshold,
+                    use_playwright=request.use_playwright,
+                    fetch_details=request.fetch_details,
                 )
                 logger.info(f"Enhanced scraping task {task_id} completed successfully")
                 logger.info(
@@ -903,8 +934,10 @@ async def enhanced_single_source_scraping(
     request: SingleSourceRequest, background_tasks: BackgroundTasks
 ):
     """
-    Enhanced single-source scraping with quality validation.
+    Enhanced single-source scraping with quality validation and address extraction.
     Scrape from a single source (entrio, croatia, ulaznice, infozagreb, vukovar, visitkarlovac, visitopatija, visitvarazdin, visitrijeka, visitsplit, zadar or tzdubrovnik) with full quality pipeline:
+    - Playwright browser automation for supported scrapers (ulaznice, visitrijeka, visitsplit, visitopatija)
+    - Optional detailed address fetching from individual event pages
     - Advanced data validation and cleaning
     - Duplicate detection against existing database
     - Quality scoring and filtering
@@ -940,6 +973,8 @@ async def enhanced_single_source_scraping(
                 source=request.source,
                 max_pages=request.max_pages,
                 quality_threshold=request.quality_threshold,
+                use_playwright=request.use_playwright,
+                fetch_details=request.fetch_details,
             )
 
             # Extract key metrics for response
@@ -965,6 +1000,8 @@ async def enhanced_single_source_scraping(
                     source=request.source,
                     max_pages=request.max_pages,
                     quality_threshold=request.quality_threshold,
+                    use_playwright=request.use_playwright,
+                    fetch_details=request.fetch_details,
                 )
                 logger.info(
                     f"Enhanced {request.source} scraping task {task_id} completed"
@@ -1021,6 +1058,8 @@ async def enhanced_scraping_demo(
             source=source,
             max_pages=max_pages,
             quality_threshold=50.0,  # Lower threshold for demo
+            use_playwright=True,  # Use enhanced features for demo
+            fetch_details=False,  # Keep demo fast
         )
 
         # Extract comprehensive demo information

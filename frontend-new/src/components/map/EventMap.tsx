@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Loader2, AlertCircle, MapIcon } from 'lucide-react';
 import { Event, MapBounds } from '@/types/event';
-import { format } from 'date-fns';
 import clsx from 'clsx';
+import type { FeatureCollection, Point } from 'geojson';
 
 // Make mapbox-gl available globally
 (window as any).mapboxgl = mapboxgl;
@@ -74,12 +74,21 @@ export const EventMap: React.FC<EventMapProps> = ({
 
   // Filter events that have valid coordinates
   const validEvents = useMemo(() => {
-    return events.filter(event => 
+    const filtered = events.filter(event => 
       event.latitude && 
       event.longitude && 
       !isNaN(event.latitude) && 
       !isNaN(event.longitude)
     );
+    
+    // Log coordination data issues for debugging
+    const invalidEvents = events.length - filtered.length;
+    if (invalidEvents > 0) {
+      console.warn(`EventMap: ${invalidEvents} of ${events.length} events filtered out due to invalid coordinates`);
+      console.debug('Sample event with invalid coordinates:', events.find(e => !e.latitude || !e.longitude || isNaN(e.latitude) || isNaN(e.longitude)));
+    }
+    
+    return filtered;
   }, [events]);
 
 
@@ -150,7 +159,7 @@ export const EventMap: React.FC<EventMapProps> = ({
         map.current = null;
       }
     };
-  }, [mapContainer.current]); // Re-run when mapContainer ref changes
+  }, []); // Run only once on mount
 
   // Update map data when events change
   useEffect(() => {
@@ -158,7 +167,7 @@ export const EventMap: React.FC<EventMapProps> = ({
 
     try {
       // Convert events to GeoJSON
-      const eventsGeoJSON: GeoJSON.FeatureCollection = {
+      const eventsGeoJSON: FeatureCollection = {
       type: 'FeatureCollection',
       features: validEvents.map(event => {
         const category = inferEventCategory(event.title, event.description || '');
@@ -217,7 +226,7 @@ export const EventMap: React.FC<EventMapProps> = ({
         if (!e.features || e.features.length === 0) return;
         
         const feature = e.features[0];
-        const coordinates = (feature.geometry as GeoJSON.Point).coordinates as [number, number];
+        const coordinates = (feature.geometry as Point).coordinates as [number, number];
         const props = feature.properties;
 
         // Create popup
@@ -309,6 +318,28 @@ export const EventMap: React.FC<EventMapProps> = ({
           <AlertCircle className="h-8 w-8 text-red-500" />
           <p className="text-sm text-gray-600">{mapError}</p>
           <p className="text-xs text-gray-500">Please check your configuration.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show warning if events are loaded but none have coordinates
+  if (!loading && events.length > 0 && validEvents.length === 0) {
+    return (
+      <div 
+        className={clsx(
+          'flex items-center justify-center bg-amber-50 border border-amber-200 rounded-xl',
+          className
+        )}
+        style={{ height }}
+      >
+        <div className="flex flex-col items-center space-y-2 text-center p-4">
+          <AlertCircle className="h-8 w-8 text-amber-500" />
+          <p className="text-sm text-amber-800">Map Unavailable</p>
+          <p className="text-xs text-amber-700">
+            {events.length} events loaded but none have valid coordinates.
+            Events may need geocoding or there may be a data issue.
+          </p>
         </div>
       </div>
     );

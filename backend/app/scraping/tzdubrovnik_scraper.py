@@ -127,12 +127,98 @@ class DubrovnikTransformer:
         """Clean and normalize text."""
         return " ".join(text.split()) if text else ""
 
+    @staticmethod
+    def extract_location(data: Dict) -> str:
+        """Extract and format location from TZDubrovnik event data with enhanced address support."""
+        # Priority order: detected_address > venue_address > location > city > default
+        
+        # Highest priority: detected_address from detailed scraping
+        if data.get("detected_address"):
+            return data["detected_address"].strip()
+        
+        # Second priority: structured venue address
+        if data.get("venue_address"):
+            venue_addr = data["venue_address"].strip()
+            if data.get("city") and data["city"] not in venue_addr:
+                return f"{venue_addr}, {data['city']}"
+            return venue_addr
+        
+        # Third priority: venue name with city
+        if data.get("venue") and data.get("city"):
+            return f"{data['venue']}, {data['city']}"
+        
+        # Fourth priority: basic location field
+        location = data.get("location", "").strip()
+        if location and location != "Dubrovnik":
+            return location
+        
+        # Fifth priority: city only
+        if data.get("city"):
+            return data["city"].strip()
+        
+        # Fallback
+        return "Dubrovnik"
+
+    @staticmethod
+    def parse_location_from_text(text: str) -> Dict[str, str]:
+        """Parse location information from event text using discovered patterns."""
+        result = {}
+        
+        if not text:
+            return result
+        
+        # Pattern 1: "Date: DD.MM.YYYY Location: City" from calendar listings
+        date_location_pattern = r"Date:\s*([^\\n]*)\s*Location:\s*([^\\n]*)"
+        match = re.search(date_location_pattern, text, re.IGNORECASE)
+        if match:
+            result["event_date"] = match.group(1).strip()
+            result["location"] = match.group(2).strip()
+        
+        # Pattern 2: Croatian address patterns
+        address_patterns = [
+            # Street name with number: "Šipčine 2"
+            r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?)",
+            # Postal code + city: "20000 Dubrovnik"
+            r"(\d{5}\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]+)",
+            # Full address: "Street 2, 20000 City"
+            r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?\s*,\s*\d{5}\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]+)"
+        ]
+        
+        for pattern in address_patterns:
+            matches = re.findall(pattern, text)
+            if matches:
+                result["detected_address"] = matches[0].strip()
+                break
+        
+        # Extract city names (Dubrovnik, Cavtat, etc.)
+        city_patterns = [
+            r"\b(Dubrovnik|Cavtat|Korčula|Mljet|Ston|Slano)\b"
+        ]
+        
+        for pattern in city_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                result["city"] = match.group(1).strip()
+                break
+        
+        return result
+
     @classmethod
     def transform(cls, data: Dict) -> Optional[EventCreate]:
         """Transform raw event data to EventCreate object."""
         try:
             title = cls.clean_text(data.get("title", ""))
-            location = cls.clean_text(data.get("location", "Dubrovnik"))
+            
+            # Parse location information from text content
+            full_text = data.get("full_text", "") or data.get("description", "")
+            location_info = cls.parse_location_from_text(full_text)
+            
+            # Merge parsed location info with existing data
+            enhanced_data = {**data, **location_info}
+            
+            # Use enhanced location extraction
+            location = cls.extract_location(enhanced_data)
+            
             description = cls.clean_text(data.get("description", ""))
             price = cls.clean_text(data.get("price", ""))
 
@@ -213,7 +299,7 @@ class DubrovnikRequestsScraper:
         return resp
 
     async def scrape_calendar_page(self) -> List[Dict]:
-        """Scrape the static calendar page (limited functionality)."""
+        """Scrape the static calendar page with enhanced address extraction."""
         try:
             resp = await self.fetch(EVENTS_URL)
             soup = BeautifulSoup(resp.text, "html.parser")
@@ -237,16 +323,53 @@ class DubrovnikRequestsScraper:
                 if img_el and img_el.get("src"):
                     data["image"] = img_el.get("src")
                 
-                link_el = container.select_one(".more-info")
+                link_el = container.select_one(".more-info, a[href*='saznaj']")
                 if link_el and link_el.get("href"):
                     data["link"] = link_el.get("href")
                 
+                # Enhanced location extraction from list elements
                 desc_el = container.select_one("ul")
                 if desc_el:
-                    data["description"] = desc_el.get_text(separator=" ", strip=True)
+                    desc_text = desc_el.get_text(separator=" ", strip=True)
+                    data["description"] = desc_text
+                    data["full_text"] = desc_text
+                    
+                    # Parse "Date: DD.MM.YYYY Location: City" pattern
+                    date_location_match = re.search(r"Date:\s*([^\n]*)\s*Location:\s*([^\n]*)", desc_text, re.IGNORECASE)
+                    if date_location_match:
+                        data["event_date"] = date_location_match.group(1).strip()
+                        data["location"] = date_location_match.group(2).strip()
+                
+                # Get full text for address pattern detection
+                if not data.get("full_text"):
+                    data["full_text"] = container.get_text(separator=" ", strip=True)
+                
+                # Apply Croatian address pattern detection
+                full_text = data.get("full_text", "")
+                if full_text:
+                    # Look for Croatian address patterns
+                    address_patterns = [
+                        r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?\s*,\s*\d{5}\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]+)",  # Full address
+                        r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?)",  # Street + number
+                        r"(\d{5}\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]+)"  # Postal code + city
+                    ]
+                    
+                    for pattern in address_patterns:
+                        matches = re.findall(pattern, full_text)
+                        if matches:
+                            data["detected_address"] = matches[0].strip()
+                            break
+                    
+                    # Extract city names
+                    city_match = re.search(r"\b(Dubrovnik|Cavtat|Korčula|Mljet|Ston|Slano)\b", full_text, re.IGNORECASE)
+                    if city_match:
+                        data["city"] = city_match.group(1)
+                
+                # Set default location if none found
+                if not data.get("location") and not data.get("city"):
+                    data["location"] = "Dubrovnik"
                 
                 if data.get("title") and data.get("date"):
-                    data["location"] = "Dubrovnik"
                     events.append(data)
             
             return events
@@ -263,7 +386,89 @@ class DubrovnikRequestsScraper:
 class DubrovnikPlaywrightScraper:
     """Playwright scraper for interactive calendar navigation."""
 
-    async def scrape_with_playwright(self, months_ahead: int = 6) -> List[Dict]:
+    async def fetch_event_details(self, page, event_url: str) -> Dict:
+        """Fetch detailed address information from individual event page."""
+        try:
+            await page.goto(event_url, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2000)  # Wait for content to load
+            
+            # Extract detailed location information from event detail page
+            event_details = await page.evaluate("""
+                () => {
+                    const details = {};
+                    
+                    // Look for the specific location element (.mec-single-event-location)
+                    const locationEl = document.querySelector('.mec-single-event-location');
+                    if (locationEl) {
+                        const locationText = locationEl.textContent.trim();
+                        if (locationText) {
+                            // Parse "Location\nVenue/City" format
+                            const locationLines = locationText.split('\\n').map(line => line.trim()).filter(line => line);
+                            if (locationLines.length >= 2) {
+                                // Skip "Location" label, get the actual venue/city
+                                details.venue = locationLines[1];
+                                details.location = locationLines[1];
+                            } else if (locationLines.length === 1 && locationLines[0] !== 'Location') {
+                                details.location = locationLines[0];
+                            }
+                        }
+                    }
+                    
+                    // Look for detailed address patterns in page content
+                    const bodyText = document.body.textContent;
+                    
+                    // Croatian address patterns
+                    const addressPatterns = [
+                        // Full address: "Šipčine 2\\n20000 Dubrovnik, Croatia"
+                        /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+[a-z]?\\s*[\\n\\r]?\\s*\\d{5}\\s+[A-ZČĆĐŠŽ][a-zčćđšž\\s]+)/gi,
+                        // Street with number: "Šipčine 2"
+                        /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+[a-z]?)/gi,
+                        // Postal code + city: "20000 Dubrovnik"
+                        /(\\d{5}\\s+[A-ZČĆĐŠŽ][a-zčćđšž\\s]+)/gi
+                    ];
+                    
+                    for (const pattern of addressPatterns) {
+                        const matches = bodyText.match(pattern);
+                        if (matches && matches.length > 0) {
+                            // Get the first clean match
+                            details.detected_address = matches[0].trim().replace(/\\s+/g, ' ');
+                            break;
+                        }
+                    }
+                    
+                    // Extract city information
+                    const cityMatch = bodyText.match(/\\b(Dubrovnik|Cavtat|Korčula|Mljet|Ston|Slano)\\b/i);
+                    if (cityMatch) {
+                        details.city = cityMatch[1];
+                    }
+                    
+                    // Look for venue information in various elements
+                    const venueSelectors = [
+                        '.venue', '.venue-name', '.location-name',
+                        '[class*="venue"]', '[class*="hall"]', '[class*="theater"]',
+                        '.event-venue', '.event-location-name'
+                    ];
+                    
+                    for (const selector of venueSelectors) {
+                        const venueEl = document.querySelector(selector);
+                        if (venueEl && venueEl.textContent.trim()) {
+                            details.venue = venueEl.textContent.trim();
+                            break;
+                        }
+                    }
+                    
+                    return details;
+                }
+            """)
+            
+            logger.info(f"Fetched details for {event_url}: {event_details}")
+            return event_details
+            
+        except Exception as e:
+            logger.error(f"Error fetching event details from {event_url}: {e}")
+            return {}
+
+    async def scrape_with_playwright(self, months_ahead: int = 6, fetch_details: bool = False) -> List[Dict]:
         """Scrape events using Playwright for calendar interaction."""
         try:
             from playwright.async_api import async_playwright
@@ -319,6 +524,36 @@ class DubrovnikPlaywrightScraper:
                                 # Extract events for this date
                                 events = await self.extract_events_from_page(page)
                                 logger.info(f"Found {len(events)} events for date {i + 1}")
+                                
+                                # Fetch detailed address information if requested
+                                if fetch_details and events:
+                                    logger.info(f"Fetching detailed address info for {len(events)} events...")
+                                    enhanced_events = []
+                                    
+                                    for j, event in enumerate(events):
+                                        if event.get("link"):
+                                            try:
+                                                # Rate limiting - fetch details for every 3rd event to avoid overwhelming server
+                                                if j % 3 == 0:
+                                                    details = await self.fetch_event_details(page, event["link"])
+                                                    if details:
+                                                        # Merge detailed information
+                                                        event.update(details)
+                                                        logger.info(f"Enhanced event {j+1}/{len(events)}: {event.get('title', 'Unknown')}")
+                                                    
+                                                    # Add delay between detail fetches
+                                                    await page.wait_for_timeout(1000)
+                                                
+                                                enhanced_events.append(event)
+                                                
+                                            except Exception as e:
+                                                logger.error(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                                enhanced_events.append(event)  # Add original event even if detail fetch fails
+                                        else:
+                                            enhanced_events.append(event)
+                                    
+                                    events = enhanced_events
+                                
                                 all_events.extend(events)
                                 
                             except Exception as e:
@@ -354,7 +589,7 @@ class DubrovnikPlaywrightScraper:
             return []
 
     async def extract_events_from_page(self, page) -> List[Dict]:
-        """Extract events from the current page state."""
+        """Extract events from the current page state with enhanced location parsing."""
         try:
             events_data = await page.evaluate("""
                 () => {
@@ -370,7 +605,7 @@ class DubrovnikPlaywrightScraper:
                             data.title = titleEl.textContent?.trim() || '';
                         }
                         
-                        // Extract date
+                        // Extract date from display element
                         const dateEl = container.querySelector('.event-date span');
                         if (dateEl) {
                             data.date = dateEl.textContent?.trim() || '';
@@ -382,20 +617,61 @@ class DubrovnikPlaywrightScraper:
                             data.image = imgEl.src;
                         }
                         
-                        // Extract link
-                        const linkEl = container.querySelector('.more-info');
+                        // Extract more info link for detailed scraping
+                        const linkEl = container.querySelector('.more-info, a[href*="saznaj"]');
                         if (linkEl && linkEl.href) {
                             data.link = linkEl.href;
                         }
                         
-                        // Extract description
-                        const descEl = container.querySelector('ul');
-                        if (descEl) {
-                            data.description = descEl.textContent?.trim() || '';
+                        // Enhanced location extraction from list elements
+                        const listEl = container.querySelector('ul');
+                        if (listEl) {
+                            const listText = listEl.textContent?.trim() || '';
+                            data.description = listText;
+                            data.full_text = listText;
+                            
+                            // Parse "Date: DD.MM.YYYY Location: City" pattern
+                            const dateLocationMatch = listText.match(/Date:\\s*([^\\n]*)\\s*Location:\\s*([^\\n]*)/i);
+                            if (dateLocationMatch) {
+                                data.event_date = dateLocationMatch[1].trim();
+                                data.location = dateLocationMatch[2].trim();
+                            }
                         }
                         
-                        // Set default location
-                        data.location = 'Dubrovnik';
+                        // Get full text content for address pattern detection
+                        if (!data.full_text) {
+                            data.full_text = container.textContent?.trim() || '';
+                        }
+                        
+                        // Look for Croatian address patterns in the full text
+                        const fullText = data.full_text;
+                        if (fullText) {
+                            // Address patterns
+                            const addressPatterns = [
+                                /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+[a-z]?\\s*,\\s*\\d{5}\\s+[A-ZČĆĐŠŽ][a-zčćđšž\\s]+)/gi, // Full address
+                                /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+[a-z]?)/gi, // Street + number
+                                /(\\d{5}\\s+[A-ZČĆĐŠŽ][a-zčćđšž\\s]+)/gi // Postal + city
+                            ];
+                            
+                            for (const pattern of addressPatterns) {
+                                const matches = fullText.match(pattern);
+                                if (matches && matches.length > 0) {
+                                    data.detected_address = matches[0].trim();
+                                    break;
+                                }
+                            }
+                            
+                            // Extract city names
+                            const cityMatch = fullText.match(/\\b(Dubrovnik|Cavtat|Korčula|Mljet|Ston|Slano)\\b/i);
+                            if (cityMatch) {
+                                data.city = cityMatch[1].trim();
+                            }
+                        }
+                        
+                        // Set default location if none found
+                        if (!data.location && !data.city) {
+                            data.location = 'Dubrovnik';
+                        }
                         
                         // Only add events with title and date
                         if (data.title && data.date) {
@@ -422,13 +698,16 @@ class DubrovnikScraper:
         self.playwright_scraper = DubrovnikPlaywrightScraper()
         self.transformer = DubrovnikTransformer()
 
-    async def scrape_events(self, months_ahead: int = 6, use_playwright: bool = True) -> List[EventCreate]:
-        """Scrape events from Visit Dubrovnik calendar."""
+    async def scrape_events(self, months_ahead: int = 6, use_playwright: bool = True, fetch_details: bool = False) -> List[EventCreate]:
+        """Scrape events from Visit Dubrovnik calendar with optional detailed address fetching."""
         raw = []
         
         if use_playwright:
             # Try Playwright first for interactive calendar
-            raw = await self.playwright_scraper.scrape_with_playwright(months_ahead=months_ahead)
+            raw = await self.playwright_scraper.scrape_with_playwright(
+                months_ahead=months_ahead, 
+                fetch_details=fetch_details
+            )
             
             # If Playwright fails, fallback to requests
             if not raw:
@@ -447,6 +726,7 @@ class DubrovnikScraper:
             if event:
                 events.append(event)
         
+        logger.info(f"TZDubrovnik scraper: transformed {len(events)} valid events from {len(raw)} raw events")
         return events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
@@ -498,17 +778,18 @@ class DubrovnikScraper:
             db.close()
 
 
-async def scrape_tzdubrovnik_events(months_ahead: int = 6) -> Dict:
-    """Main function to scrape Visit Dubrovnik events."""
+async def scrape_tzdubrovnik_events(months_ahead: int = 6, fetch_details: bool = False) -> Dict:
+    """Main function to scrape Visit Dubrovnik events with optional detailed address fetching."""
     scraper = DubrovnikScraper()
     try:
-        events = await scraper.scrape_events(months_ahead=months_ahead)
+        events = await scraper.scrape_events(months_ahead=months_ahead, fetch_details=fetch_details)
         saved = scraper.save_events_to_database(events)
         return {
             "status": "success",
             "scraped_events": len(events),
             "saved_events": saved,
-            "message": f"Scraped {len(events)} events from Visit Dubrovnik, saved {saved} new events",
+            "message": f"Scraped {len(events)} events from Visit Dubrovnik, saved {saved} new events" + 
+                      (f" (with detailed address info)" if fetch_details else ""),
         }
     except Exception as e:
         return {"status": "error", "message": f"Visit Dubrovnik scraping failed: {e}"}

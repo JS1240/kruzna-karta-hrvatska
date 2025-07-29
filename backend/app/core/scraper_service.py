@@ -5,7 +5,6 @@ This service provides a high-level interface for scraping operations with proper
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Dict, List, Optional, Union
 from datetime import datetime
@@ -14,8 +13,8 @@ from fastapi import BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
 from .scraper_registry import get_scraper_registry, ScraperResult
-from .scraper_logging import get_scraping_logger, scraping_context
-from .error_handling import get_error_handler, get_error_manager, RETRY_CONFIGS
+from .scraper_logging import scraping_context
+from .error_handling import get_error_manager, RETRY_CONFIGS
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +181,7 @@ class ScraperService:
                     raise HTTPException(
                         status_code=500,
                         detail=f"Scraping failed for {source}: {str(e)}"
-                    )
+                    ) from e
     
     async def scrape_quick(
         self,
@@ -243,18 +242,6 @@ class ScraperService:
                     # Process results
                     total_scraped = sum(r.scraped_events for r in results if isinstance(r, ScraperResult))
                     total_saved = sum(r.saved_events for r in results if isinstance(r, ScraperResult))
-                    
-                    # Create comprehensive result
-                    multi_result = MultiScrapeResponse(
-                        status="success",
-                        message=f"Multi-source scraping completed: {total_scraped} events scraped, {total_saved} saved",
-                        total_scraped=total_scraped,
-                        total_saved=total_saved,
-                        processing_time=processing_time,
-                        task_id=task_id,
-                        results=[self._convert_to_scrape_response(r) for r in results if isinstance(r, ScraperResult)],
-                        errors=[str(r) for r in results if isinstance(r, Exception)]
-                    )
                     
                     logger.info(f"Background multi-source scraping task {task_id} completed")
                     

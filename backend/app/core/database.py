@@ -1,6 +1,7 @@
 import logging
 
 from sqlalchemy import create_engine, event, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
@@ -76,7 +77,7 @@ def get_db():
             # If rollback fails, close and recreate session
             try:
                 db.close()
-            except:
+            except Exception:
                 pass
             db = SessionLocal()
         raise
@@ -105,15 +106,15 @@ def safe_db_operation(operation_func, *args, **kwargs):
             db = get_fresh_db_session()
             result = operation_func(db, *args, **kwargs)
             return result
-        except Exception as e:
+        except SQLAlchemyError as e:
             if db:
                 try:
                     db.rollback()
-                except:
+                except SQLAlchemyError:
                     pass
                 try:
                     db.close()
-                except:
+                except SQLAlchemyError:
                     pass
             
             # Check if this is a transaction error that we can retry
@@ -127,7 +128,7 @@ def safe_db_operation(operation_func, *args, **kwargs):
             if db:
                 try:
                     db.close()
-                except:
+                except SQLAlchemyError:
                     pass
 
 

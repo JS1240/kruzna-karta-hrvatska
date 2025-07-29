@@ -503,7 +503,7 @@ class AnalyticsService:
                 result.append(
                     {
                         "event_id": event_id,
-                        "event_name": event.name,
+                        "event_name": event.title,
                         "total_views": total_views,
                         "unique_views": unique_views,
                     }

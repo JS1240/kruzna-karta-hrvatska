@@ -165,24 +165,64 @@ class CroatiaEventDataTransformer:
 
     @staticmethod
     def extract_location(location_data: Dict) -> str:
-        """Extract and format location from Croatia.hr location data."""
+        """Extract and format location from Croatia.hr location data with enhanced address support."""
         parts = []
-
-        # Try different location fields
-        if location_data.get("place"):
-            parts.append(location_data["place"])
-        if location_data.get("county"):
-            parts.append(location_data["county"])
-        if location_data.get("region"):
-            parts.append(location_data["region"])
+        
+        # Handle enhanced address data from detailed scraping
+        if isinstance(location_data, dict):
+            # Priority order: street_address > venue > city > region
+            if location_data.get("street_address"):
+                parts.append(location_data["street_address"])
+            elif location_data.get("venue"):
+                parts.append(location_data["venue"])
+            
+            # Add city information
+            city = location_data.get("city") or location_data.get("city_name")
+            if city:
+                parts.append(city)
+            elif location_data.get("place"):
+                parts.append(location_data["place"])
+            
+            # Add region/county if available and not already included
+            region = location_data.get("county") or location_data.get("region")
+            if region and region not in str(parts):
+                parts.append(region)
+            
+            # If we have detected address pattern, prioritize it over basic parts
+            if location_data.get("detected_address"):
+                return location_data["detected_address"]
+            
+            # If we have enhanced location data, use it
+            if location_data.get("full_location") and not parts:
+                return location_data["full_location"]
+        
+        # Original logic for backward compatibility
+        if isinstance(location_data, dict):
+            # Try different location fields
+            if location_data.get("place") and not any("place" in str(p).lower() for p in parts):
+                parts.append(location_data["place"])
+            if location_data.get("county") and not any("county" in str(p).lower() for p in parts):
+                parts.append(location_data["county"])
+            if location_data.get("region") and not any("region" in str(p).lower() for p in parts):
+                parts.append(location_data["region"])
 
         if parts:
-            return ", ".join(parts)
+            # Clean and deduplicate parts
+            unique_parts = []
+            for part in parts:
+                part_clean = str(part).strip()
+                if part_clean and part_clean not in unique_parts:
+                    unique_parts.append(part_clean)
+            return ", ".join(unique_parts)
 
         # Fallback to any string in location_data
-        for key, value in location_data.items():
-            if isinstance(value, str) and value.strip():
-                return value.strip()
+        if isinstance(location_data, dict):
+            for key, value in location_data.items():
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+        elif isinstance(location_data, str):
+            stripped = location_data.strip()
+            return stripped if stripped else "Croatia"
 
         return "Croatia"
 
@@ -270,8 +310,93 @@ class CroatiaEventDataTransformer:
 class CroatiaPlaywrightScraper:
     """Scraper using Playwright for Croatia.hr dynamic content."""
 
+    async def fetch_event_details(self, page, event_url: str) -> Dict:
+        """Fetch detailed address information from event page."""
+        try:
+            await page.goto(event_url, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2000)  # Wait for content to load
+            
+            # Extract detailed location information
+            event_details = await page.evaluate(
+                """
+                () => {
+                    const details = {};
+                    
+                    // Look for detailed address information
+                    const addressSelectors = [
+                        '[class*="location"]',
+                        '[class*="address"]',
+                        '[class*="venue"]',
+                        '[class*="adresa"]',
+                        '[class*="lokacija"]',
+                        '.event-location',
+                        '.venue-info',
+                        '.location-details'
+                    ];
+                    
+                    for (const selector of addressSelectors) {
+                        const elements = document.querySelectorAll(selector);
+                        elements.forEach(el => {
+                            const text = el.textContent.trim();
+                            if (text && text.length > 2) {
+                                // Extract city name from links
+                                const cityLink = el.querySelector('a[href*="visit"]');
+                                if (cityLink) {
+                                    details.city = cityLink.textContent.trim();
+                                    details.city_url = cityLink.href;
+                                }
+                                
+                                // Look for venue or address text
+                                const venueSelectors = [
+                                    '.venue', '.venue-name', '.location-name',
+                                    '[class*="venue"]', '[class*="hall"]',
+                                    '.address', '[class*="address"]'
+                                ];
+                                
+                                for (const venueSelector of venueSelectors) {
+                                    const venueEl = el.querySelector(venueSelector);
+                                    if (venueEl && venueEl.textContent.trim()) {
+                                        details.venue = venueEl.textContent.trim();
+                                    }
+                                }
+                                
+                                // Store full location text
+                                if (!details.full_location || text.length > details.full_location.length) {
+                                    details.full_location = text;
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Look for structured address patterns in page content
+                    const pageText = document.body.textContent;
+                    const addressPatterns = [
+                        /([A-ZČĆĐŠŽ][a-zčćđšž\s]+(?:ulica|cesta|trg|put|avenija|bb)\s*\d*[a-z]?)/gi,
+                        /(\d{5}\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]+)/gi,
+                        /([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?\s*,\s*\d{5}\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]+)/gi
+                    ];
+                    
+                    for (const pattern of addressPatterns) {
+                        const matches = pageText.match(pattern);
+                        if (matches && matches.length > 0) {
+                            details.street_address = matches[0].trim();
+                            break;
+                        }
+                    }
+                    
+                    return details;
+                }
+                """
+            )
+            
+            return event_details
+        
+        except Exception as e:
+            logger.error(f"Error fetching event details from {event_url}: {e}")
+            return {}
+
     async def scrape_with_playwright(
-        self, start_url: str = EVENTS_URL, max_pages: int = 5
+        self, start_url: str = EVENTS_URL, max_pages: int = 5, fetch_details: bool = False
     ) -> List[Dict]:
         """Scrape events using Playwright to handle Vue.js content."""
         from playwright.async_api import async_playwright
@@ -388,18 +513,61 @@ class CroatiaPlaywrightScraper:
                                         }
                                     }
                                     
-                                    // Extract location
+                                    // Extract location with enhanced address detection
                                     const locationSelectors = [
                                         '.location', '.place', '.venue', '.where',
                                         '[class*="location"]', '[class*="place"]',
-                                        '.city', '.region', '.mjesto'
+                                        '[class*="venue"]', '[class*="address"]',
+                                        '[class*="adresa"]', '[class*="lokacija"]',
+                                        '.city', '.region', '.mjesto', '.grad'
                                     ];
                                     
                                     for (const selector of locationSelectors) {
                                         const locationEl = element.querySelector(selector);
                                         if (locationEl && locationEl.textContent.trim()) {
                                             data.location = locationEl.textContent.trim();
+                                            
+                                            // Try to extract more detailed address info from the element
+                                            const linkEl = locationEl.querySelector('a');
+                                            if (linkEl) {
+                                                data.city_link = linkEl.href;
+                                                data.city_name = linkEl.textContent.trim();
+                                            }
+                                            
+                                            // Look for venue/address within the location element
+                                            const venueSelectors = [
+                                                '.venue', '.venue-name', '[class*="venue"]',
+                                                '.address', '[class*="address"]',
+                                                '.street', '[class*="street"]'
+                                            ];
+                                            
+                                            for (const venueSelector of venueSelectors) {
+                                                const venueEl = locationEl.querySelector(venueSelector);
+                                                if (venueEl && venueEl.textContent.trim()) {
+                                                    data.venue = venueEl.textContent.trim();
+                                                    break;
+                                                }
+                                            }
                                             break;
+                                        }
+                                    }
+                                    
+                                    // Additional address pattern detection in text content
+                                    const fullText = element.textContent;
+                                    if (fullText) {
+                                        // Look for Croatian address patterns
+                                        const addressPatterns = [
+                                            /\b[\w\s]+\s+\d+[a-z]?\s*,\s*\d{5}\s+[\w\s]+/gi,  // Street Number, Postal City
+                                            /\b[\w\s]+\s+(ulica|cesta|trg|put|avenija)\s*\d*[a-z]?\b/gi,  // Croatian street types
+                                            /\b\d{5}\s+[\w\s]+\b/gi  // Postal code + city
+                                        ];
+                                        
+                                        for (const pattern of addressPatterns) {
+                                            const matches = fullText.match(pattern);
+                                            if (matches && matches.length > 0) {
+                                                data.detected_address = matches[0].trim();
+                                                break;
+                                            }
                                         }
                                     }
                                     
@@ -452,6 +620,36 @@ class CroatiaPlaywrightScraper:
                         for event in events_data
                         if event.get("title") or event.get("link")
                     ]
+                    
+                    # Fetch detailed address information if requested
+                    if fetch_details and valid_events:
+                        logger.info(f"Fetching detailed address info for {len(valid_events)} events...")
+                        enhanced_events = []
+                        
+                        for i, event in enumerate(valid_events):
+                            if event.get("link"):
+                                try:
+                                    # Rate limiting - fetch details for every 3rd event to avoid overwhelming the server
+                                    if i % 3 == 0:
+                                        details = await self.fetch_event_details(page, event["link"])
+                                        if details:
+                                            # Merge detailed information
+                                            event.update(details)
+                                            logger.info(f"Enhanced event {i+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
+                                        
+                                        # Add delay between detail fetches
+                                        await page.wait_for_timeout(1000)
+                                    
+                                    enhanced_events.append(event)
+                                    
+                                except Exception as e:
+                                    logger.error(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                    enhanced_events.append(event)  # Add original event even if detail fetch fails
+                            else:
+                                enhanced_events.append(event)
+                        
+                        valid_events = enhanced_events
+                    
                     all_events.extend(valid_events)
 
                     logger.info(
@@ -529,13 +727,13 @@ class CroatiaScraper:
         self.playwright_scraper = CroatiaPlaywrightScraper()
         self.transformer = CroatiaEventDataTransformer()
 
-    async def scrape_events(self, max_pages: int = 5) -> List[EventCreate]:
+    async def scrape_events(self, max_pages: int = 5, fetch_details: bool = False) -> List[EventCreate]:
         """Scrape events and return as EventCreate objects."""
-        logger.info(f"Starting Croatia.hr scraper (max_pages: {max_pages})")
+        logger.info(f"Starting Croatia.hr scraper (max_pages: {max_pages}, fetch_details: {fetch_details})")
 
         # Scrape raw data using Playwright (required for Vue.js content)
         raw_events = await self.playwright_scraper.scrape_with_playwright(
-            max_pages=max_pages
+            max_pages=max_pages, fetch_details=fetch_details
         )
 
         logger.info(f"Scraped {len(raw_events)} raw events from Croatia.hr")
@@ -564,7 +762,7 @@ class CroatiaScraper:
                 existing = (
                     db.query(Event)
                     .filter(
-                        Event.name == event_data.name, Event.date == event_data.date
+                        Event.title == event_data.title, Event.date == event_data.date
                     )
                     .first()
                 )
@@ -574,7 +772,7 @@ class CroatiaScraper:
                     db.add(db_event)
                     saved_count += 1
                 else:
-                    logger.info(f"Event already exists: {event_data.name}")
+                    logger.info(f"Event already exists: {event_data.title}")
 
             db.commit()
             logger.info(f"Saved {saved_count} new events to database from Croatia.hr")
@@ -590,12 +788,12 @@ class CroatiaScraper:
 
 
 # Convenience function for API endpoints
-async def scrape_croatia_events(max_pages: int = 5) -> Dict:
+async def scrape_croatia_events(max_pages: int = 5, fetch_details: bool = False) -> Dict:
     """Scrape Croatia.hr events and save to database."""
     scraper = CroatiaScraper()
 
     try:
-        events = await scraper.scrape_events(max_pages=max_pages)
+        events = await scraper.scrape_events(max_pages=max_pages, fetch_details=fetch_details)
         saved_count = scraper.save_events_to_database(events)
 
         return {

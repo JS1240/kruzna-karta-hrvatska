@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 import traceback
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 from dataclasses import dataclass, field
 from enum import Enum

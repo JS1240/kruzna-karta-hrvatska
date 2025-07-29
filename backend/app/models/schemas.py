@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # Event Category Schemas
@@ -40,13 +40,20 @@ class VenueBase(BaseModel):
     address: Optional[str] = None
     city: str = Field(..., max_length=100)
     country: Optional[str] = Field(default="Croatia", max_length=100)
-    latitude: Optional[Decimal] = None
-    longitude: Optional[Decimal] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     capacity: Optional[int] = None
     venue_type: Optional[str] = Field(None, max_length=50)
     website: Optional[str] = Field(None, max_length=500)
     phone: Optional[str] = Field(None, max_length=50)
     email: Optional[str] = Field(None, max_length=255)
+
+    @field_validator('latitude', 'longitude', mode='before')
+    @classmethod
+    def convert_decimal_to_float(cls, v):
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
 
 
 class VenueCreate(VenueBase):
@@ -58,8 +65,8 @@ class VenueUpdate(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = Field(None, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
-    latitude: Optional[Decimal] = None
-    longitude: Optional[Decimal] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     capacity: Optional[int] = None
     venue_type: Optional[str] = Field(None, max_length=50)
     website: Optional[str] = Field(None, max_length=500)
@@ -88,8 +95,8 @@ class EventBase(BaseModel):
     location: str = Field(..., max_length=500)
     category_id: Optional[int] = None
     venue_id: Optional[int] = None
-    latitude: Optional[Decimal] = None
-    longitude: Optional[Decimal] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     source: str = Field(default="manual", max_length=50)
     external_id: Optional[str] = Field(None, max_length=255)
     event_status: Optional[str] = Field(default="active", max_length=20)
@@ -103,6 +110,13 @@ class EventBase(BaseModel):
     end_date: Optional[date] = None
     end_time: Optional[str] = Field(None, max_length=50)
     timezone: Optional[str] = Field(default="Europe/Zagreb", max_length=50)
+
+    @field_validator('latitude', 'longitude', mode='before')
+    @classmethod
+    def convert_decimal_to_float(cls, v):
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
 
 
 class EventCreate(EventBase):
@@ -120,8 +134,8 @@ class EventUpdate(BaseModel):
     location: Optional[str] = Field(None, max_length=500)
     category_id: Optional[int] = None
     venue_id: Optional[int] = None
-    latitude: Optional[Decimal] = None
-    longitude: Optional[Decimal] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     source: Optional[str] = Field(None, max_length=50)
     external_id: Optional[str] = Field(None, max_length=255)
     event_status: Optional[str] = Field(None, max_length=20)

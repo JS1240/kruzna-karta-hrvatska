@@ -85,7 +85,7 @@ class TranslationService:
         # Start with original event data
         event_data = {
             "id": event.id,
-            "name": event.name,
+            "title": event.title,
             "description": event.description,
             "location": event.location,
             "organizer": event.organizer,

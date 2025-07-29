@@ -143,10 +143,38 @@ class AuthConfig(BaseModel):
     
     @validator('secret_key')
     def secret_key_must_be_set(cls, v):
-        if not v or v == "your-secret-key-here":
-            # For testing purposes, allow the default value
-            # In production, this should be properly configured
-            return v
+        if not v:
+            # Generate a secure random key if not provided
+            import secrets
+            import logging
+            
+            logger = logging.getLogger(__name__)
+            secure_key = secrets.token_urlsafe(32)
+            
+            logger.warning(
+                "SECRET_KEY not set! Generated temporary secure key. "
+                "For production, set SECRET_KEY environment variable to a secure random string."
+            )
+            
+            return secure_key
+            
+        # Reject known insecure values
+        insecure_values = [
+            "your-secret-key-here",
+            "secret",
+            "development",
+            "test",
+            "changeme",
+            "insecure"
+        ]
+        
+        if v.lower() in insecure_values:
+            raise ValueError(f"Secret key '{v}' is insecure. Use a cryptographically secure random string.")
+        
+        # Enforce minimum length for security
+        if len(v) < 16:
+            raise ValueError("Secret key must be at least 16 characters long for security.")
+            
         return v
 
 

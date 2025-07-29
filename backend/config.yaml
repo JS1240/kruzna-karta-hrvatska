@@ -9,7 +9,7 @@ database:
   user: "${DB_USER:postgres}"
   password: "${DB_PASSWORD:}"
   url: "${DATABASE_URL:postgresql://${DB_USER:postgres}:${DB_PASSWORD:}@${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:kruzna_karta_hrvatska}}"
-  
+
   # Connection Pool Settings
   pool:
     size: "${DB_POOL_SIZE:5}"
@@ -25,7 +25,7 @@ api:
   title: "Kruzna Karta Hrvatska API"
   version: "1.0.0"
   description: "Backend API for Croatian Events Platform"
-  
+
   # CORS Settings
   cors:
     origins:
@@ -40,7 +40,7 @@ api:
 
 # Authentication & Security
 auth:
-  secret_key: "${SECRET_KEY:your-secret-key-here}"
+  secret_key: "${SECRET_KEY}"
   algorithm: "${ALGORITHM:HS256}"
   access_token_expire_minutes: "${ACCESS_TOKEN_EXPIRE_MINUTES:30}"
   refresh_token_expire_days: "${REFRESH_TOKEN_EXPIRE_DAYS:7}"
@@ -53,7 +53,7 @@ redis:
   password: "${REDIS_PASSWORD:}"
   url: "${REDIS_URL:}"
   max_connections: "${REDIS_MAX_CONNECTIONS:20}"
-  
+
   # Cache Settings
   cache:
     default_ttl: "${CACHE_DEFAULT_TTL:300}"
@@ -74,7 +74,7 @@ payments:
     secret_key: "${STRIPE_SECRET_KEY:}"
     webhook_secret: "${STRIPE_WEBHOOK_SECRET:}"
     connect_client_id: "${STRIPE_CONNECT_CLIENT_ID:}"
-  
+
   platform:
     commission_rate: "${PLATFORM_COMMISSION_RATE:5.0}"
     currency: "${CURRENCY:EUR}"
@@ -85,11 +85,11 @@ payments:
 # Scraping Configuration
 scraping:
   brightdata:
-    user: "${BRIGHTDATA_USER:demo_user}"
-    password: "${BRIGHTDATA_PASSWORD:demo_password}"
+    user: "${BRIGHTDATA_USER:}"
+    password: "${BRIGHTDATA_PASSWORD:}"
     host: "brd.superproxy.io"
     port: "${BRIGHTDATA_PORT:22225}"
-  
+
   settings:
     use_proxy: "${USE_PROXY:true}"
     use_scraping_browser: "${USE_SCRAPING_BROWSER:false}"
@@ -97,7 +97,7 @@ scraping:
     max_retries: "${SCRAPING_MAX_RETRIES:3}"
     timeout: "${SCRAPING_TIMEOUT:30}"
     delay_between_requests: "${SCRAPING_DELAY:1.0}"
-  
+
   headers:
     user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0"
     accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
@@ -109,11 +109,11 @@ services:
     api_key: "${OPENAI_API_KEY:}"
     model: "${OPENAI_MODEL:gpt-4}"
     max_tokens: "${OPENAI_MAX_TOKENS:1000}"
-  
+
   geocoding:
     provider: "${GEOCODING_PROVIDER:nominatim}"
     api_key: "${GEOCODING_API_KEY:}"
-    
+
   email:
     smtp_host: "${SMTP_HOST:}"
     smtp_port: "${SMTP_PORT:587}"

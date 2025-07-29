@@ -383,10 +383,6 @@ async def get_database_optimizer():
             await session.close()
 
 
-async def create_optimized_event_inserter(source: str) -> DatabaseOptimizer:
-    """Create an optimized event inserter for a source."""
-    db_session = await get_db().__anext__()
-    return DatabaseOptimizer(db_session)
 
 
 class BulkEventProcessor:

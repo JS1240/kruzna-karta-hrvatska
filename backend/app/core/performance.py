@@ -469,7 +469,7 @@ class PerformanceService:
         """Serialize event for JSON response."""
         return {
             "id": event.id,
-            "name": event.name,
+            "title": event.title,
             "description": event.description,
             "date": event.date.isoformat() if event.date else None,
             "time": event.time,
@@ -479,8 +479,15 @@ class PerformanceService:
             "link": event.link,
             "is_featured": event.is_featured,
             "view_count": event.view_count,
+            "created_at": event.created_at.isoformat() if event.created_at else None,
+            "updated_at": event.updated_at.isoformat() if event.updated_at else None,
             "category": (
-                {"id": event.category.id, "name": event.category.name}
+                {
+                    "id": event.category.id, 
+                    "name": event.category.name,
+                    "slug": event.category.slug,
+                    "created_at": event.category.created_at.isoformat() if event.category.created_at else None,
+                }
                 if event.category
                 else None
             ),
@@ -489,6 +496,8 @@ class PerformanceService:
                     "id": event.venue.id,
                     "name": event.venue.name,
                     "city": event.venue.city,
+                    "created_at": event.venue.created_at.isoformat() if event.venue.created_at else None,
+                    "updated_at": event.venue.updated_at.isoformat() if event.venue.updated_at else None,
                 }
                 if event.venue
                 else None

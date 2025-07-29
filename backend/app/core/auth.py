@@ -1,7 +1,7 @@
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, Union
+from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -135,10 +135,10 @@ def verify_token(token: str, expected_type: str) -> Optional[dict]:
         if payload.get("type") != expected_type:
             raise TokenTypeError(f"Expected {expected_type} token")
         return payload
-    except ExpiredSignatureError:
-        raise TokenExpiredError()
-    except JWTError:
-        raise InvalidTokenError("Token decode failed")
+    except ExpiredSignatureError as e:
+        raise TokenExpiredError() from e
+    except JWTError as e:
+        raise InvalidTokenError("Token decode failed") from e
 
 
 def get_user_from_token(token: str, db: Session) -> Optional[User]:

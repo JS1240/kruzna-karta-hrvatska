@@ -1,18 +1,35 @@
 """Events service for handling complex event queries and business logic."""
 
 import logging
+from decimal import Decimal
 from typing import List, Optional, Tuple
 
-from sqlalchemy import and_, func, or_, text
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from ..models.event import Event
-from ..models.category import EventCategory
-from ..models.venue import Venue
 from ..models.schemas import EventSearchParams, EventResponse
 from .translation import TranslationService, DEFAULT_LANGUAGE
 
 logger = logging.getLogger(__name__)
+
+
+def convert_decimal_coordinates(event):
+    """Convert Decimal coordinates to float for proper JSON serialization."""
+    if hasattr(event, 'latitude') and isinstance(event.latitude, Decimal):
+        event.latitude = float(event.latitude)
+    if hasattr(event, 'longitude') and isinstance(event.longitude, Decimal):
+        event.longitude = float(event.longitude)
+    
+    # Also handle venue coordinates if present
+    if hasattr(event, 'venue') and event.venue:
+        venue = event.venue
+        if hasattr(venue, 'latitude') and isinstance(venue.latitude, Decimal):
+            venue.latitude = float(venue.latitude)
+        if hasattr(venue, 'longitude') and isinstance(venue.longitude, Decimal):
+            venue.longitude = float(venue.longitude)
+    
+    return event
 
 
 class EventsService:
@@ -140,6 +157,9 @@ class EventsService:
             # Apply pagination
             offset = (search_params.page - 1) * search_params.size
             events = query.offset(offset).limit(search_params.size).all()
+            
+            # Convert Decimal coordinates to float for proper serialization
+            events = [convert_decimal_coordinates(event) for event in events]
             
             # Calculate total pages
             pages = (total + search_params.size - 1) // search_params.size

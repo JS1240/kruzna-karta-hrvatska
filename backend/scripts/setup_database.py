@@ -42,7 +42,7 @@ def insert_sample_data():
 
         sample_events = [
             Event(
-                name="Nina Badrić Concert",
+                title="Nina Badrić Concert",
                 time="20:00",
                 date=date(2025, 6, 15),
                 location="Poljud Stadium, Split",
@@ -52,7 +52,7 @@ def insert_sample_data():
                 link="https://entrio.hr/"
             ),
             Event(
-                name="Zagreb Bootcamp Challenge",
+                title="Zagreb Bootcamp Challenge",
                 time="09:00",
                 date=date(2025, 5, 20),
                 location="Jarun Lake, Zagreb",
@@ -62,7 +62,7 @@ def insert_sample_data():
                 link="https://meetup.com/"
             ),
             Event(
-                name="Dubrovnik Tech Meetup",
+                title="Dubrovnik Tech Meetup",
                 time="18:00",
                 date=date(2025, 7, 10),
                 location="Hotel Excelsior, Dubrovnik",
@@ -72,7 +72,7 @@ def insert_sample_data():
                 link="https://meetup.com/"
             ),
             Event(
-                name="Adriatic Business Conference",
+                title="Adriatic Business Conference",
                 time="10:00",
                 date=date(2025, 9, 5),
                 location="Rijeka Convention Center, Rijeka",
@@ -82,7 +82,7 @@ def insert_sample_data():
                 link="https://eventim.hr/"
             ),
             Event(
-                name="Zrće Beach Party",
+                title="Zrće Beach Party",
                 time="23:00",
                 date=date(2025, 8, 1),
                 location="Papaya Club, Novalja",
@@ -95,7 +95,7 @@ def insert_sample_data():
 
         for event in sample_events:
             db.add(event)
-            logger.info(f"Added event: {event.name}")
+            logger.info(f"Added event: {event.title}")
 
         db.commit()
         logger.info("Sample data inserted successfully!")

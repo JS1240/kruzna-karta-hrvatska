@@ -22,6 +22,8 @@ from .visitsplit_scraper import VisitSplitScraper
 from .zadar_scraper import ZadarScraper
 from .tzdubrovnik_scraper import DubrovnikScraper
 from .visitvarazdin_scraper import VisitVarazdinScraper
+from .visitkarlovac_scraper import VisitKarlovacScraper
+from .visitopatija_scraper import VisitOpatijaScraper
 
 
 
@@ -43,10 +45,13 @@ class EnhancedScrapingPipeline:
         self.zadar_scraper = ZadarScraper()
         self.dubrovnik_scraper = DubrovnikScraper()
         self.visitvarazdin_scraper = VisitVarazdinScraper()
+        self.visitkarlovac_scraper = VisitKarlovacScraper()
+        self.visitopatija_scraper = VisitOpatijaScraper()
 
-    async def scrape_all_sources(self, max_pages_per_source: int = 5) -> Dict[str, Any]:
-        """Scrape events from all sources with enhanced quality processing."""
+    async def scrape_all_sources(self, max_pages_per_source: int = 5, use_playwright: bool = True, fetch_details: bool = False) -> Dict[str, Any]:
+        """Scrape events from all sources with enhanced quality processing and address extraction."""
         print("=== Starting Enhanced Scraping Pipeline ===")
+        print(f"Configuration: Playwright={use_playwright}, Detail fetching={fetch_details}")
         start_time = datetime.now()
 
         pipeline_results = {
@@ -56,9 +61,13 @@ class EnhancedScrapingPipeline:
             "quality_report": {},
             "saved_events": 0,
             "total_processing_time": 0,
+            "enhanced_features": {
+                "playwright_enabled": use_playwright,
+                "detail_fetching_enabled": fetch_details
+            }
         }
 
-        # Scrape from all sources
+        # Scrape from all sources with enhanced configuration
         sources_config = [
             ("entrio.hr", self.entrio_scraper, max_pages_per_source),
             ("croatia.hr", self.croatia_scraper, max_pages_per_source),
@@ -70,6 +79,8 @@ class EnhancedScrapingPipeline:
             ("zadar.travel", self.zadar_scraper, max_pages_per_source),
             ("tzdubrovnik.hr", self.dubrovnik_scraper, max_pages_per_source),
             ("visitvarazdin.hr", self.visitvarazdin_scraper, max_pages_per_source),
+            ("visitkarlovac.hr", self.visitkarlovac_scraper, max_pages_per_source),
+            ("visitopatija.com", self.visitopatija_scraper, max_pages_per_source),
         ]
         all_scraped_events = []
 
@@ -78,8 +89,28 @@ class EnhancedScrapingPipeline:
             source_start = datetime.now()
 
             try:
-                # Scrape events from source
-                events = await scraper.scrape_events(max_pages=max_pages)
+                # Check if scraper supports enhanced features
+                scraper_method = getattr(scraper, 'scrape_events', None)
+                if scraper_method:
+                    import inspect
+                    sig = inspect.signature(scraper_method)
+                    
+                    # Enhanced scrapers (Ulaznice, VisitRijeka, VisitSplit, VisitOpatija, VisitVarazdin, Vukovar, Zadar, InfoZagreb) support additional parameters
+                    if source_name in ["ulaznice.hr", "visitrijeka.hr", "visitsplit.com", "visitopatija.com", "visitvarazdin.hr", "turizamvukovar.hr", "zadar.travel", "infozagreb.hr"]:
+                        # Use enhanced parameters for enhanced scrapers
+                        events = await scraper.scrape_events(
+                            max_pages=max_pages,
+                            use_playwright=use_playwright,
+                            fetch_details=fetch_details
+                        )
+                        print(f"Using enhanced scraping for {source_name}")
+                    else:
+                        # Use standard parameters for other scrapers
+                        events = await scraper.scrape_events(max_pages=max_pages)
+                        print(f"Using standard scraping for {source_name}")
+                else:
+                    # Fallback for scrapers without scrape_events method
+                    events = []
 
                 source_end = datetime.now()
                 source_duration = (source_end - source_start).total_seconds()
@@ -89,11 +120,13 @@ class EnhancedScrapingPipeline:
                     "events_scraped": len(events),
                     "scraping_duration": source_duration,
                     "events": events,
+                    "enhanced_features_used": source_name in ["ulaznice.hr", "visitrijeka.hr", "visitsplit.com", "visitopatija.com", "visitvarazdin.hr", "turizamvukovar.hr", "zadar.travel", "infozagreb.hr"]
                 }
 
                 all_scraped_events.extend(events)
+                enhancement_note = " (enhanced)" if source_name in ["ulaznice.hr", "visitrijeka.hr", "visitsplit.com", "visitopatija.com", "visitvarazdin.hr", "turizamvukovar.hr", "zadar.travel", "infozagreb.hr"] else ""
                 print(
-                    f"✓ {source_name}: {len(events)} events scraped in {source_duration:.2f}s"
+                    f"✓ {source_name}: {len(events)} events scraped in {source_duration:.2f}s{enhancement_note}"
                 )
 
             except Exception as e:
@@ -106,12 +139,16 @@ class EnhancedScrapingPipeline:
                     "events_scraped": 0,
                     "scraping_duration": source_duration,
                     "events": [],
+                    "enhanced_features_used": False
                 }
 
                 print(f"✗ {source_name}: Failed after {source_duration:.2f}s - {e}")
 
         print(f"\n--- Combined Scraping Results ---")
         print(f"Total events scraped: {len(all_scraped_events)}")
+        enhanced_count = sum(1 for source_data in pipeline_results["sources"].values() 
+                           if source_data.get("enhanced_features_used", False))
+        print(f"Enhanced scrapers used: {enhanced_count}/12 (8 enhanced scrapers available: ulaznice.hr, visitrijeka.hr, visitsplit.com, visitopatija.com, visitvarazdin.hr, turizamvukovar.hr, zadar.travel, infozagreb.hr)")
 
         # Process events with quality validation and duplicate detection
         if all_scraped_events:
@@ -237,10 +274,11 @@ class EnhancedScrapingPipeline:
                     print(f"{i}. {rec}")
 
     async def scrape_single_source(
-        self, source: str, max_pages: int = 5
+        self, source: str, max_pages: int = 5, use_playwright: bool = True, fetch_details: bool = False
     ) -> Dict[str, Any]:
-        """Scrape events from a single source with quality processing."""
+        """Scrape events from a single source with quality processing and enhanced address extraction."""
         print(f"=== Scraping {source} with Enhanced Pipeline ===")
+        print(f"Configuration: Playwright={use_playwright}, Detail fetching={fetch_details}")
         start_time = datetime.now()
 
         # Select scraper
@@ -264,12 +302,46 @@ class EnhancedScrapingPipeline:
             scraper = self.dubrovnik_scraper
         elif source.lower() == "visitvarazdin":
             scraper = self.visitvarazdin_scraper
+        elif source.lower() == "visitkarlovac":
+            scraper = self.visitkarlovac_scraper
+        elif source.lower() == "visitopatija":
+            scraper = self.visitopatija_scraper
         else:
             raise ValueError(f"Unknown source: {source}")
 
-        # Scrape events
+        # Scrape events with enhanced features if supported
         try:
-            events = await scraper.scrape_events(max_pages=max_pages)
+            source_mapping = {
+                "entrio": "entrio.hr",
+                "croatia": "croatia.hr", 
+                "infozagreb": "infozagreb.hr",
+                "ulaznice": "ulaznice.hr",
+                "visitrijeka": "visitrijeka.hr",
+                "vukovar": "turizamvukovar.hr",
+                "visitsplit": "visitsplit.com",
+                "zadar": "zadar.travel",
+                "tzdubrovnik": "tzdubrovnik.hr",
+                "visitvarazdin": "visitvarazdin.hr",
+                "visitkarlovac": "visitkarlovac.hr",
+                "visitopatija": "visitopatija.com"
+            }
+            
+            source_name = source_mapping.get(source.lower(), source)
+            
+            # Enhanced scrapers support additional parameters
+            if source_name in ["ulaznice.hr", "visitrijeka.hr", "visitsplit.com", "visitopatija.com", "visitvarazdin.hr", "turizamvukovar.hr", "zadar.travel", "infozagreb.hr"]:
+                events = await scraper.scrape_events(
+                    max_pages=max_pages,
+                    use_playwright=use_playwright,
+                    fetch_details=fetch_details
+                )
+                print(f"Used enhanced scraping for {source} (Playwright={use_playwright}, Details={fetch_details})")
+                enhanced_features_used = True
+            else:
+                events = await scraper.scrape_events(max_pages=max_pages)
+                print(f"Used standard scraping for {source}")
+                enhanced_features_used = False
+                
             print(f"Scraped {len(events)} events from {source}")
 
             # Process with quality validation
@@ -295,6 +367,11 @@ class EnhancedScrapingPipeline:
                 "total_duration": total_duration,
                 "scraping_results": processed_results,
                 "events_saved": processed_results.get("saved_events", 0),
+                "enhanced_features_used": enhanced_features_used,
+                "enhanced_features": {
+                    "playwright_enabled": use_playwright if enhanced_features_used else False,
+                    "detail_fetching_enabled": fetch_details if enhanced_features_used else False
+                }
             }
 
         except Exception as e:
@@ -307,6 +384,7 @@ class EnhancedScrapingPipeline:
                 "error_message": str(e),
                 "total_duration": total_duration,
                 "events_saved": 0,
+                "enhanced_features_used": False
             }
 
 
@@ -497,15 +575,18 @@ class ScrapingMetricsCollector:
 
 # Convenience functions for API endpoints
 async def run_enhanced_scraping_pipeline(
-    max_pages_per_source: int = 5, quality_threshold: float = 60.0
+    max_pages_per_source: int = 5, quality_threshold: float = 60.0, 
+    use_playwright: bool = True, fetch_details: bool = False
 ) -> Dict[str, Any]:
-    """Run the enhanced scraping pipeline with all sources."""
+    """Run the enhanced scraping pipeline with all sources and optional address extraction."""
     pipeline = EnhancedScrapingPipeline(
         quality_threshold=quality_threshold, enable_duplicate_detection=True
     )
 
     results = await pipeline.scrape_all_sources(
-        max_pages_per_source=max_pages_per_source
+        max_pages_per_source=max_pages_per_source,
+        use_playwright=use_playwright,
+        fetch_details=fetch_details
     )
 
     # Generate performance analysis
@@ -522,11 +603,15 @@ async def run_enhanced_scraping_pipeline(
 
 
 async def run_single_source_enhanced_scraping(
-    source: str, max_pages: int = 5, quality_threshold: float = 60.0
+    source: str, max_pages: int = 5, quality_threshold: float = 60.0,
+    use_playwright: bool = True, fetch_details: bool = False
 ) -> Dict[str, Any]:
-    """Run enhanced scraping for a single source."""
+    """Run enhanced scraping for a single source with optional address extraction."""
     pipeline = EnhancedScrapingPipeline(
         quality_threshold=quality_threshold, enable_duplicate_detection=True
     )
 
-    return await pipeline.scrape_single_source(source=source, max_pages=max_pages)
+    return await pipeline.scrape_single_source(
+        source=source, max_pages=max_pages, 
+        use_playwright=use_playwright, fetch_details=fetch_details
+    )

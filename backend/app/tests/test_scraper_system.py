@@ -4,17 +4,17 @@ Tests scraper functionality, database persistence, and error handling.
 """
 
 import pytest
-import asyncio
-from datetime import datetime, date
-from typing import List, Dict, Any
+from datetime import date
+from typing import List
 from unittest.mock import Mock, AsyncMock, patch
 
 from ..core.scraper_registry import get_scraper_registry, ScraperInfo, ScraperResult
 from ..core.scraper_service import get_scraper_service
-from ..core.database_optimization import get_database_optimizer, BulkEventProcessor
+from ..core.database_optimization import get_database_optimizer, BulkEventProcessor, DatabaseOptimizer
 from ..core.error_handling import get_error_handler, RetryConfig
 from ..core.scraper_logging import get_scraping_logger
 from ..models.schemas import EventCreate
+from ..scraping.croatia_scraper import CroatiaEventDataTransformer
 
 
 class TestScraperRegistry:
@@ -139,7 +139,6 @@ class TestDatabaseOptimization:
         # Create mock database session
         mock_session = Mock()
         
-        from ..core.database_optimization import DatabaseOptimizer
         optimizer = DatabaseOptimizer(mock_session)
         
         # Create test event
@@ -296,6 +295,102 @@ class TestScrapingLogger:
         assert scraping_error.message == "Test error"
         assert scraping_error.source == "test_source"
         assert scraping_error.context == {"context": "test"}
+
+
+class TestCroatiaScraperEnhancements:
+    """Test enhanced Croatia scraper address functionality."""
+    
+    def test_enhanced_location_extraction(self):
+        """Test enhanced location extraction with address data."""
+        transformer = CroatiaEventDataTransformer()
+        
+        # Test basic location data
+        basic_location = {"place": "Dubrovnik", "county": "Dubrovačko-neretvanska"}
+        result = transformer.extract_location(basic_location)
+        assert "Dubrovnik" in result
+        assert "Dubrovačko-neretvanska" in result
+        
+        # Test enhanced location data with street address
+        enhanced_location = {
+            "street_address": "Stradun 1",
+            "city": "Dubrovnik",
+            "venue": "Divona",
+            "full_location": "Divona, Stradun 1, Dubrovnik"
+        }
+        result = transformer.extract_location(enhanced_location)
+        assert "Stradun 1" in result
+        assert "Dubrovnik" in result
+        
+        # Test with venue but no street address
+        venue_location = {
+            "venue": "Hotel Excelsior",
+            "city": "Dubrovnik",
+            "city_name": "Dubrovnik"
+        }
+        result = transformer.extract_location(venue_location)
+        assert "Hotel Excelsior" in result
+        assert "Dubrovnik" in result
+        
+        # Test with detected address pattern
+        detected_location = {
+            "detected_address": "Placa 5, 20000 Dubrovnik",
+            "city": "Dubrovnik"
+        }
+        result = transformer.extract_location(detected_location)
+        assert "Placa 5, 20000 Dubrovnik" in result
+        
+        # Test fallback to full_location
+        fallback_location = {
+            "full_location": "Some venue, Some street, Some city"
+        }
+        result = transformer.extract_location(fallback_location)
+        assert result == "Some venue, Some street, Some city"
+    
+    def test_location_extraction_deduplication(self):
+        """Test that location extraction removes duplicates."""
+        transformer = CroatiaEventDataTransformer()
+        
+        # Test data with potential duplicates
+        location_data = {
+            "venue": "Arena",
+            "city": "Pula",
+            "place": "Pula",  # Duplicate of city
+            "region": "Istria"
+        }
+        
+        result = transformer.extract_location(location_data)
+        parts = result.split(", ")
+        
+        # Should not have "Pula" twice
+        pula_count = sum(1 for part in parts if "Pula" in part)
+        assert pula_count == 1
+        
+        # Should contain Arena, Pula, and Istria
+        assert "Arena" in result
+        assert "Pula" in result
+        assert "Istria" in result
+    
+    def test_location_extraction_edge_cases(self):
+        """Test edge cases for location extraction."""
+        transformer = CroatiaEventDataTransformer()
+        
+        # Test empty data
+        assert transformer.extract_location({}) == "Croatia"
+        assert transformer.extract_location("") == "Croatia"
+        assert transformer.extract_location(None) == "Croatia"
+        
+        # Test string input
+        assert transformer.extract_location("Zagreb") == "Zagreb"
+        
+        # Test data with empty values
+        location_data = {
+            "venue": "",
+            "city": "Split",
+            "street_address": "   ",  # Whitespace only
+            "region": None
+        }
+        result = transformer.extract_location(location_data)
+        assert result == "Split"
 
 
 class TestIntegration:

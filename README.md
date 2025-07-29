@@ -148,7 +148,11 @@ cp frontend/.env.example frontend/.env
 # 3. Edit backend/.env with your database credentials:
 # DATABASE_URL=postgresql://username:password@localhost:5432/kruzna_karta_hrvatska
 
-# 4. Run database setup script
+# 4. **SECURITY**: Set a secure SECRET_KEY (MANDATORY for production):
+# Generate a secure key with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Add to backend/.env: SECRET_KEY=your_generated_secure_key_here
+
+# 5. Run database setup script
 npm run setup:db
 ```
 
@@ -430,6 +434,28 @@ cd frontend && npm test
 ```
 
 ## 📦 Production Deployment
+
+### 🔒 Security Prerequisites (MANDATORY)
+
+**Before deploying to production, ensure these security requirements are met:**
+
+1. **Set Secure SECRET_KEY**: Never use the default or weak keys
+   ```bash
+   # Generate a secure key
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   
+   # Set in environment or .env file
+   export SECRET_KEY="your_generated_secure_key_here"
+   ```
+
+2. **Environment Variables Checklist**:
+   - ✅ `SECRET_KEY` - Cryptographically secure random string (≥16 chars)
+   - ✅ `DATABASE_URL` - Production database connection
+   - ✅ `STRIPE_SECRET_KEY` - Production Stripe keys
+   - ✅ `SMTP_PASSWORD` - Email service credentials
+   - ✅ `REDIS_PASSWORD` - Redis authentication
+
+3. **Security Validation**: The application will refuse to start with insecure keys
 
 ### Backend
 ```bash

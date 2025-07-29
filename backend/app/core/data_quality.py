@@ -329,7 +329,7 @@ class DataQualityValidator:
         score = 100.0
 
         # Name validation (30% weight)
-        name_valid, name_issues = cls.validate_name(event.name)
+        name_valid, name_issues = cls.validate_name(event.title)
         if not name_valid:
             score -= 30 * (len(name_issues) / 5)  # Max 5 possible issues
 
@@ -368,7 +368,7 @@ class DataQualityValidator:
         }
 
         # Validate individual fields
-        name_valid, name_issues = cls.validate_name(event.name)
+        name_valid, name_issues = cls.validate_name(event.title)
         desc_valid, desc_issues = cls.validate_description(event.description)
         loc_valid, loc_issues = cls.validate_location(event.location)
         date_valid, date_issues = cls.validate_date(event.date)
@@ -470,7 +470,7 @@ class DuplicateDetector:
     ) -> Dict[str, float]:
         """Calculate comprehensive similarity between two events."""
         similarity = {
-            "name": cls.calculate_text_similarity(event1.name, event2.name),
+            "name": cls.calculate_text_similarity(event1.title, event2.title),
             "description": cls.calculate_text_similarity(
                 event1.description, event2.description
             ),
@@ -590,7 +590,7 @@ class DuplicateDetector:
         for existing_event in existing_events:
             # Convert existing event to EventCreate for comparison
             existing_event_create = EventCreate(
-                name=existing_event.name,
+                name=existing_event.title,
                 description=existing_event.description or "",
                 location=existing_event.location or "",
                 date=existing_event.date,
@@ -699,7 +699,7 @@ class DataQualityService:
                     {"new_event": event, "existing_duplicates": db_duplicates}
                 )
                 logger.info(
-                    f"Event '{event.name}' has {len(db_duplicates)} duplicates in database"
+                    f"Event '{event.title}' has {len(db_duplicates)} duplicates in database"
                 )
             else:
                 final_valid_events.append(item)

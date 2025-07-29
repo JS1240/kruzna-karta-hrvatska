@@ -116,7 +116,7 @@ export const Logo: React.FC<LogoProps> = ({
           
           {/* Orange accent dot */}
           <circle 
-            cx="50" 
+            cx="40" 
             cy="50" 
             r="12" 
             fill="currentColor" 
@@ -171,7 +171,7 @@ export const Logo: React.FC<LogoProps> = ({
           
           {/* Orange accent dot */}
           <circle 
-            cx="240" 
+            cx="210" 
             cy="32" 
             r="6" 
             fill="currentColor" 
@@ -221,15 +221,11 @@ export const Logo: React.FC<LogoProps> = ({
         
         {/* Main logo text */}
         <text x="10" y="35" className="logo-text-main">
-          Diidemo
+          Diidemo.hr
         </text>
-        <text x="190" y="35" className="logo-text-main">
-          .hr
-        </text>
-        
         {/* Orange accent dot */}
         <circle 
-          cx="270" 
+          cx="230" 
           cy="28" 
           r="6" 
           fill="currentColor" 
@@ -237,7 +233,7 @@ export const Logo: React.FC<LogoProps> = ({
         />
         
         {/* Tagline */}
-        <text x="10" y="70" className="logo-text-tagline text-primary-600">
+        <text x="10" y="70" className="logo-text-tagline text-primary-300">
           Because "NoThInG t0 d0" is not an option
         </text>
       </svg>
