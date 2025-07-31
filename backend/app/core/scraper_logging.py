@@ -12,9 +12,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from enum import Enum
 from contextlib import asynccontextmanager
-import time
 
-from ..config.components import get_settings
 
 # Configure structured logging
 logging.basicConfig(

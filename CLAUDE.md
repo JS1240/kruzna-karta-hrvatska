@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a full-stack Croatian events platform ("Kružna Karta Hrvatska") built as a monorepo with:
 - **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite
-- **Backend**: FastAPI + Python + PostgreSQL + Redis
-- **Infrastructure**: Docker, Nginx, monitoring with Uptime Kuma
+- **Backend**: FastAPI + Python + PostgreSQL
+- **Infrastructure**: Docker
 
-The platform aggregates events from multiple Croatian websites through web scraping and provides a unified booking experience with integrated payments.
+The platform aggregates events from multiple Croatian websites through web scraping.
 
 ## Key Architecture
 
@@ -63,7 +63,7 @@ make db-reset     # Reset database with sample data
 ## Key Business Logic
 
 ### Web Scraping System
-- Scrapes 8+ Croatian event websites using Playwright
+- Scrapes event websites using Playwright and any other scraping tools that are available and helpful
 - Located in `backend/app/scraping/`
 - Handles multiple site structures and formats
 - Stores events with deduplication logic
@@ -75,7 +75,7 @@ make db-reset     # Reset database with sample data
 - Platform commission of 5% applied to all bookings
 
 ### Multi-language Support
-- Croatian (hr) and English (en) supported
+- Croatian (hr) as primary language and English (en) as secondary
 - Translation files in `frontend/src/locales/`
 - Backend API serves localized content
 
@@ -209,7 +209,7 @@ make nginx-logs    # Nginx logs
 - **DO NOT** put any code inside of the **__init__.py** file, unless there is a specific reason to do so
 - **DO NOT** use **global** variables, we use **class variables**
 - **DO NOT** use **magic methods** like `__call__`, `__getattr__`, `__setattr__`, etc. unless there is a specific reason to do so
-- **DO NOT** use **f-strings** in the code, we use **format** method instead
+- **DO NOT** use **format** in the code, we use **f-strings** method instead
 - **DO NOT** use relative imports in the code, we use absolute imports instead
 - **DO NOT** import os, unless there is a specific reason to do so
 - **DO NOT** "git add" or "git commit", just propose the commit message after a big update
@@ -393,3 +393,6 @@ Mapbox documentation:
 - [Mapbox Studio](https://docs.mapbox.com/studio/)
 - [Mapbox SDKs](https://docs.mapbox.com/sdk/)
 - [Mapbox GL JS Examples](https://docs.mapbox.com/mapbox-gl-js/examples/)
+
+Pydantic documentation:
+- [Pydantic](https://docs.pydantic.dev/latest/)

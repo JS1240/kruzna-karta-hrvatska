@@ -11,7 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from ..core.database import Base
+from app.core.database import Base
 
 # Association table for user favorites
 user_favorites = Table(
@@ -65,7 +65,7 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    # Relationships
+    # Relationships - MVP version with only existing models
     favorite_events = relationship(
         "Event", secondary=user_favorites, back_populates="favorited_by"
     )
@@ -75,69 +75,7 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
-    # bookings = relationship("Booking", back_populates="user")
-    # tickets = relationship("Ticket", back_populates="user")
-    venue_bookings = relationship("VenueBooking", back_populates="customer")
-    venue_reviews = relationship("VenueReview", back_populates="user")
-    owned_venues = relationship(
-        "EnhancedVenue", foreign_keys="EnhancedVenue.owner_id", back_populates="owner"
-    )
-    managed_venues = relationship(
-        "EnhancedVenue",
-        foreign_keys="EnhancedVenue.manager_id",
-        back_populates="manager",
-    )
-
-    # Social relationships
-    social_profile = relationship(
-        "UserSocialProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
-    )
-    social_posts = relationship(
-        "SocialPost", back_populates="user", cascade="all, delete-orphan"
-    )
-    post_comments = relationship(
-        "PostComment", back_populates="user", cascade="all, delete-orphan"
-    )
-    post_reactions = relationship(
-        "PostReaction", back_populates="user", cascade="all, delete-orphan"
-    )
-    comment_reactions = relationship(
-        "CommentReaction", back_populates="user", cascade="all, delete-orphan"
-    )
-    event_reviews = relationship(
-        "EventReview", back_populates="user", cascade="all, delete-orphan"
-    )
-    sent_connections = relationship(
-        "UserConnection",
-        foreign_keys="UserConnection.requester_id",
-        back_populates="requester",
-    )
-    received_connections = relationship(
-        "UserConnection",
-        foreign_keys="UserConnection.addressee_id",
-        back_populates="addressee",
-    )
-    following = relationship(
-        "UserFollow", foreign_keys="UserFollow.follower_id", back_populates="follower"
-    )
-    followers = relationship(
-        "UserFollow", foreign_keys="UserFollow.following_id", back_populates="following"
-    )
-    event_attendances = relationship(
-        "EventAttendance", back_populates="user", cascade="all, delete-orphan"
-    )
-    notifications = relationship(
-        "SocialNotification",
-        foreign_keys="SocialNotification.user_id",
-        back_populates="user",
-    )
-    mentioned_in_posts = relationship(
-        "SocialPost", secondary="post_mentions", back_populates="mentions"
-    )
-    created_groups = relationship("SocialGroup", back_populates="creator")
-    group_memberships = relationship("GroupMembership", back_populates="user")
-    group_posts = relationship("GroupPost", back_populates="user")
-
+    
     # Event organizer relationship
     organized_events = relationship(
         "Event", foreign_keys="Event.organizer_id", back_populates="event_organizer"

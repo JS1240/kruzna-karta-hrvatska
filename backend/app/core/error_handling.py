@@ -7,13 +7,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type
 from functools import wraps
 from dataclasses import dataclass
 from enum import Enum
 import time
 
-from .scraper_logging import get_scraping_logger, ErrorType, ScrapingError
+from app.core.scraper_logging import get_scraping_logger
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +247,7 @@ def with_error_handling(
     retry_config: Optional[RetryConfig] = None
 ):
     """Decorator for adding error handling to scraping operations."""
-    def decorator(func):
+    def decorator(func) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
             error_handler = ErrorHandler(source)

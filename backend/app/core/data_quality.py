@@ -2,19 +2,18 @@
 Advanced data quality validation and duplicate detection for scraped events.
 """
 
-import hashlib
 import logging
 import re
 import unicodedata
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Tuple
 from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
-from ..models.event import Event
-from ..models.schemas import EventCreate
+from app.models.event import Event
+from app.models.schemas import EventCreate
 
 # Set up logging
 logger = logging.getLogger(__name__)

@@ -1,18 +1,29 @@
 import logging
-from datetime import date
 from decimal import Decimal
-from math import asin, cos, radians, sin, sqrt
-from typing import List, Optional
+from typing import Any, Dict, Optional, Union
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from sqlalchemy import and_, func, or_, text
+from fastapi import APIRouter, Depends, Header, Query
+from sqlalchemy import and_, or_, text
 from sqlalchemy.orm import Session, joinedload
+
+from app.core.error_handlers import (
+    EventNotFoundError,
+    DatabaseOperationError,
+    ExternalServiceError
+)
 
 logger = logging.getLogger(__name__)
 
 
-def convert_decimal_coordinates(event):
-    """Convert Decimal coordinates to float for proper JSON serialization."""
+def convert_decimal_coordinates(event: Any) -> Any:
+    """Convert Decimal coordinates to float for proper JSON serialization.
+    
+    Args:
+        event: Event object with potential Decimal coordinate attributes
+        
+    Returns:
+        Event object with float coordinates for JSON serialization
+    """
     if hasattr(event, 'latitude') and isinstance(event.latitude, Decimal):
         event.latitude = float(event.latitude)
     if hasattr(event, 'longitude') and isinstance(event.longitude, Decimal):
@@ -28,20 +39,17 @@ def convert_decimal_coordinates(event):
     
     return event
 
-from ..core.database import get_db, safe_db_operation, health_check_db, reset_database_connections
-from ..core.events_service import EventsService
-from ..core.geocoding_service import geocoding_service
-from ..core.performance import PerformanceService, get_performance_service
-from ..core.translation import (
+from app.core.database import get_db, safe_db_operation, health_check_db, reset_database_connections
+from app.core.events_service import EventsService
+from app.core.geocoding_service import geocoding_service
+# Performance service removed for MVP simplification
+from app.core.translation import (
     DEFAULT_LANGUAGE,
-    TranslationService,
     get_translation_service,
 )
-from ..models import schemas
-from ..models.category import EventCategory
-from ..models.event import Event
-from ..models.schemas import EventCreate, EventResponse, EventSearchParams, EventUpdate
-from ..models.venue import Venue
+from app.models import schemas
+from app.models.event import Event
+from app.models.schemas import EventCreate, EventResponse, EventSearchParams, EventUpdate
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -116,54 +124,50 @@ def get_events(
     search_params: EventSearchParams = Depends(),
     accept_language: Optional[str] = Header(None),
 ):
-    """Get events with comprehensive filtering, search, and geographic queries (safe database operations)."""
-    try:
-        logger.info(f"Getting events with params: page={search_params.page}, size={search_params.size}")
+    """Get events with comprehensive filtering, search, and geographic queries.
+    
+    Primary API endpoint for retrieving events from the Croatian events platform.
+    Supports full-text search, category/venue filtering, date ranges, geographic
+    search, and pagination. Uses safe database operations with automatic retry
+    and transaction handling.
+    
+    Args:
+        search_params: Search and filter parameters including:
+            - q: Full-text search query (searches title, description, location)
+            - category_id: Filter by specific event category
+            - venue_id: Filter by specific venue
+            - city: Filter by city name
+            - date_from: Start date for date range filtering
+            - date_to: End date for date range filtering  
+            - is_featured: Filter for featured events only
+            - event_status: Filter by status (default: "active")
+            - tags: Filter by event tags
+            - latitude/longitude/radius_km: Geographic search parameters
+            - language: Language code for translations
+            - page: Page number for pagination (default: 1)
+            - size: Items per page (default: 20, max: 100)
+        accept_language: HTTP Accept-Language header for automatic language detection
         
-        # For simple queries, try optimized performance service first
-        # Temporarily disabled to ensure coordinate conversion works
-        if False and (search_params.use_cache and not search_params.q and 
-            search_params.latitude is None and search_params.longitude is None and 
-            not search_params.tags):
+    Returns:
+        EventResponse: Paginated response containing:
+            - events: List of matching Event objects with full details
+            - total: Total number of matching events
+            - page: Current page number
+            - size: Number of items returned
+            - pages: Total number of pages available
             
-            def _performance_operation(db: Session):
-                performance_service = get_performance_service(db)
-                result = performance_service.get_events_optimized(
-                    page=search_params.page,
-                    size=search_params.size,
-                    category_id=search_params.category_id,
-                    venue_id=search_params.venue_id,
-                    city=search_params.city,
-                    date_from=search_params.date_from,
-                    date_to=search_params.date_to,
-                    is_featured=search_params.is_featured,
-                    language=search_params.language,
-                )
-                
-                return EventResponse(
-                    events=[schemas.Event(**event_data) for event_data in result["events"]],
-                    total=result["total"],
-                    page=result["page"],
-                    size=result["size"],
-                    pages=result["pages"],
-                )
-            
-            try:
-                return safe_db_operation(_performance_operation)
-            except Exception as e:
-                logger.warning(f"Performance service fallback for events: {e}")
-                # Fall through to regular events service but preserve exception context
-                raise
-
-        # Use safe events service for all other queries
-        return _safe_search_events(search_params, accept_language)
+    Raises:
+        DatabaseOperationError: If database operations fail
+        ExternalServiceError: If external services are unavailable
         
-    except Exception as e:
-        logger.error(f"Error in get_events endpoint: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error retrieving events: {str(e)}"
-        )
+    Note:
+        Uses centralized exception handling for consistent error responses
+    """
+    logger.info(f"Getting events with params: page={search_params.page}, size={search_params.size}")
+    
+    # Use safe events service (performance optimization removed for MVP)
+    # Let centralized exception handlers manage any errors that bubble up
+    return _safe_search_events(search_params, accept_language)
 
 
 @router.get("/featured", response_model=EventResponse)
@@ -171,30 +175,52 @@ def get_featured_events(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=50),
 ):
-    """Get featured events with safe database operations."""
-    try:
-        logger.info(f"Getting featured events: page={page}, size={size}")
-        return _safe_get_featured_events(page, size)
-    except Exception as e:
-        logger.error(f"Error in get_featured_events endpoint: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error retrieving featured events: {str(e)}"
-        )
+    """Get featured events with safe database operations.
+    
+    Uses centralized exception handling for consistent error responses.
+    """
+    logger.info(f"Getting featured events: page={page}, size={size}")
+    return _safe_get_featured_events(page, size)
 
 
 @router.get("/search", response_model=EventResponse)
-def search_events(params: EventSearchParams = Depends()):
-    """Advanced event search with all filters using safe database operations."""
-    try:
-        logger.info(f"Searching events with query: {params.q}")
-        return _safe_search_events(params)
-    except Exception as e:
-        logger.error(f"Error in search_events endpoint: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error searching events: {str(e)}"
-        )
+def search_events(params: EventSearchParams = Depends()) -> EventResponse:
+    """Advanced event search with comprehensive filtering capabilities.
+    
+    Dedicated search endpoint providing the same functionality as the main events
+    endpoint but with explicit search semantics. Supports full-text search across
+    event title, description, and location fields, combined with category, venue,
+    date, and geographic filtering.
+    
+    Args:
+        params: Complete search parameters including all EventSearchParams fields:
+            - q: Search query string for full-text search
+            - category_id: Filter by event category ID
+            - venue_id: Filter by venue ID
+            - city: Filter by city name
+            - date_from/date_to: Date range filtering
+            - is_featured: Featured events filter
+            - latitude/longitude/radius_km: Geographic proximity search
+            - tags: Tag-based filtering
+            - page/size: Pagination controls
+            
+    Returns:
+        EventResponse: Search results with pagination metadata:
+            - events: List of matching events sorted by relevance/date
+            - total: Total number of search results
+            - page: Current page number
+            - size: Results per page
+            - pages: Total pages available
+            
+    Raises:
+        DatabaseOperationError: If database operations fail
+        ExternalServiceError: If external services are unavailable
+        
+    Note:
+        Uses centralized exception handling for consistent error responses.
+    """
+    logger.info(f"Searching events with query: {params.q}")
+    return _safe_search_events(params)
 
 
 @router.get("/nearby", response_model=EventResponse)
@@ -226,26 +252,39 @@ def get_event(
     ),
     accept_language: Optional[str] = Header(None),
     db: Session = Depends(get_db),
-    performance_service=Depends(get_performance_service),
+    # Performance service removed for MVP
 ):
-    """Get a specific event by ID with related data (optimized with caching)."""
+    """Get a specific event by ID with complete details and related data.
+    
+    Retrieves a single event with full information including category and venue
+    details. Supports localization and caching for optimal performance. 
+    Automatically increments the event's view count for analytics.
+    
+    Args:
+        event_id: Unique identifier of the event to retrieve
+        language: Language code for localized content (default: "hr" Croatian)
+        use_cache: Whether to use cached results for better performance (default: True)
+        accept_language: HTTP Accept-Language header for automatic language detection
+        db: Database session dependency (automatically injected)
+        
+    Returns:
+        Event: Complete event object including:
+            - Basic event information (title, description, date, time)
+            - Category details (name, slug, description)
+            - Venue information (name, address, coordinates)
+            - Pricing and booking information
+            - Localized content based on language parameter
+            - Updated view count
+            
+    Raises:
+        EventNotFoundError: If event with given ID is not found
+    """
 
     # Determine language
     if not language:
         language = get_language_from_header(accept_language)
 
-    # Try cached version first
-    if use_cache:
-        try:
-            cached_event = performance_service.get_event_detail_optimized(
-                event_id, language
-            )
-            if cached_event:
-                return schemas.Event(**cached_event)
-        except Exception as e:
-            logger.warning(f"Cache fallback for event {event_id}: {e}")
-
-    # Fallback to direct database query
+    # Direct database query (performance optimization removed for MVP)
     event = (
         db.query(Event)
         .options(joinedload(Event.category), joinedload(Event.venue))
@@ -254,7 +293,7 @@ def get_event(
     )
 
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise EventNotFoundError(event_id)
 
     # Increment view count
     event.view_count = (event.view_count or 0) + 1
@@ -264,7 +303,7 @@ def get_event(
 
 
 @router.get("/slug/{slug}", response_model=schemas.Event)
-def get_event_by_slug(slug: str, db: Session = Depends(get_db)):
+def get_event_by_slug(slug: str, db: Session = Depends(get_db)) -> schemas.Event:
     """Get a specific event by slug."""
     event = (
         db.query(Event)
@@ -274,7 +313,7 @@ def get_event_by_slug(slug: str, db: Session = Depends(get_db)):
     )
 
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise EventNotFoundError(event_id)
 
     # Increment view count
     event.view_count = (event.view_count or 0) + 1
@@ -284,7 +323,7 @@ def get_event_by_slug(slug: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=schemas.Event)
-def create_event(event: EventCreate, db: Session = Depends(get_db)):
+def create_event(event: EventCreate, db: Session = Depends(get_db)) -> schemas.Event:
     """Create a new event."""
     db_event = Event(**event.model_dump())
     db.add(db_event)
@@ -294,11 +333,11 @@ def create_event(event: EventCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{event_id}", response_model=schemas.Event)
-def update_event(event_id: int, event: EventUpdate, db: Session = Depends(get_db)):
+def update_event(event_id: int, event: EventUpdate, db: Session = Depends(get_db)) -> schemas.Event:
     """Update an existing event."""
     db_event = db.query(Event).filter(Event.id == event_id).first()
     if not db_event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise EventNotFoundError(event_id)
 
     # Update only provided fields
     update_data = event.model_dump(exclude_unset=True)
@@ -311,121 +350,19 @@ def update_event(event_id: int, event: EventUpdate, db: Session = Depends(get_db
 
 
 @router.delete("/{event_id}")
-def delete_event(event_id: int, db: Session = Depends(get_db)):
+def delete_event(event_id: int, db: Session = Depends(get_db)) -> Dict[str, str]:
     """Delete an event."""
     db_event = db.query(Event).filter(Event.id == event_id).first()
     if not db_event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise EventNotFoundError(event_id)
 
     db.delete(db_event)
     db.commit()
     return {"message": "Event deleted successfully"}
 
 
-@router.get("/{event_id}/croatian-context")
-def get_event_with_croatian_context(event_id: int, db: Session = Depends(get_db)):
-    """Get event enriched with Croatian cultural context."""
-    from ..core.croatian import get_croatian_events_service
-
-    # Get the event
-    db_event = (
-        db.query(Event)
-        .options(joinedload(Event.category), joinedload(Event.venue))
-        .filter(Event.id == event_id)
-        .first()
-    )
-
-    if not db_event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    # Convert to dict for enrichment
-    event_data = {
-        "id": db_event.id,
-        "title": db_event.title,
-        "description": db_event.description,
-        "date": db_event.date.isoformat() if db_event.date else None,
-        "time": str(db_event.time) if db_event.time else None,
-        "location": db_event.location,
-        "price": float(db_event.price) if db_event.price else None,
-        "currency": "EUR",  # Croatian default currency
-        "category": db_event.category.name if db_event.category else None,
-        "venue": db_event.venue.name if db_event.venue else None,
-        "city": db_event.location.split(",")[0].strip() if db_event.location else None,
-    }
-
-    # Enrich with Croatian context
-    croatian_service = get_croatian_events_service()
-    enriched_event = croatian_service.enrich_event_with_croatian_context(event_data)
-
-    return {"event": db_event, "croatian_context": enriched_event}
 
 
-@router.get("/croatian-recommendations")
-def get_croatian_event_recommendations(
-    event_type: str = Query(
-        ..., description="Type of event (e.g., 'cultural festival', 'outdoor concert')"
-    ),
-    city: Optional[str] = Query(None, description="City in Croatia"),
-    month: Optional[int] = Query(None, description="Month for recommendations (1-12)"),
-    db: Session = Depends(get_db),
-):
-    """Get Croatian-specific event recommendations and timing suggestions."""
-    from datetime import datetime
-
-    from ..core.croatian import (
-        get_croatian_events_service,
-        get_croatian_holiday_service,
-    )
-
-    croatian_service = get_croatian_events_service()
-    holiday_service = get_croatian_holiday_service()
-
-    # Determine region if city provided
-    region = None
-    if city:
-        region = holiday_service.get_region_by_city(city)
-
-    # Use current month if not specified
-    if not month:
-        month = datetime.now().month
-
-    # Get timing suggestions
-    timing_suggestions = croatian_service.suggest_croatian_event_timing(
-        event_type, region
-    )
-
-    # Get seasonal recommendations
-    seasonal_recommendations = []
-    if region:
-        seasonal_recommendations = holiday_service.get_seasonal_events_recommendation(
-            region, month
-        )
-
-    # Get upcoming Croatian holidays
-    upcoming_holidays = holiday_service.get_upcoming_holidays(90)  # Next 3 months
-
-    # Get cultural categories
-    cultural_categories = croatian_service.get_croatian_cultural_categories()
-
-    return {
-        "event_type": event_type,
-        "city": city,
-        "region": region.value if region else None,
-        "month": month,
-        "timing_suggestions": timing_suggestions,
-        "seasonal_recommendations": seasonal_recommendations,
-        "upcoming_holidays": [
-            {
-                "name": h.name,
-                "name_hr": h.name_hr,
-                "date": h.date.isoformat(),
-                "type": h.holiday_type.value,
-                "is_work_free": h.is_work_free,
-            }
-            for h in upcoming_holidays
-        ],
-        "cultural_categories": cultural_categories,
-    }
 
 
 @router.post("/geocode")
@@ -433,7 +370,34 @@ async def geocode_events(
     limit: int = Query(50, ge=1, le=200, description="Number of events to geocode"),
     db: Session = Depends(get_db),
 ):
-    """Geocode events that don't have coordinates yet."""
+    """Batch geocode events that are missing latitude/longitude coordinates.
+    
+    Administrative endpoint for improving data quality by adding geographic
+    coordinates to events that have location names but missing lat/lng data.
+    Uses external geocoding service to convert location strings to coordinates
+    for map display and proximity search functionality.
+    
+    Args:
+        limit: Maximum number of events to process in this batch (1-200, default: 50)
+            Used to prevent timeouts and manage API rate limits
+        db: Database session dependency (automatically injected)
+        
+    Returns:
+        Dict containing geocoding operation results:
+            - message: Human-readable status message
+            - geocoded_count: Number of events successfully geocoded
+            - total_checked: Number of events examined for geocoding
+            - geocoding_results: List of geocoding results with:
+                - location: Original location string
+                - latitude: Resolved latitude coordinate
+                - longitude: Resolved longitude coordinate
+                - confidence: Geocoding confidence score
+                - accuracy: Geographic accuracy level
+                
+    Raises:
+        ExternalServiceError: If geocoding service fails
+        DatabaseOperationError: If database operation fails
+    """
     try:
         # Find events without coordinates
         events_without_coords = (
@@ -499,7 +463,12 @@ async def geocode_events(
 
     except Exception as e:
         logger.error(f"Error geocoding events: {e}")
-        raise HTTPException(status_code=500, detail=f"Error geocoding events: {str(e)}") from e
+        # Check if this is a geocoding service error
+        if "geocoding" in str(e).lower() or "geocoding_service" in str(e).lower():
+            raise ExternalServiceError("geocoding", "batch geocode venues", e)
+        else:
+            # Re-raise as database error or let centralized handler manage it
+            raise
 
 
 def _get_geocoding_status_data(db: Session):
@@ -560,26 +529,42 @@ def _get_geocoding_status_data(db: Session):
 
 
 @router.get("/geocoding-status/")
-def get_geocoding_status():
-    """Get the current geocoding status for events."""
-    try:
-        # Use safe database operation with retry logic
-        result = safe_db_operation(_get_geocoding_status_data)
-        
-        logger.info(f"Geocoding status: {result['events_with_coordinates']}/{result['total_events']} events geocoded ({result['geocoding_percentage']}%)")
-        
-        return result
-
-    except Exception as e:
-        logger.error(f"Error getting geocoding status: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Error getting geocoding status: {str(e)}"
-        )
+def get_geocoding_status() -> Dict[str, Union[int, float]]:
+    """Get the current geocoding status for events.
+    
+    Uses centralized exception handling for consistent error responses.
+    """
+    # Use safe database operation with retry logic
+    result = safe_db_operation(_get_geocoding_status_data)
+    
+    logger.info(f"Geocoding status: {result['events_with_coordinates']}/{result['total_events']} events geocoded ({result['geocoding_percentage']}%)")
+    
+    return result
 
 
 @router.get("/db-health/")
-def get_database_health():
-    """Get database health status and connection info."""
+def get_database_health() -> Dict[str, Any]:
+    """Get comprehensive database health status and connection information.
+    
+    Administrative endpoint providing detailed database health metrics for
+    monitoring and debugging purposes. Performs connectivity tests, connection
+    pool analysis, and data integrity checks to ensure the database system
+    is operating correctly.
+    
+    Returns:
+        Dict containing health status information:
+            - status: Overall health status ("healthy" or "unhealthy")
+            - database_connected: Boolean indicating successful database connection
+            - pool_status: Connection pool metrics (size, checked in/out, overflow)
+            - connectivity: Connection test result ("ok" or error details)
+            - event_table: Specific test result for events table accessibility
+            - error: Error message if health check fails (only present on failure)
+            - reset_attempted: Boolean indicating if connection reset was attempted
+            
+    Note:
+        This endpoint does not require authentication but should be restricted
+        to monitoring systems and administrators in production environments.
+    """
     try:
         health_result = health_check_db()
         logger.info(f"Database health check: {health_result['status']}")
@@ -593,7 +578,7 @@ def get_database_health():
 
 
 @router.post("/db-reset/")
-def reset_database_pool():
+def reset_database_pool() -> Dict[str, str]:
     """Reset database connection pool (admin endpoint)."""
     try:
         reset_success = reset_database_connections()
@@ -603,9 +588,7 @@ def reset_database_pool():
             return {"status": "failed", "message": "Failed to reset connections"}
     except Exception as e:
         logger.error(f"Error resetting database: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Error resetting database: {str(e)}"
-        )
+        raise DatabaseOperationError("database connection reset", e)
 
 
 @router.get("/debug-coordinates/")

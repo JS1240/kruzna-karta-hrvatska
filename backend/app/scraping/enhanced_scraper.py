@@ -2,28 +2,28 @@
 Enhanced scraping pipeline with comprehensive data quality validation and duplicate detection.
 """
 
-import asyncio
-import time
+import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-from sqlalchemy.orm import Session
 
-from ..core.data_quality import DataQualityService, get_data_quality_service
-from ..core.database import SessionLocal
-from ..models.schemas import EventCreate
-from .croatia_scraper import CroatiaScraper
-from .entrio_scraper import EntrioScraper
-from .infozagreb_scraper import InfoZagrebScraper
-from .ulaznice_scraper import UlazniceScraper
-from .visitrijeka_scraper import VisitRijekaScraper
-from .vukovar_scraper import VukovarScraper
-from .visitsplit_scraper import VisitSplitScraper
-from .zadar_scraper import ZadarScraper
-from .tzdubrovnik_scraper import DubrovnikScraper
-from .visitvarazdin_scraper import VisitVarazdinScraper
-from .visitkarlovac_scraper import VisitKarlovacScraper
-from .visitopatija_scraper import VisitOpatijaScraper
+logger = logging.getLogger(__name__)
+
+from backend.app.core.data_quality import DataQualityService
+from backend.app.core.database import SessionLocal
+from backend.app.models.schemas import EventCreate
+from app.scraping.croatia_scraper import CroatiaScraper
+from app.scraping.entrio_scraper import EntrioScraper
+from app.scraping.infozagreb_scraper import InfoZagrebScraper
+from app.scraping.ulaznice_scraper import UlazniceScraper
+from app.scraping.visitrijeka_scraper import VisitRijekaScraper
+from app.scraping.vukovar_scraper import VukovarScraper
+from app.scraping.visitsplit_scraper import VisitSplitScraper
+from app.scraping.zadar_scraper import ZadarScraper
+from app.scraping.tzdubrovnik_scraper import DubrovnikScraper
+from app.scraping.visitvarazdin_scraper import VisitVarazdinScraper
+from app.scraping.visitkarlovac_scraper import VisitKarlovacScraper
+from app.scraping.visitopatija_scraper import VisitOpatijaScraper
 
 
 
@@ -50,8 +50,8 @@ class EnhancedScrapingPipeline:
 
     async def scrape_all_sources(self, max_pages_per_source: int = 5, use_playwright: bool = True, fetch_details: bool = False) -> Dict[str, Any]:
         """Scrape events from all sources with enhanced quality processing and address extraction."""
-        print("=== Starting Enhanced Scraping Pipeline ===")
-        print(f"Configuration: Playwright={use_playwright}, Detail fetching={fetch_details}")
+        logger.info("=== Starting Enhanced Scraping Pipeline ===")
+        logger.info(f"Configuration: Playwright={use_playwright}, Detail fetching={fetch_details}")
         start_time = datetime.now()
 
         pipeline_results = {
@@ -85,7 +85,7 @@ class EnhancedScrapingPipeline:
         all_scraped_events = []
 
         for source_name, scraper, max_pages in sources_config:
-            print(f"\n--- Scraping {source_name} ---")
+            logger.info(f"\n--- Scraping {source_name} ---")
             source_start = datetime.now()
 
             try:
@@ -103,11 +103,11 @@ class EnhancedScrapingPipeline:
                             use_playwright=use_playwright,
                             fetch_details=fetch_details
                         )
-                        print(f"Using enhanced scraping for {source_name}")
+                        logger.info(f"Using enhanced scraping for {source_name}")
                     else:
                         # Use standard parameters for other scrapers
                         events = await scraper.scrape_events(max_pages=max_pages)
-                        print(f"Using standard scraping for {source_name}")
+                        logger.info(f"Using standard scraping for {source_name}")
                 else:
                     # Fallback for scrapers without scrape_events method
                     events = []
@@ -125,7 +125,7 @@ class EnhancedScrapingPipeline:
 
                 all_scraped_events.extend(events)
                 enhancement_note = " (enhanced)" if source_name in ["ulaznice.hr", "visitrijeka.hr", "visitsplit.com", "visitopatija.com", "visitvarazdin.hr", "turizamvukovar.hr", "zadar.travel", "infozagreb.hr"] else ""
-                print(
+                logger.info(
                     f"✓ {source_name}: {len(events)} events scraped in {source_duration:.2f}s{enhancement_note}"
                 )
 
@@ -142,13 +142,13 @@ class EnhancedScrapingPipeline:
                     "enhanced_features_used": False
                 }
 
-                print(f"✗ {source_name}: Failed after {source_duration:.2f}s - {e}")
+                logger.error(f"✗ {source_name}: Failed after {source_duration:.2f}s - {e}")
 
-        print(f"\n--- Combined Scraping Results ---")
-        print(f"Total events scraped: {len(all_scraped_events)}")
+        logger.info("\n--- Combined Scraping Results ---")
+        logger.info(f"Total events scraped: {len(all_scraped_events)}")
         enhanced_count = sum(1 for source_data in pipeline_results["sources"].values() 
                            if source_data.get("enhanced_features_used", False))
-        print(f"Enhanced scrapers used: {enhanced_count}/12 (8 enhanced scrapers available: ulaznice.hr, visitrijeka.hr, visitsplit.com, visitopatija.com, visitvarazdin.hr, turizamvukovar.hr, zadar.travel, infozagreb.hr)")
+        logger.info(f"Enhanced scrapers used: {enhanced_count}/12 (8 enhanced scrapers available: ulaznice.hr, visitrijeka.hr, visitsplit.com, visitopatija.com, visitvarazdin.hr, turizamvukovar.hr, zadar.travel, infozagreb.hr)")
 
         # Process events with quality validation and duplicate detection
         if all_scraped_events:
@@ -170,11 +170,11 @@ class EnhancedScrapingPipeline:
         ).total_seconds()
         pipeline_results["pipeline_end"] = end_time
 
-        print(f"\n=== Pipeline Complete ===")
-        print(
+        logger.info("\n=== Pipeline Complete ===")
+        logger.info(
             f"Total processing time: {pipeline_results['total_processing_time']:.2f}s"
         )
-        print(f"Events saved: {pipeline_results['saved_events']}")
+        logger.info(f"Events saved: {pipeline_results['saved_events']}")
 
         return pipeline_results
 
@@ -182,7 +182,7 @@ class EnhancedScrapingPipeline:
         self, events: List[EventCreate]
     ) -> Dict[str, Any]:
         """Process events with comprehensive quality validation."""
-        print(f"\n--- Quality Processing Pipeline ---")
+        logger.info("\n--- Quality Processing Pipeline ---")
         processing_start = datetime.now()
 
         db = SessionLocal()
@@ -191,7 +191,7 @@ class EnhancedScrapingPipeline:
             quality_service = DataQualityService(db)
 
             # Process events with quality validation and duplicate detection
-            print("Running quality validation and duplicate detection...")
+            logger.info("Running quality validation and duplicate detection...")
             processed_results = quality_service.process_scraped_events(
                 events=events,
                 quality_threshold=self.quality_threshold,
@@ -204,13 +204,13 @@ class EnhancedScrapingPipeline:
 
             # Save valid events to database
             if processed_results["valid_events"]:
-                print(
+                logger.info(
                     f"Saving {len(processed_results['valid_events'])} valid events to database..."
                 )
                 saved_count = quality_service.save_processed_events(processed_results)
                 processed_results["saved_events"] = saved_count
             else:
-                print("No valid events to save")
+                logger.info("No valid events to save")
                 processed_results["saved_events"] = 0
 
             processing_end = datetime.now()
@@ -223,7 +223,7 @@ class EnhancedScrapingPipeline:
             return processed_results
 
         except Exception as e:
-            print(f"Error in quality processing: {e}")
+            logger.error(f"Error in quality processing: {e}")
             db.rollback()
             raise
         finally:
@@ -234,51 +234,51 @@ class EnhancedScrapingPipeline:
         summary = processed_results["processing_summary"]
         report = processed_results.get("quality_report", {})
 
-        print(f"\n--- Quality Processing Summary ---")
-        print(f"📊 Original events: {summary['original_count']}")
-        print(f"✅ Valid events: {summary['valid_count']}")
-        print(f"⚠️  Low quality events: {summary['low_quality_count']}")
-        print(f"❌ Invalid events: {summary['invalid_count']}")
-        print(f"🔄 Batch duplicates removed: {summary['batch_duplicates_count']}")
-        print(f"🔍 Database duplicates found: {summary['db_duplicates_count']}")
-        print(f"💾 Final events saved: {summary['final_processable_count']}")
+        logger.info("\n--- Quality Processing Summary ---")
+        logger.info(f"📊 Original events: {summary['original_count']}")
+        logger.info(f"✅ Valid events: {summary['valid_count']}")
+        logger.info(f"⚠️  Low quality events: {summary['low_quality_count']}")
+        logger.info(f"❌ Invalid events: {summary['invalid_count']}")
+        logger.info(f"🔄 Batch duplicates removed: {summary['batch_duplicates_count']}")
+        logger.info(f"🔍 Database duplicates found: {summary['db_duplicates_count']}")
+        logger.info(f"💾 Final events saved: {summary['final_processable_count']}")
 
         if report:
-            print(f"\n--- Quality Metrics ---")
-            print(f"📈 Success rate: {report['success_rate']}%")
-            print(
+            logger.info("\n--- Quality Metrics ---")
+            logger.info(f"📈 Success rate: {report['success_rate']}%")
+            logger.info(
                 f"⭐ Average quality score: {report['quality_metrics']['average_quality_score']}"
             )
-            print(
+            logger.info(
                 f"🔁 Duplicate rate: {report['duplicate_analysis']['duplicate_rate']}%"
             )
 
             # Print quality distribution
             dist = report["quality_metrics"]["quality_distribution"]
-            print(
+            logger.info(
                 f"🎯 Quality distribution: High({dist['high']}) Medium({dist['medium']}) Low({dist['low']})"
             )
 
             # Print common issues
             if report["quality_metrics"]["common_issues"]:
-                print(f"\n--- Most Common Issues ---")
+                logger.info("\n--- Most Common Issues ---")
                 for i, (issue, count) in enumerate(
                     report["quality_metrics"]["common_issues"][:5], 1
                 ):
-                    print(f"{i}. {issue} ({count} times)")
+                    logger.info(f"{i}. {issue} ({count} times)")
 
             # Print recommendations
             if report["recommendations"]:
-                print(f"\n--- Recommendations ---")
+                logger.info("\n--- Recommendations ---")
                 for i, rec in enumerate(report["recommendations"], 1):
-                    print(f"{i}. {rec}")
+                    logger.info(f"{i}. {rec}")
 
     async def scrape_single_source(
         self, source: str, max_pages: int = 5, use_playwright: bool = True, fetch_details: bool = False
     ) -> Dict[str, Any]:
         """Scrape events from a single source with quality processing and enhanced address extraction."""
-        print(f"=== Scraping {source} with Enhanced Pipeline ===")
-        print(f"Configuration: Playwright={use_playwright}, Detail fetching={fetch_details}")
+        logger.info(f"=== Scraping {source} with Enhanced Pipeline ===")
+        logger.info(f"Configuration: Playwright={use_playwright}, Detail fetching={fetch_details}")
         start_time = datetime.now()
 
         # Select scraper
@@ -335,14 +335,14 @@ class EnhancedScrapingPipeline:
                     use_playwright=use_playwright,
                     fetch_details=fetch_details
                 )
-                print(f"Used enhanced scraping for {source} (Playwright={use_playwright}, Details={fetch_details})")
+                logger.info(f"Used enhanced scraping for {source} (Playwright={use_playwright}, Details={fetch_details})")
                 enhanced_features_used = True
             else:
                 events = await scraper.scrape_events(max_pages=max_pages)
-                print(f"Used standard scraping for {source}")
+                logger.info(f"Used standard scraping for {source}")
                 enhanced_features_used = False
                 
-            print(f"Scraped {len(events)} events from {source}")
+            logger.info(f"Scraped {len(events)} events from {source}")
 
             # Process with quality validation
             if events:

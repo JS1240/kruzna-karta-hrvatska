@@ -4,23 +4,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import re
 from abc import ABC, abstractmethod
-from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Union
+from datetime import date
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup, Tag
 
-from ..models.schemas import EventCreate
+from backend.app.models.schemas import EventCreate
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Import configuration
-from ..config.components import get_settings
+from backend.app.config.components import get_settings
 
 # Get global configuration
 _settings = get_settings()

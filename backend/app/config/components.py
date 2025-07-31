@@ -3,10 +3,10 @@
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import yaml
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -70,17 +70,18 @@ class DatabaseConfig(BaseModel):
     pool_timeout: int = Field(default=30, alias="pool.timeout")
     pool_recycle: int = Field(default=3600, alias="pool.recycle")
     
-    @validator('url', pre=True, always=True)
-    def build_database_url(cls, v, values):
+    @field_validator('url')
+    @classmethod
+    def build_database_url(cls, v, info) -> str:
         """Build database URL if not provided."""
         if v and not v.startswith("postgresql://${"):
             return v
         # Build URL from components
-        user = values.get('user', 'postgres')
-        password = values.get('password', '')
-        host = values.get('host', 'localhost')
-        port = values.get('port', 5432)
-        name = values.get('name', 'kruzna_karta_hrvatska')
+        user = info.data.get('user') or 'postgres'
+        password = info.data.get('password') or ''
+        host = info.data.get('host') or 'localhost'
+        port = info.data.get('port') or 5432
+        name = info.data.get('name') or 'kruzna_karta_hrvatska'
         
         if password:
             return f"postgresql://{user}:{password}@{host}:{port}/{name}"
@@ -102,13 +103,18 @@ class RedisConfig(BaseModel):
     cache_events_ttl: int = Field(default=600, alias="cache.events_ttl")
     cache_search_ttl: int = Field(default=180, alias="cache.search_ttl")
     
-    @validator('url', pre=True, always=True)
-    def build_redis_url(cls, v, values):
+    @field_validator('url')
+    @classmethod
+    def build_redis_url(cls, v, info) -> str:
         """Build Redis URL if not provided."""
         if v:
             return v
-        auth = f":{values.get('password')}@" if values.get('password') else ""
-        return f"redis://{auth}{values.get('host')}:{values.get('port')}/{values.get('db')}"
+        password = info.data.get('password')
+        auth = f":{password}@" if password else ""
+        host = info.data.get('host') or 'localhost'
+        port = info.data.get('port') or 6379
+        db = info.data.get('db') or 0
+        return f"redis://{auth}{host}:{port}/{db}"
 
 
 class CacheConfig(BaseModel):
@@ -141,8 +147,9 @@ class AuthConfig(BaseModel):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     
-    @validator('secret_key')
-    def secret_key_must_be_set(cls, v):
+    @field_validator('secret_key')
+    @classmethod
+    def secret_key_must_be_set(cls, v) -> str:
         if not v:
             # Generate a secure random key if not provided
             import secrets
@@ -186,18 +193,7 @@ class PerformanceConfig(BaseModel):
     default_page_size: int = 20
 
 
-class PaymentConfig(BaseModel):
-    """Payment configuration."""
-    # Stripe Settings
-    stripe_publishable_key: Optional[str] = Field(default=None, alias="stripe.publishable_key")
-    stripe_secret_key: Optional[str] = Field(default=None, alias="stripe.secret_key")
-    stripe_webhook_secret: Optional[str] = Field(default=None, alias="stripe.webhook_secret")
-    stripe_connect_client_id: Optional[str] = Field(default=None, alias="stripe.connect_client_id")
-    
-    # Platform Settings
-    platform_commission_rate: float = Field(default=5.0, alias="platform.commission_rate")
-    currency: str = Field(default="EUR", alias="platform.currency")
-    supported_methods: List[str] = Field(default_factory=lambda: ["card", "sepa_debit"], alias="platform.supported_methods")
+# PaymentConfig removed for MVP (no payment processing)
 
 
 class ScrapingConfig(BaseModel):
@@ -322,7 +318,7 @@ class Settings(BaseSettings):
     api: APIConfig
     auth: AuthConfig
     performance: PerformanceConfig
-    payments: PaymentConfig
+    # payments: PaymentConfig - removed for MVP (no payment processing)
     scraping: ScrapingConfig
     services: ServicesConfig
     logging: LoggingConfig

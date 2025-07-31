@@ -12,9 +12,9 @@ from datetime import datetime
 from fastapi import BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-from .scraper_registry import get_scraper_registry, ScraperResult
-from .scraper_logging import scraping_context
-from .error_handling import get_error_manager, RETRY_CONFIGS
+from app.core.scraper_registry import get_scraper_registry, ScraperResult
+from app.core.scraper_logging import scraping_context
+from app.core.error_handling import get_error_manager, RETRY_CONFIGS
 
 logger = logging.getLogger(__name__)
 

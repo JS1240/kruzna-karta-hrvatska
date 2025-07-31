@@ -6,15 +6,15 @@ Tests scraper functionality, database persistence, and error handling.
 import pytest
 from datetime import date
 from typing import List
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock
 
-from ..core.scraper_registry import get_scraper_registry, ScraperInfo, ScraperResult
-from ..core.scraper_service import get_scraper_service
-from ..core.database_optimization import get_database_optimizer, BulkEventProcessor, DatabaseOptimizer
-from ..core.error_handling import get_error_handler, RetryConfig
-from ..core.scraper_logging import get_scraping_logger
-from ..models.schemas import EventCreate
-from ..scraping.croatia_scraper import CroatiaEventDataTransformer
+from backend.app.core.scraper_registry import get_scraper_registry, ScraperInfo, ScraperResult
+from backend.app.core.scraper_service import get_scraper_service
+from backend.app.core.database_optimization import BulkEventProcessor, DatabaseOptimizer
+from backend.app.core.error_handling import get_error_handler, RetryConfig
+from backend.app.core.scraper_logging import get_scraping_logger
+from backend.app.models.schemas import EventCreate
+from backend.app.scraping.croatia_scraper import CroatiaEventDataTransformer
 
 
 class TestScraperRegistry:

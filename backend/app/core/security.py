@@ -3,7 +3,6 @@ Database security hardening and GDPR compliance system.
 """
 
 import base64
-import hashlib
 import json
 import logging
 import os
@@ -17,11 +16,10 @@ from typing import Any, Dict, List, Optional, Tuple
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from sqlalchemy import func, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from .config import settings
-from .database import get_db
+from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 

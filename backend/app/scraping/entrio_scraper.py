@@ -4,34 +4,32 @@ Combines both BrightData proxy and Playwright approaches.
 """
 
 import asyncio
-import json
-import os
+import logging
 import re
-import time
-from datetime import date, datetime
+from datetime import date
 from typing import Dict, List, Optional, Tuple
-from urllib.parse import parse_qs, urljoin, urlparse
+from urllib.parse import urljoin
 
 import httpx
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup, Tag
 from sqlalchemy import select, tuple_
-from sqlalchemy.dialects.postgresql import insert
 
-from ..core.config import settings
-from ..core.database import SessionLocal
+from backend.app.core.database import SessionLocal
 # Temporarily disabled until OpenAI dependency is added
-# from ..core.llm_location_service import llm_location_service
-from ..models.event import Event
-from ..models.schemas import EventCreate
+# from backend.app.core.llm_location_service import llm_location_service
+from backend.app.models.event import Event
+from backend.app.models.schemas import EventCreate
 
 # Import configuration
-from ..config.components import get_settings
+from backend.app.config.components import get_settings
 
 # Get global configuration
 _settings = get_settings()
 _scraping_config = _settings.scraping
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # BrightData configuration
 USER = _scraping_config.brightdata_user
@@ -135,7 +133,7 @@ class EventDataTransformer:
         #     if result and result.confidence > 0.6:  # Only use high-confidence results
         #         return result.full_location
         # except Exception as e:
-        #     print(f"LLM location extraction error: {e}")
+        #     logger.error(f"LLM location extraction error: {e}")
         
         # return None
 
@@ -349,11 +347,11 @@ class EventDataTransformer:
                     name, description, venue_context
                 )
                 if location:
-                    print(f"LLM extracted location for '{name}': {location}")
+                    logger.info(f"LLM extracted location for '{name}': {location}")
             
             # Skip event if we still can't determine location
             if not location:
-                print(f"Skipping event '{name}' - could not determine location")
+                logger.debug(f"Skipping event '{name}' - could not determine location")
                 return None
 
             return EventCreate(
@@ -370,7 +368,7 @@ class EventDataTransformer:
             )
 
         except Exception as e:
-            print(f"Error transforming event data: {e}")
+            logger.error(f"Error transforming event data: {e}")
             return None
 
 
@@ -408,7 +406,7 @@ class EntrioRequestsScraper:
             resp.raise_for_status()
             return resp
         except httpx.HTTPError as e:
-            print(f"[ERROR] Request failed for {url}: {e}")
+            logger.error(f"Request failed for {url}: {e}")
             raise
 
     def fetch(self, url: str) -> requests.Response:
@@ -437,7 +435,7 @@ class EntrioRequestsScraper:
             resp.raise_for_status()
             return resp
         except requests.exceptions.RequestException as e:
-            print(f"[ERROR] Request failed for {url}: {e}")
+            logger.error(f"Request failed for {url}: {e}")
             raise
 
     def extract_location_from_event_page(self, event_url: str) -> Dict:
@@ -539,7 +537,7 @@ class EntrioRequestsScraper:
             return location_data
                     
         except Exception as e:
-            print(f"Error extracting location from event page {event_url}: {e}")
+            logger.error(f"Error extracting location from event page {event_url}: {e}")
         
         return {}
 
@@ -643,13 +641,13 @@ class EntrioRequestsScraper:
                         break
 
         except Exception as e:
-            print(f"Error parsing event element: {e}")
+            logger.error(f"Error parsing event element: {e}")
 
         return event_data
 
     async def scrape_events_page(self, url: str) -> Tuple[List[Dict], Optional[str]]:
         """Scrape events from a single page."""
-        print(f"→ Fetching {url}")
+        logger.info(f"→ Fetching {url}")
         resp = await self.fetch_async(url)
         soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -673,7 +671,7 @@ class EntrioRequestsScraper:
         for selector in event_selectors:
             elements = soup.select(selector)
             if len(elements) > 0:
-                print(f"Found {len(elements)} events using selector: {selector}")
+                logger.info(f"Found {len(elements)} events using selector: {selector}")
                 event_elements = elements
                 break
 
@@ -707,7 +705,7 @@ class EntrioRequestsScraper:
                     next_page_url = urljoin(url, href)
                     break
 
-        print(f"Extracted {len(events)} events from page")
+        logger.info(f"Extracted {len(events)} events from page")
         return events, next_page_url
 
     async def scrape_all_events(
@@ -724,7 +722,7 @@ class EntrioRequestsScraper:
                 all_events.extend(events)
 
                 page_count += 1
-                print(
+                logger.info(
                     f"Page {page_count}: Found {len(events)} events (Total: {len(all_events)})"
                 )
 
@@ -735,7 +733,7 @@ class EntrioRequestsScraper:
                 await asyncio.sleep(1)  # Be respectful
 
             except Exception as e:
-                print(f"Failed to scrape page {current_url}: {e}")
+                logger.error(f"Failed to scrape page {current_url}: {e}")
                 break
 
         return all_events
@@ -820,7 +818,7 @@ class EntrioPlaywrightScraper:
 
             # Try to access the main page first 
             try:
-                print(f"→ Fetching {start_url}")
+                logger.info(f"→ Fetching {start_url}")
                 await page.goto(start_url, wait_until="domcontentloaded", timeout=30000)
                 await page.wait_for_timeout(3000)
 
@@ -849,19 +847,19 @@ class EntrioPlaywrightScraper:
                     }
                 """)
                 
-                print(f"Found {len(homepage_events)} events on homepage")
+                logger.info(f"Found {len(homepage_events)} events on homepage")
                 all_events.extend(homepage_events)
                 
                 # Now try to access events page with advanced Cloudflare bypass
                 await self.access_events_page_with_bypass(page, all_events, max_pages)
 
-                print(f"Total events found: {len(all_events)}")
+                logger.info(f"Total events found: {len(all_events)}")
                 
                 if not all_events:
-                    print("No events found on any page")
+                    logger.info("No events found on any page")
                     
             except Exception as e:
-                print(f"Failed to scrape page {start_url}: {e}")
+                logger.error(f"Failed to scrape page {start_url}: {e}")
 
             await browser.close()
 
@@ -869,13 +867,12 @@ class EntrioPlaywrightScraper:
 
     async def access_events_page_with_bypass(self, page, all_events, max_pages):
         """Advanced Cloudflare bypass to access events page."""
-        import random
         
-        print("Attempting to access events page with advanced bypass...")
+        logger.info("Attempting to access events page with advanced bypass...")
         
         # Method 1: Handle cookie acceptance and human simulation
         try:
-            print("Step 1: Handling cookie acceptance and overlays...")
+            logger.info("Step 1: Handling cookie acceptance and overlays...")
             
             # Look for and handle cookie acceptance
             await self.handle_cookie_acceptance(page)
@@ -902,13 +899,13 @@ class EntrioPlaywrightScraper:
                 try:
                     events_link = await page.query_selector(selector)
                     if events_link:
-                        print(f"Found events link with selector: {selector}")
+                        logger.info(f"Found events link with selector: {selector}")
                         break
                 except:
                     continue
             
             if events_link:
-                print("Attempting natural click on events link...")
+                logger.info("Attempting natural click on events link...")
                 
                 # Scroll to element smoothly
                 await events_link.scroll_into_view_if_needed()
@@ -921,20 +918,20 @@ class EntrioPlaywrightScraper:
                     
                     page_title = await page.title()
                     page_url = page.url
-                    print(f"After click - URL: {page_url}, Title: {page_title}")
+                    logger.info(f"After click - URL: {page_url}, Title: {page_title}")
                     
                     if "/events" in page_url and "Cloudflare" not in page_title and "Attention Required" not in page_title:
-                        print(f"✅ Successfully accessed events page: {page_title}")
+                        logger.info(f"✅ Successfully accessed events page: {page_title}")
                         await self.extract_events_from_current_page(page, all_events, max_pages, fetch_details=fetch_details)
                         return
                     else:
-                        print("⚠️ Events page click was blocked or redirected")
+                        logger.warning("⚠️ Events page click was blocked or redirected")
                         
                 except Exception as click_error:
-                    print(f"Click failed: {click_error}")
+                    logger.error(f"Click failed: {click_error}")
             
         except Exception as e:
-            print(f"Method 1 failed: {e}")
+            logger.error(f"Method 1 failed: {e}")
 
     async def handle_cookie_acceptance(self, page):
         """Handle cookie acceptance overlays and popups."""
@@ -960,20 +957,20 @@ class EntrioPlaywrightScraper:
                 try:
                     element = await page.query_selector(selector)
                     if element:
-                        print(f"Found cookie element: {selector}")
+                        logger.debug(f"Found cookie element: {selector}")
                         # Try to remove overlay or click accept
                         if 'overlay' in selector:
                             await page.evaluate(f'document.querySelector("{selector}")?.remove()')
                         else:
                             await element.click()
                         await page.wait_for_timeout(1000)
-                        print(f"Handled cookie element: {selector}")
+                        logger.debug(f"Handled cookie element: {selector}")
                         break
                 except:
                     continue
                     
         except Exception as e:
-            print(f"Cookie handling failed: {e}")
+            logger.error(f"Cookie handling failed: {e}")
 
     async def simulate_human_behavior(self, page):
         """Simulate realistic human browsing behavior."""
@@ -1005,10 +1002,10 @@ class EntrioPlaywrightScraper:
             await page.wait_for_timeout(random.randint(1000, 2000))
             
         except Exception as e:
-            print(f"Human simulation failed: {e}")
+            logger.error(f"Human simulation failed: {e}")
         
         # Method 2: Enhanced direct URL bypass with stealth techniques
-        print("Step 2: Trying advanced direct URL bypass...")
+        logger.info("Step 2: Trying advanced direct URL bypass...")
         
         events_urls = [
             "https://www.entrio.hr/events",
@@ -1021,7 +1018,7 @@ class EntrioPlaywrightScraper:
         
         for attempt, url in enumerate(events_urls):
             try:
-                print(f"Attempt {attempt + 1}: Trying {url}")
+                logger.info(f"Attempt {attempt + 1}: Trying {url}")
                 
                 # Wait with human-like delay
                 await page.wait_for_timeout(random.randint(5000, 10000))
@@ -1044,7 +1041,7 @@ class EntrioPlaywrightScraper:
                 })
                 
                 # Try navigating to URL
-                print(f"Navigating to {url}...")
+                logger.info(f"Navigating to {url}...")
                 response = await page.goto(url, wait_until="networkidle", timeout=30000)
                 
                 # Wait for page to fully load and any dynamic content
@@ -1058,9 +1055,9 @@ class EntrioPlaywrightScraper:
                 page_url = page.url
                 page_content = await page.content()
                 
-                print(f"Result - URL: {page_url}")
-                print(f"Result - Title: {page_title}")
-                print(f"Result - Content length: {len(page_content)}")
+                logger.info(f"Result - URL: {page_url}")
+                logger.info(f"Result - Title: {page_title}")
+                logger.info(f"Result - Content length: {len(page_content)}")
                 
                 # More sophisticated detection of successful access
                 success_indicators = [
@@ -1079,23 +1076,23 @@ class EntrioPlaywrightScraper:
                 ]
                 
                 if any(success_indicators) and not any(failed_indicators):
-                    print(f"🎉 SUCCESS! Bypassed protection for {url}")
-                    print(f"   Title: {page_title}")
-                    print(f"   URL: {page_url}")
+                    logger.info(f"🎉 SUCCESS! Bypassed protection for {url}")
+                    logger.info(f"   Title: {page_title}")
+                    logger.info(f"   URL: {page_url}")
                     
                     # Try to extract events from this page
                     await self.extract_events_from_current_page(page, all_events, max_pages, fetch_details=fetch_details)
                     return
                 else:
-                    print(f"❌ Still blocked for {url}")
+                    logger.warning(f"❌ Still blocked for {url}")
                     if any(failed_indicators):
-                        print(f"   Detected blocking indicators")
+                        logger.warning("   Detected blocking indicators")
                     
             except Exception as e:
-                print(f"❌ Failed to access {url}: {e}")
+                logger.error(f"❌ Failed to access {url}: {e}")
                 continue
         
-        print("⚠️ All advanced bypass methods failed, using homepage events only")
+        logger.warning("⚠️ All advanced bypass methods failed, using homepage events only")
 
     async def fetch_event_details(self, page, event_url: str) -> Dict:
         """Fetch detailed address information from event page."""
@@ -1179,7 +1176,7 @@ class EntrioPlaywrightScraper:
             return event_details
         
         except Exception as e:
-            print(f"Error fetching event details from {event_url}: {e}")
+            logger.error(f"Error fetching event details from {event_url}: {e}")
             return {}
 
     async def extract_events_from_current_page(self, page, all_events, max_pages, fetch_details: bool = False):
@@ -1342,26 +1339,26 @@ class EntrioPlaywrightScraper:
                 
                 if len(new_events) > 0:
                     all_events.extend(new_events)
-                    print(f"Page {page_count + 1}: Found {len(new_events)} new events (Total: {len(all_events)})")
+                    logger.info(f"Page {page_count + 1}: Found {len(new_events)} new events (Total: {len(all_events)})")
                 else:
-                    print(f"Page {page_count + 1}: No new events found")
+                    logger.info(f"Page {page_count + 1}: No new events found")
                 
                 # Look for next page
                 next_button = await page.query_selector('a[class*="next"], a[aria-label*="next"], .pagination a:last-child, [class*="pagination"] a:last-child')
                 
                 if next_button and page_count < max_pages - 1:
-                    print("Found next page button, clicking...")
+                    logger.info("Found next page button, clicking...")
                     await next_button.scroll_into_view_if_needed()
                     await page.wait_for_timeout(1000)
                     await next_button.click()
                     await page.wait_for_timeout(3000)
                     page_count += 1
                 else:
-                    print("No more pages or reached max pages")
+                    logger.info("No more pages or reached max pages")
                     break
                     
             except Exception as e:
-                print(f"Error on page {page_count + 1}: {e}")
+                logger.error(f"Error on page {page_count + 1}: {e}")
                 break
 
 
@@ -1380,7 +1377,7 @@ class EntrioScraper:
         if use_playwright is None:
             use_playwright = USE_PLAYWRIGHT
 
-        print(f"Starting Entrio.hr scraper (Playwright: {use_playwright}, fetch_details: {fetch_details})")
+        logger.info(f"Starting Entrio.hr scraper (Playwright: {use_playwright}, fetch_details: {fetch_details})")
 
         # Scrape raw data
         if use_playwright:
@@ -1392,7 +1389,7 @@ class EntrioScraper:
                 max_pages=max_pages
             )
 
-        print(f"Scraped {len(raw_events)} raw events")
+        logger.info(f"Scraped {len(raw_events)} raw events")
 
         # Transform to EventCreate objects
         events = []
@@ -1401,7 +1398,7 @@ class EntrioScraper:
             if event:
                 events.append(event)
 
-        print(f"Transformed {len(events)} valid events")
+        logger.info(f"Transformed {len(events)} valid events")
         return events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
@@ -1437,7 +1434,6 @@ class EntrioScraper:
 
             if to_insert:
                 # Use direct SQLAlchemy Core insert to avoid any field mapping issues
-                from sqlalchemy import text
                 
                 # Insert each event individually to avoid bulk insert mapping issues
                 saved_count = 0
@@ -1451,7 +1447,7 @@ class EntrioScraper:
                     except Exception as e:
                         # Skip duplicate or invalid events
                         db.rollback()
-                        print(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
+                        logger.debug(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
                         continue
                 
                 db.commit()
@@ -1461,7 +1457,7 @@ class EntrioScraper:
             return 0
 
         except Exception as e:
-            print(f"Error saving events to database: {e}")
+            logger.error(f"Error saving events to database: {e}")
             db.rollback()
             raise
         finally:

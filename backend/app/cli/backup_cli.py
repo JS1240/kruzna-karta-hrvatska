@@ -4,6 +4,7 @@ Command line interface for database backup operations.
 """
 
 import argparse
+import logging
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -13,138 +14,191 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.backup import PostgreSQLBackupService
 
+# Configure logging for CLI - ensure output is visible to user
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',  # Simple format for CLI output
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
 
-def create_backup_service():
-    """Create and return a backup service instance."""
+
+def create_backup_service() -> PostgreSQLBackupService:
+    """Create and return a backup service instance with default configuration.
+    
+    Factory function that initializes the PostgreSQL backup service with
+    configuration from environment variables and application settings.
+    Provides a consistent way to create backup service instances across CLI commands.
+    
+    Returns:
+        PostgreSQLBackupService: Configured backup service instance ready for use
+        
+    Note:
+        Uses default configuration from settings including database connection,
+        backup directory, S3 configuration, and retention policies.
+    """
     return PostgreSQLBackupService()
 
 
-def cmd_create_full_backup(args):
-    """Create a full database backup."""
+def cmd_create_full_backup(args) -> int:
+    """Create a full database backup with all data and optional analytics.
+    
+    Performs a complete backup of the database including all tables, data,
+    and optionally analytics tables. Supports custom filenames and automatic
+    S3 upload if configured. Displays detailed backup metadata and timing.
+    
+    Args:
+        args: Parsed command line arguments containing:
+            - filename: Optional custom backup filename
+            - include_analytics: Whether to include analytics tables (default: True)
+            
+    Returns:
+        int: Exit code (0 for success, 1 for failure)
+        
+    Note:
+        Backup includes schema, data, indexes, and constraints. Analytics tables
+        can be excluded with --no-analytics flag to reduce backup size and time.
+        Automatically uploads to S3 if S3 configuration is available.
+    """
     try:
         backup_service = create_backup_service()
 
-        print("Starting full backup...")
-        print(f"Include analytics: {args.include_analytics}")
+        logger.info("Starting full backup...")
+        logger.info(f"Include analytics: {args.include_analytics}")
         if args.filename:
-            print(f"Custom filename: {args.filename}")
+            logger.info(f"Custom filename: {args.filename}")
 
         metadata = backup_service.create_full_backup(
             custom_filename=args.filename, include_analytics=args.include_analytics
         )
 
-        print("✓ Full backup completed successfully!")
-        print(f"  Backup ID: {metadata.backup_id}")
-        print(f"  File: {metadata.file_path}")
-        print(f"  Size: {metadata.file_size:,} bytes")
-        print(f"  Duration: {metadata.duration_seconds:.2f} seconds")
-        print(f"  Tables: {len(metadata.tables_included)}")
+        logger.info("✓ Full backup completed successfully!")
+        logger.info(f"  Backup ID: {metadata.backup_id}")
+        logger.info(f"  File: {metadata.file_path}")
+        logger.info(f"  Size: {metadata.file_size:,} bytes")
+        logger.info(f"  Duration: {metadata.duration_seconds:.2f} seconds")
+        logger.info(f"  Tables: {len(metadata.tables_included)}")
 
         if metadata.storage_location:
-            print(f"  S3 Location: {metadata.storage_location}")
+            logger.info(f"  S3 Location: {metadata.storage_location}")
 
         return 0
 
     except Exception as e:
-        print(f"✗ Full backup failed: {e}")
+        logger.error(f"✗ Full backup failed: {e}")
         return 1
 
 
-def cmd_create_schema_backup(args):
+def cmd_create_schema_backup(args) -> int:
     """Create a schema-only backup."""
     try:
         backup_service = create_backup_service()
 
-        print("Starting schema backup...")
+        logger.info("Starting schema backup...")
 
         metadata = backup_service.create_schema_backup()
 
-        print("✓ Schema backup completed successfully!")
-        print(f"  Backup ID: {metadata.backup_id}")
-        print(f"  File: {metadata.file_path}")
-        print(f"  Size: {metadata.file_size:,} bytes")
-        print(f"  Duration: {metadata.duration_seconds:.2f} seconds")
+        logger.info("✓ Schema backup completed successfully!")
+        logger.info(f"  Backup ID: {metadata.backup_id}")
+        logger.info(f"  File: {metadata.file_path}")
+        logger.info(f"  Size: {metadata.file_size:,} bytes")
+        logger.info(f"  Duration: {metadata.duration_seconds:.2f} seconds")
 
         return 0
 
     except Exception as e:
-        print(f"✗ Schema backup failed: {e}")
+        logger.error(f"✗ Schema backup failed: {e}")
         return 1
 
 
-def cmd_list_backups(args):
-    """List all available backups."""
+def cmd_list_backups(args) -> int:
+    """List all available backups with detailed information.
+    
+    Displays a comprehensive list of all backups including metadata such as
+    backup type, creation time, file size, status, and storage location.
+    Useful for backup management and selecting backups for restore operations.
+    
+    Args:
+        args: Parsed command line arguments (no arguments used for this command)
+        
+    Returns:
+        int: Exit code (0 for success, 1 for failure)
+        
+    Note:
+        Shows both local and S3-stored backups if S3 is configured. Displays
+        human-readable file sizes and formatted creation timestamps for easy reading.
+    """
     try:
         backup_service = create_backup_service()
         backups = backup_service.list_backups()
 
         if not backups:
-            print("No backups found.")
+            logger.info("No backups found.")
             return 0
 
-        print(f"\nFound {len(backups)} backup(s):\n")
+        logger.info(f"\nFound {len(backups)} backup(s):\n")
 
         for backup in backups:
             created_at = datetime.fromisoformat(backup["created_at"])
             size_mb = backup["file_size"] / 1024 / 1024
 
-            print(f"ID: {backup['backup_id']}")
-            print(f"  Type: {backup['backup_type']}")
-            print(f"  Created: {created_at.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"  Size: {size_mb:.1f} MB")
-            print(f"  Status: {backup['status']}")
-            print(f"  File: {backup['file_path']}")
+            logger.info(f"ID: {backup['backup_id']}")
+            logger.info(f"  Type: {backup['backup_type']}")
+            logger.info(f"  Created: {created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"  Size: {size_mb:.1f} MB")
+            logger.info(f"  Status: {backup['status']}")
+            logger.info(f"  File: {backup['file_path']}")
 
             if backup.get("storage_location"):
-                print(f"  S3: {backup['storage_location']}")
+                logger.info(f"  S3: {backup['storage_location']}")
 
-            print()
+            logger.info()
 
         return 0
 
     except Exception as e:
-        print(f"✗ Failed to list backups: {e}")
+        logger.error(f"✗ Failed to list backups: {e}")
         return 1
 
 
-def cmd_verify_backup(args):
+def cmd_verify_backup(args) -> int:
     """Verify backup integrity."""
     try:
         backup_service = create_backup_service()
 
-        print(f"Verifying backup: {args.backup_path}")
+        logger.info(f"Verifying backup: {args.backup_path}")
 
         result = backup_service.verify_backup(args.backup_path)
 
         if result["status"] == "success":
-            print("✓ Backup verification successful!")
-            print(f"  File exists: {result['file_exists']}")
-            print(f"  File size: {result['file_size']:,} bytes")
-            print(f"  PostgreSQL readable: {result['pg_readable']}")
+            logger.info("✓ Backup verification successful!")
+            logger.info(f"  File exists: {result['file_exists']}")
+            logger.info(f"  File size: {result['file_size']:,} bytes")
+            logger.info(f"  PostgreSQL readable: {result['pg_readable']}")
 
             if result["checksum_match"] is not None:
-                print(f"  Checksum match: {result['checksum_match']}")
-                print(f"  Current checksum: {result['current_checksum']}")
+                logger.info(f"  Checksum match: {result['checksum_match']}")
+                logger.info(f"  Current checksum: {result['current_checksum']}")
         else:
-            print(f"✗ Backup verification failed: {result['error']}")
+            logger.error(f"✗ Backup verification failed: {result['error']}")
             return 1
 
         return 0
 
     except Exception as e:
-        print(f"✗ Backup verification failed: {e}")
+        logger.error(f"✗ Backup verification failed: {e}")
         return 1
 
 
-def cmd_restore_backup(args):
+def cmd_restore_backup(args) -> int:
     """Restore from backup."""
     try:
         backup_service = create_backup_service()
 
-        print(f"Restoring from backup: {args.backup_path}")
+        logger.info(f"Restoring from backup: {args.backup_path}")
         if args.target_database:
-            print(f"Target database: {args.target_database}")
-        print(f"Drop existing: {args.drop_existing}")
+            logger.info(f"Target database: {args.target_database}")
+        logger.info(f"Drop existing: {args.drop_existing}")
 
         # Confirmation prompt
         if not args.yes:
@@ -152,7 +206,7 @@ def cmd_restore_backup(args):
                 "Are you sure you want to proceed? This will modify the database. (y/N): "
             )
             if response.lower() != "y":
-                print("Restore cancelled.")
+                logger.info("Restore cancelled.")
                 return 0
 
         result = backup_service.restore_from_backup(
@@ -161,23 +215,23 @@ def cmd_restore_backup(args):
             drop_existing=args.drop_existing,
         )
 
-        print("✓ Database restore completed successfully!")
-        print(f"  Target database: {result['target_database']}")
-        print(f"  Duration: {result['duration_seconds']:.2f} seconds")
+        logger.info("✓ Database restore completed successfully!")
+        logger.info(f"  Target database: {result['target_database']}")
+        logger.info(f"  Duration: {result['duration_seconds']:.2f} seconds")
 
         return 0
 
     except Exception as e:
-        print(f"✗ Database restore failed: {e}")
+        logger.error(f"✗ Database restore failed: {e}")
         return 1
 
 
-def cmd_cleanup_backups(args):
+def cmd_cleanup_backups(args) -> int:
     """Clean up old backups."""
     try:
         backup_service = create_backup_service()
 
-        print("Cleaning up old backups...")
+        logger.info("Cleaning up old backups...")
 
         # Confirmation prompt
         if not args.yes:
@@ -185,74 +239,107 @@ def cmd_cleanup_backups(args):
                 f"This will delete backups older than {backup_service.max_backup_age_days} days. Continue? (y/N): "
             )
             if response.lower() != "y":
-                print("Cleanup cancelled.")
+                logger.info("Cleanup cancelled.")
                 return 0
 
         result = backup_service.cleanup_old_backups()
 
         if result["status"] == "success":
-            print("✓ Backup cleanup completed successfully!")
-            print(f"  Files cleaned: {result['cleaned_files']}")
-            print(f"  Space freed: {result['size_freed_bytes']:,} bytes")
+            logger.info("✓ Backup cleanup completed successfully!")
+            logger.info(f"  Files cleaned: {result['cleaned_files']}")
+            logger.info(f"  Space freed: {result['size_freed_bytes']:,} bytes")
 
             if result.get("s3_files_cleaned"):
-                print(f"  S3 files cleaned: {result['s3_files_cleaned']}")
+                logger.info(f"  S3 files cleaned: {result['s3_files_cleaned']}")
         else:
-            print(f"✗ Backup cleanup failed: {result['error']}")
+            logger.error(f"✗ Backup cleanup failed: {result['error']}")
             return 1
 
         return 0
 
     except Exception as e:
-        print(f"✗ Backup cleanup failed: {e}")
+        logger.error(f"✗ Backup cleanup failed: {e}")
         return 1
 
 
-def cmd_status(args):
-    """Show backup system status."""
+def cmd_status(args) -> int:
+    """Show comprehensive backup system status and health information.
+    
+    Displays detailed information about the backup system including configuration,
+    statistics, latest backup information, and disk usage. Essential for monitoring
+    backup system health and troubleshooting issues.
+    
+    Args:
+        args: Parsed command line arguments (no arguments used for this command)
+        
+    Returns:
+        int: Exit code (0 for success, 1 for failure)
+        
+    Note:
+        Status includes backup counts by status, storage usage, S3 configuration,
+        retention settings, and disk space information for capacity planning.
+    """
     try:
         backup_service = create_backup_service()
         status = backup_service.get_backup_status()
 
-        print("Backup System Status")
-        print("=" * 50)
-        print(f"Status: {status['status']}")
-        print(f"Backup Directory: {status['backup_directory']}")
-        print(f"Total Backups: {status['total_backups']}")
-        print(f"Completed: {status['completed_backups']}")
-        print(f"Failed: {status['failed_backups']}")
-        print(f"Corrupted: {status['corrupted_backups']}")
-        print(f"Total Storage: {status['total_storage_bytes']:,} bytes")
-        print(f"S3 Enabled: {status['s3_enabled']}")
-        print(f"Compression: {status['compression_enabled']}")
-        print(f"Retention Days: {status['retention_days']}")
+        logger.info("Backup System Status")
+        logger.info("=" * 50)
+        logger.info(f"Status: {status['status']}")
+        logger.info(f"Backup Directory: {status['backup_directory']}")
+        logger.info(f"Total Backups: {status['total_backups']}")
+        logger.info(f"Completed: {status['completed_backups']}")
+        logger.error(f"Failed: {status['failed_backups']}")
+        logger.info(f"Corrupted: {status['corrupted_backups']}")
+        logger.info(f"Total Storage: {status['total_storage_bytes']:,} bytes")
+        logger.info(f"S3 Enabled: {status['s3_enabled']}")
+        logger.info(f"Compression: {status['compression_enabled']}")
+        logger.info(f"Retention Days: {status['retention_days']}")
 
         if status.get("latest_backup"):
             latest = status["latest_backup"]
             created_at = datetime.fromisoformat(latest["created_at"])
-            print("\nLatest Backup:")
-            print(f"  ID: {latest['backup_id']}")
-            print(f"  Type: {latest['backup_type']}")
-            print(f"  Created: {created_at.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"  Status: {latest['status']}")
+            logger.info("\nLatest Backup:")
+            logger.info(f"  ID: {latest['backup_id']}")
+            logger.info(f"  Type: {latest['backup_type']}")
+            logger.info(f"  Created: {created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"  Status: {latest['status']}")
 
         # Disk usage
         disk = status["disk_usage"]
-        print("\nDisk Usage:")
-        print(f"  Total: {disk['total_bytes']:,} bytes")
-        print(f"  Used: {disk['used_bytes']:,} bytes")
-        print(f"  Free: {disk['free_bytes']:,} bytes")
-        print(f"  Usage: {disk['usage_percentage']:.1f}%")
+        logger.info("\nDisk Usage:")
+        logger.info(f"  Total: {disk['total_bytes']:,} bytes")
+        logger.info(f"  Used: {disk['used_bytes']:,} bytes")
+        logger.info(f"  Free: {disk['free_bytes']:,} bytes")
+        logger.info(f"  Usage: {disk['usage_percentage']:.1f}%")
 
         return 0
 
     except Exception as e:
-        print(f"✗ Failed to get backup status: {e}")
+        logger.error(f"✗ Failed to get backup status: {e}")
         return 1
 
 
-def main():
-    """Main CLI entry point."""
+def main() -> None:
+    """Main CLI entry point with command parsing and execution.
+    
+    Parses command line arguments and routes to appropriate backup command functions.
+    Provides a comprehensive command-line interface for all backup operations
+    including creation, listing, verification, restoration, and system status.
+    
+    Returns:
+        int: Exit code from executed command (0 for success, 1 for failure)
+        
+    Note:
+        Available commands:
+        - full: Create full database backup with optional analytics
+        - schema: Create schema-only backup (no data)
+        - list: List all available backups
+        - verify: Verify backup file integrity
+        - restore: Restore database from backup file
+        - cleanup: Clean up old backups according to retention policy
+        - status: Show backup system status and statistics
+    """
     parser = argparse.ArgumentParser(
         description="Kruzna Karta Hrvatska Database Backup CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,

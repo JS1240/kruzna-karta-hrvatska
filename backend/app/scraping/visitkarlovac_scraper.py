@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 from datetime import date
@@ -12,7 +13,7 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup, Tag
 
-from ..models.schemas import EventCreate
+from backend.app.models.schemas import EventCreate
 
 # BrightData configuration (reused from other scrapers)
 USER = os.getenv("BRIGHTDATA_USER", "demo_user")
@@ -31,6 +32,9 @@ EVENTS_URL = f"{BASE_URL}/en/events"
 HEADERS = {
     "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0",
 }
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class VisitKarlovacTransformer:
@@ -595,7 +599,7 @@ class VisitKarlovacPlaywrightScraper:
             return event_details
             
         except Exception as e:
-            print(f"Error fetching event details from {event_url}: {e}")
+            logger.error(f"Error fetching event details from {event_url}: {e}")
             return {}
 
     async def scrape_with_playwright(self, start_url: str = EVENTS_URL, max_pages: int = 5, fetch_details: bool = False) -> List[Dict]:
@@ -631,7 +635,7 @@ class VisitKarlovacPlaywrightScraper:
                     
                     while current_url and page_count < max_pages:
                         page_count += 1
-                        print(f"Scraping page {page_count}: {current_url}")
+                        logger.info(f"Scraping page {page_count}: {current_url}")
                         
                         await page.goto(current_url, wait_until="domcontentloaded", timeout=30000)
                         await page.wait_for_timeout(3000)
@@ -726,7 +730,7 @@ class VisitKarlovacPlaywrightScraper:
                         
                         # Fetch detailed address information if requested
                         if fetch_details and valid_events:
-                            print(f"Fetching detailed address info for {len(valid_events)} events...")
+                            logger.info(f"Fetching detailed address info for {len(valid_events)} events...")
                             enhanced_events = []
                             
                             for i, event in enumerate(valid_events):
@@ -738,7 +742,7 @@ class VisitKarlovacPlaywrightScraper:
                                             if details:
                                                 # Merge detailed information
                                                 event.update(details)
-                                                print(f"Enhanced event {i+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
+                                                logger.info(f"Enhanced event {i+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
                                             
                                             # Add delay between detail fetches
                                             await page.wait_for_timeout(1000)
@@ -746,7 +750,7 @@ class VisitKarlovacPlaywrightScraper:
                                         enhanced_events.append(event)
                                         
                                     except Exception as e:
-                                        print(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                        logger.error(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
                                         enhanced_events.append(event)  # Add original event even if detail fetch fails
                                 else:
                                     enhanced_events.append(event)
@@ -754,7 +758,7 @@ class VisitKarlovacPlaywrightScraper:
                             valid_events = enhanced_events
                         
                         all_events.extend(valid_events)
-                        print(f"Page {page_count}: Found {len(valid_events)} events (Total: {len(all_events)})")
+                        logger.info(f"Page {page_count}: Found {len(valid_events)} events (Total: {len(all_events)})")
                         
                         # Try to find next page link
                         next_url = None
@@ -770,21 +774,21 @@ class VisitKarlovacPlaywrightScraper:
                         current_url = next_url
                         
                         if not current_url:
-                            print("No more pages found")
+                            logger.info("No more pages found")
                             break
                     
                 except Exception as e:
-                    print(f"Error during scraping: {e}")
+                    logger.error(f"Error during scraping: {e}")
                 
                 await browser.close()
             
             return all_events
             
         except ImportError:
-            print("Playwright not available, falling back to requests approach")
+            logger.warning("Playwright not available, falling back to requests approach")
             return []
         except Exception as e:
-            print(f"Playwright error: {e}")
+            logger.error(f"Playwright error: {e}")
             return []
 
 
@@ -802,23 +806,23 @@ class VisitKarlovacScraper:
         
         if use_playwright:
             # Try Playwright first for enhanced extraction
-            print("Using Playwright for enhanced scraping...")
+            logger.info("Using Playwright for enhanced scraping...")
             try:
                 raw_events = await self.playwright_scraper.scrape_with_playwright(
                     max_pages=max_pages, 
                     fetch_details=fetch_details
                 )
-                print(f"Playwright extracted {len(raw_events)} raw events")
+                logger.info(f"Playwright extracted {len(raw_events)} raw events")
             except Exception as e:
-                print(f"Playwright failed: {e}, falling back to requests approach")
+                logger.warning(f"Playwright failed: {e}, falling back to requests approach")
                 raw_events = []
         
         # If Playwright fails or is disabled, use requests approach
         if not raw_events:
-            print("Using requests/BeautifulSoup approach...")
+            logger.info("Using requests/BeautifulSoup approach...")
             raw_events = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
             await self.requests_scraper.close()
-            print(f"Requests approach extracted {len(raw_events)} raw events")
+            logger.info(f"Requests approach extracted {len(raw_events)} raw events")
         
         # Transform raw data to EventCreate objects
         events: List[EventCreate] = []
@@ -827,15 +831,15 @@ class VisitKarlovacScraper:
             if event:
                 events.append(event)
         
-        print(f"Transformed {len(events)} valid events from {len(raw_events)} raw events")
+        logger.info(f"Transformed {len(events)} valid events from {len(raw_events)} raw events")
         return events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
         from sqlalchemy import select, tuple_
         from sqlalchemy.dialects.postgresql import insert
 
-        from ..core.database import SessionLocal
-        from ..models.event import Event
+        from backend.app.core.database import SessionLocal
+        from backend.app.models.event import Event
 
         if not events:
             return 0
@@ -879,7 +883,7 @@ async def scrape_visitkarlovac_events(max_pages: int = 5, fetch_details: bool = 
             "scraped_events": len(events),
             "saved_events": saved,
             "message": f"Successfully scraped {len(events)} events from VisitKarlovac.hr, saved {saved} new events" + 
-                      (f" (with detailed address info)" if fetch_details else ""),
+                      (" (with detailed address info)" if fetch_details else ""),
         }
     except Exception as e:
         return {"status": "error", "message": f"VisitKarlovac scraping failed: {e}"}

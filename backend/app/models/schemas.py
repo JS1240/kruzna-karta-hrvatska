@@ -50,7 +50,7 @@ class VenueBase(BaseModel):
 
     @field_validator('latitude', 'longitude', mode='before')
     @classmethod
-    def convert_decimal_to_float(cls, v):
+    def convert_decimal_to_float(cls, v) -> float:
         if isinstance(v, Decimal):
             return float(v)
         return v
@@ -113,7 +113,7 @@ class EventBase(BaseModel):
 
     @field_validator('latitude', 'longitude', mode='before')
     @classmethod
-    def convert_decimal_to_float(cls, v):
+    def convert_decimal_to_float(cls, v) -> float:
         if isinstance(v, Decimal):
             return float(v)
         return v

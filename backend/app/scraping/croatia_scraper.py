@@ -3,28 +3,20 @@ Croatia.hr events scraper for https://croatia.hr/hr-hr/dogadanja
 This scraper handles the Vue.js-based dynamic content and extracts event information.
 """
 
-import asyncio
-import json
 import logging
 import os
 import re
-import time
-from datetime import date, datetime
-from typing import Dict, List, Optional, Tuple
-from urllib.parse import parse_qs, urljoin, urlparse
+from datetime import date
+from typing import Dict, List, Optional
+from urllib.parse import urljoin
 
-import pandas as pd
-import requests
-from bs4 import BeautifulSoup, Tag
-from sqlalchemy.orm import Session
 
-from ..core.config import settings
 
 # Set up logging
 logger = logging.getLogger(__name__)
-from ..core.database import SessionLocal
-from ..models.event import Event
-from ..models.schemas import EventCreate
+from backend.app.core.database import SessionLocal
+from backend.app.models.event import Event
+from backend.app.models.schemas import EventCreate
 
 # BrightData configuration (reuse from entrio scraper)
 USER = os.getenv("BRIGHTDATA_USER", "demo_user")

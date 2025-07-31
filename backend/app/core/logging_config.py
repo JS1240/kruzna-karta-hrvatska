@@ -1,9 +1,9 @@
 import logging
 
-from .config import settings
+from app.core.config import settings
 
 
-def setup_logging():
+def setup_logging() -> None:
     """Configure application logging."""
     level = logging.DEBUG if settings.api.debug else logging.INFO
     

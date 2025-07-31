@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 from datetime import date
@@ -13,8 +14,8 @@ import httpx
 from bs4 import BeautifulSoup, Tag
 
 # Temporarily disabled until OpenAI dependency is added
-# from ..core.llm_location_service import llm_location_service
-from ..models.schemas import EventCreate
+# from backend.app.core.llm_location_service import llm_location_service
+from backend.app.models.schemas import EventCreate
 
 # BrightData configuration (shared across scrapers)
 USER = os.getenv("BRIGHTDATA_USER", "demo_user")
@@ -33,6 +34,9 @@ EVENTS_URL = f"{BASE_URL}/kalendar-dogadjanja"  # Croatian events calendar page
 HEADERS = {
     "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0",
 }
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class VisitOpatijaTransformer:
@@ -405,7 +409,7 @@ class VisitOpatijaRequestsScraper:
             return details
             
         except Exception as e:
-            print(f"Error fetching event details from {url}: {e}")
+            logger.error(f"Error fetching event details from {url}: {e}")
             return {}
 
     async def parse_event_detail(self, url: str) -> Dict:
@@ -618,7 +622,7 @@ class VisitOpatijaRequestsScraper:
             found = soup.select(sel)
             if found:
                 containers = found
-                print(f"Found {len(found)} events using selector: {sel}")
+                logger.info(f"Found {len(found)} events using selector: {sel}")
                 break
 
         for el in containers:
@@ -740,7 +744,7 @@ class VisitOpatijaPlaywrightScraper:
             return event_details
             
         except Exception as e:
-            print(f"Error fetching event details from {event_url}: {e}")
+            logger.error(f"Error fetching event details from {event_url}: {e}")
             return {}
 
     async def scrape_with_playwright(self, start_url: str = EVENTS_URL, max_pages: int = 5, fetch_details: bool = False) -> List[Dict]:
@@ -768,7 +772,7 @@ class VisitOpatijaPlaywrightScraper:
                 page = await context.new_page()
                 
                 try:
-                    print(f"Navigating to {start_url}")
+                    logger.info(f"Navigating to {start_url}")
                     await page.goto(start_url, wait_until="domcontentloaded", timeout=30000)
                     await page.wait_for_timeout(3000)
                     
@@ -786,7 +790,7 @@ class VisitOpatijaPlaywrightScraper:
                     
                     while current_url and page_count < max_pages:
                         page_count += 1
-                        print(f"Scraping page {page_count}...")
+                        logger.info(f"Scraping page {page_count}...")
                         
                         if page_count > 1:
                             await page.goto(current_url, wait_until="domcontentloaded", timeout=30000)
@@ -875,7 +879,7 @@ class VisitOpatijaPlaywrightScraper:
                         
                         # Fetch detailed address information if requested
                         if fetch_details and valid_events:
-                            print(f"Fetching detailed address info for {len(valid_events)} events...")
+                            logger.info(f"Fetching detailed address info for {len(valid_events)} events...")
                             enhanced_events = []
                             
                             for i, event in enumerate(valid_events):
@@ -886,14 +890,14 @@ class VisitOpatijaPlaywrightScraper:
                                             details = await self.fetch_event_details(page, event["link"])
                                             if details:
                                                 event.update(details)
-                                                print(f"Enhanced event {i+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
+                                                logger.info(f"Enhanced event {i+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
                                             
                                             await page.wait_for_timeout(1000)
                                         
                                         enhanced_events.append(event)
                                         
                                     except Exception as e:
-                                        print(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                        logger.error(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
                                         enhanced_events.append(event)
                                 else:
                                     enhanced_events.append(event)
@@ -901,7 +905,7 @@ class VisitOpatijaPlaywrightScraper:
                             valid_events = enhanced_events
                         
                         all_events.extend(valid_events)
-                        print(f"Page {page_count}: Found {len(valid_events)} events (Total: {len(all_events)})")
+                        logger.info(f"Page {page_count}: Found {len(valid_events)} events (Total: {len(all_events)})")
                         
                         # Try to find next page link
                         next_url = None
@@ -918,21 +922,21 @@ class VisitOpatijaPlaywrightScraper:
                         current_url = next_url
                         
                         if not current_url:
-                            print("No more pages found")
+                            logger.info("No more pages found")
                             break
                     
                 except Exception as e:
-                    print(f"Error during scraping: {e}")
+                    logger.error(f"Error during scraping: {e}")
                 
                 await browser.close()
             
             return all_events
             
         except ImportError:
-            print("Playwright not available, falling back to requests approach")
+            logger.warning("Playwright not available, falling back to requests approach")
             return []
         except Exception as e:
-            print(f"Playwright error: {e}")
+            logger.error(f"Playwright error: {e}")
             return []
 
 
@@ -953,27 +957,27 @@ class VisitOpatijaScraper:
         
         if use_playwright:
             # Try Playwright first for enhanced extraction
-            print("Using Playwright for enhanced VisitOpatija scraping...")
+            logger.info("Using Playwright for enhanced VisitOpatija scraping...")
             try:
                 raw_events = await self.playwright_scraper.scrape_with_playwright(
                     start_url=EVENTS_URL, 
                     max_pages=max_pages, 
                     fetch_details=fetch_details
                 )
-                print(f"Playwright extracted {len(raw_events)} raw events")
+                logger.info(f"Playwright extracted {len(raw_events)} raw events")
             except Exception as e:
-                print(f"Playwright failed: {e}, falling back to requests approach")
+                logger.warning(f"Playwright failed: {e}, falling back to requests approach")
                 raw_events = []
         
         # If Playwright fails or is disabled, use requests approach
         if not raw_events:
-            print("Using requests/BeautifulSoup approach...")
+            logger.info("Using requests/BeautifulSoup approach...")
             try:
                 raw_events = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
                 
                 # If fetch_details is enabled, enhance with detailed address info
                 if fetch_details and raw_events:
-                    print(f"Fetching detailed address info for VisitOpatija events...")
+                    logger.info("Fetching detailed address info for VisitOpatija events...")
                     enhanced_events = []
                     
                     for i, event in enumerate(raw_events):
@@ -982,18 +986,18 @@ class VisitOpatijaScraper:
                                 details = await self.requests_scraper.fetch_event_details(event["link"])
                                 if details:
                                     event.update(details)
-                                    print(f"Enhanced event {i+1}/{len(raw_events)}: {event.get('title', 'Unknown')}")
+                                    logger.info(f"Enhanced event {i+1}/{len(raw_events)}: {event.get('title', 'Unknown')}")
                                 await asyncio.sleep(1)  # Rate limiting delay
                             except Exception as e:
-                                print(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                logger.error(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
                         
                         enhanced_events.append(event)
                     
                     raw_events = enhanced_events
                 
-                print(f"Requests approach extracted {len(raw_events)} raw events")
+                logger.info(f"Requests approach extracted {len(raw_events)} raw events")
             except Exception as e:
-                print(f"Requests approach also failed: {e}")
+                logger.error(f"Requests approach also failed: {e}")
                 raw_events = []
         
         # Transform raw data to EventCreate objects
@@ -1004,7 +1008,7 @@ class VisitOpatijaScraper:
         
         await self.requests_scraper.close()
         
-        print(f"Transformed {len(all_events)} valid events from {len(raw_events)} raw events")
+        logger.info(f"Transformed {len(all_events)} valid events from {len(raw_events)} raw events")
         return all_events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
@@ -1012,8 +1016,8 @@ class VisitOpatijaScraper:
         if not events:
             return 0
 
-        from ..core.database import SessionLocal
-        from ..models.event import Event
+        from backend.app.core.database import SessionLocal
+        from backend.app.models.event import Event
         from sqlalchemy import select, tuple_
 
         db = SessionLocal()
@@ -1055,7 +1059,7 @@ class VisitOpatijaScraper:
                     except Exception as e:
                         # Skip duplicate or invalid events
                         db.rollback()
-                        print(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
+                        logger.debug(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
                         continue
                 
                 db.commit()
@@ -1065,7 +1069,7 @@ class VisitOpatijaScraper:
             return 0
 
         except Exception as e:
-            print(f"Error saving events to database: {e}")
+            logger.error(f"Error saving events to database: {e}")
             db.rollback()
             raise
         finally:
@@ -1087,7 +1091,7 @@ async def scrape_visitopatija_events(max_pages: int = 5, fetch_details: bool = F
             "scraped_events": len(events),
             "saved_events": saved,
             "message": f"Successfully scraped {len(events)} events from VisitOpatija.com, saved {saved} new events" + 
-                      (f" (with detailed address info)" if fetch_details else ""),
+                      (" (with detailed address info)" if fetch_details else ""),
         }
     except Exception as e:
         return {"status": "error", "message": f"VisitOpatija scraping failed: {e}"}

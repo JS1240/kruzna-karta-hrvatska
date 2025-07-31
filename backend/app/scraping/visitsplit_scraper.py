@@ -5,14 +5,14 @@ from __future__ import annotations
 import asyncio
 import os
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup, Tag
 
-from ..models.schemas import EventCreate
+from backend.app.models.schemas import EventCreate
 
 # BrightData configuration (reused from other scrapers)
 USER = os.getenv("BRIGHTDATA_USER", "demo_user")
@@ -327,10 +327,10 @@ class VisitSplitRequestsScraper:
                 last_exception = e
                 if attempt < max_retries - 1:
                     wait_time = 2 ** attempt  # Exponential backoff
-                    print(f"Request failed for {url} (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s: {e}")
+                    logger.warning(f"Request failed for {url} (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s: {e}")
                     await asyncio.sleep(wait_time)
                 else:
-                    print(f"All retry attempts failed for {url}")
+                    logger.error(f"All retry attempts failed for {url}")
         
         raise RuntimeError(f"Request failed for {url} after {max_retries} attempts: {last_exception}")
 
@@ -400,7 +400,7 @@ class VisitSplitRequestsScraper:
             return details
             
         except Exception as e:
-            print(f"Error fetching event details from {event_url}: {e}")
+            logger.error(f"Error fetching event details from {event_url}: {e}")
             return {}
 
     async def parse_event_detail(self, url: str) -> Dict:
@@ -596,7 +596,7 @@ class VisitSplitRequestsScraper:
             # Find the calendar table
             calendar_table = soup.select_one("table.event-calendar")
             if not calendar_table:
-                print(f"No calendar table found on page: {url}")
+                logger.warning(f"No calendar table found on page: {url}")
                 return events, None
 
             # Extract year and month from URL or current context
@@ -605,7 +605,7 @@ class VisitSplitRequestsScraper:
             # Find all calendar cells (td elements) - no tbody in this table
             calendar_cells = calendar_table.select("tr td")
             if not calendar_cells:
-                print(f"No calendar cells found on page: {url}")
+                logger.warning(f"No calendar cells found on page: {url}")
                 return events, None
             
             for cell in calendar_cells:
@@ -628,7 +628,7 @@ class VisitSplitRequestsScraper:
                     events.extend(cell_events)
                     
                 except Exception as e:
-                    print(f"Error parsing calendar cell: {e}")
+                    logger.error(f"Error parsing calendar cell: {e}")
                     continue
 
             # Look for next month navigation
@@ -637,7 +637,7 @@ class VisitSplitRequestsScraper:
             return events, next_url
             
         except Exception as e:
-            print(f"Error scraping calendar page {url}: {e}")
+            logger.error(f"Error scraping calendar page {url}: {e}")
             return [], None
 
     def extract_year_month_from_url(self, url: str) -> Tuple[int, int]:
@@ -672,11 +672,11 @@ class VisitSplitRequestsScraper:
             async def scrape_month_with_semaphore(url: str, month_num: int) -> List[Dict]:
                 async with semaphore:
                     try:
-                        print(f"Scraping month {month_num}/12: {url}")
+                        logger.info(f"Scraping month {month_num}/12: {url}")
                         events, _ = await self.scrape_calendar_page(url)
                         return events
                     except Exception as e:
-                        print(f"Error scraping month {url}: {e}")
+                        logger.error(f"Error scraping month {url}: {e}")
                         return []
             
             # Execute all months concurrently with rate limiting
@@ -687,25 +687,25 @@ class VisitSplitRequestsScraper:
                 if isinstance(result, list):
                     all_events.extend(result)
                 else:
-                    print(f"Task failed with exception: {result}")
+                    logger.error(f"Task failed with exception: {result}")
         else:
             # Sequential processing with delays (default, more respectful)
             for i, url in enumerate(monthly_urls):
                 try:
-                    print(f"Scraping month {i+1}/12: {url}")
+                    logger.info(f"Scraping month {i+1}/12: {url}")
                     events, _ = await self.scrape_calendar_page(url)
                     all_events.extend(events)
-                    print(f"Found {len(events)} events in month {i+1}")
+                    logger.info(f"Found {len(events)} events in month {i+1}")
                     
                     # Add configurable delay between months
                     if i < len(monthly_urls) - 1:  # Don't sleep after last request
                         await asyncio.sleep(delay_between_months)
                         
                 except Exception as e:
-                    print(f"Error scraping month {url}: {e}")
+                    logger.error(f"Error scraping month {url}: {e}")
                     continue
         
-        print(f"Total events found across 12 months: {len(all_events)}")
+        logger.info(f"Total events found across 12 months: {len(all_events)}")
         return all_events
 
     async def scrape_all_events(self, max_pages: int = 5) -> List[Dict]:
@@ -809,7 +809,7 @@ class VisitSplitPlaywrightScraper:
             return event_details
             
         except Exception as e:
-            print(f"Error fetching event details from {event_url}: {e}")
+            logger.error(f"Error fetching event details from {event_url}: {e}")
             return {}
 
     async def scrape_with_playwright(self, start_url: str = None, max_pages: int = 5, fetch_details: bool = False) -> List[Dict]:
@@ -839,7 +839,7 @@ class VisitSplitPlaywrightScraper:
                 try:
                     # Start with main events page or generate monthly URLs
                     base_url = start_url or f"{BASE_URL}/hr/434/dogadanja"
-                    print(f"Navigating to {base_url}")
+                    logger.info(f"Navigating to {base_url}")
                     await page.goto(base_url, wait_until="domcontentloaded", timeout=30000)
                     await page.wait_for_timeout(3000)
                     
@@ -865,7 +865,7 @@ class VisitSplitPlaywrightScraper:
                             current_date = current_date.replace(month=current_date.month + 1)
                     
                     for i, month_url in enumerate(monthly_urls):
-                        print(f"Scraping month {i+1}/{len(monthly_urls)}: {month_url}")
+                        logger.info(f"Scraping month {i+1}/{len(monthly_urls)}: {month_url}")
                         
                         try:
                             await page.goto(month_url, wait_until="domcontentloaded", timeout=30000)
@@ -975,7 +975,7 @@ class VisitSplitPlaywrightScraper:
                             
                             # Fetch detailed address information if requested
                             if fetch_details and valid_events:
-                                print(f"Fetching detailed address info for {len(valid_events)} events...")
+                                logger.info(f"Fetching detailed address info for {len(valid_events)} events...")
                                 enhanced_events = []
                                 
                                 for j, event in enumerate(valid_events):
@@ -987,7 +987,7 @@ class VisitSplitPlaywrightScraper:
                                                 if details:
                                                     # Merge detailed information
                                                     event.update(details)
-                                                    print(f"Enhanced event {j+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
+                                                    logger.info(f"Enhanced event {j+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
                                                 
                                                 # Add delay between detail fetches
                                                 await page.wait_for_timeout(1500)
@@ -995,7 +995,7 @@ class VisitSplitPlaywrightScraper:
                                             enhanced_events.append(event)
                                             
                                         except Exception as e:
-                                            print(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                            logger.error(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
                                             enhanced_events.append(event)  # Add original event even if detail fetch fails
                                     else:
                                         enhanced_events.append(event)
@@ -1003,28 +1003,28 @@ class VisitSplitPlaywrightScraper:
                                 valid_events = enhanced_events
                             
                             all_events.extend(valid_events)
-                            print(f"Month {i+1}: Found {len(valid_events)} events (Total: {len(all_events)})")
+                            logger.info(f"Month {i+1}: Found {len(valid_events)} events (Total: {len(all_events)})")
                             
                             # Add delay between months
                             if i < len(monthly_urls) - 1:
                                 await page.wait_for_timeout(2000)
                         
                         except Exception as e:
-                            print(f"Error scraping month {month_url}: {e}")
+                            logger.error(f"Error scraping month {month_url}: {e}")
                             continue
                     
                 except Exception as e:
-                    print(f"Error during scraping: {e}")
+                    logger.error(f"Error during scraping: {e}")
                 
                 await browser.close()
             
             return all_events
             
         except ImportError:
-            print("Playwright not available, falling back to requests approach")
+            logger.warning("Playwright not available, falling back to requests approach")
             return []
         except Exception as e:
-            print(f"Playwright error: {e}")
+            logger.error(f"Playwright error: {e}")
             return []
 
 
@@ -1045,20 +1045,20 @@ class VisitSplitScraper:
         
         if use_playwright:
             # Try Playwright first for enhanced extraction
-            print("Using Playwright for enhanced VisitSplit scraping...")
+            logger.info("Using Playwright for enhanced VisitSplit scraping...")
             try:
                 raw_events = await self.playwright_scraper.scrape_with_playwright(
                     max_pages=max_pages,
                     fetch_details=fetch_details
                 )
-                print(f"Playwright extracted {len(raw_events)} raw events")
+                logger.info(f"Playwright extracted {len(raw_events)} raw events")
             except Exception as e:
-                print(f"Playwright failed: {e}, falling back to requests approach")
+                logger.warning(f"Playwright failed: {e}, falling back to requests approach")
                 raw_events = []
         
         # If Playwright fails or is disabled, use requests approach
         if not raw_events:
-            print("Using requests/BeautifulSoup approach...")
+            logger.info("Using requests/BeautifulSoup approach...")
             try:
                 raw_events = await self.requests_scraper.scrape_12_months_events(
                     start_date=start_date, 
@@ -1067,7 +1067,7 @@ class VisitSplitScraper:
                 
                 # Enhance with detail fetching if requested
                 if fetch_details and raw_events:
-                    print(f"Fetching detailed address info for {len(raw_events)} events...")
+                    logger.info(f"Fetching detailed address info for {len(raw_events)} events...")
                     enhanced_events = []
                     
                     for i, event in enumerate(raw_events):
@@ -1079,7 +1079,7 @@ class VisitSplitScraper:
                                     if details:
                                         # Merge detailed information
                                         event.update(details)
-                                        print(f"Enhanced event {i+1}/{len(raw_events)}: {event.get('title', 'Unknown')}")
+                                        logger.info(f"Enhanced event {i+1}/{len(raw_events)}: {event.get('title', 'Unknown')}")
                                     
                                     # Add delay between detail fetches
                                     await asyncio.sleep(1)
@@ -1087,16 +1087,16 @@ class VisitSplitScraper:
                                 enhanced_events.append(event)
                                 
                             except Exception as e:
-                                print(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                logger.error(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
                                 enhanced_events.append(event)  # Add original event even if detail fetch fails
                         else:
                             enhanced_events.append(event)
                     
                     raw_events = enhanced_events
                 
-                print(f"Requests approach extracted {len(raw_events)} raw events")
+                logger.info(f"Requests approach extracted {len(raw_events)} raw events")
             except Exception as e:
-                print(f"Requests approach also failed: {e}")
+                logger.error(f"Requests approach also failed: {e}")
                 raw_events = []
         
         # Transform raw data to EventCreate objects
@@ -1106,15 +1106,15 @@ class VisitSplitScraper:
                 all_events.append(event)
         
         await self.requests_scraper.close()
-        print(f"Transformed {len(all_events)} valid events from {len(raw_events)} raw events")
+        logger.info(f"Transformed {len(all_events)} valid events from {len(raw_events)} raw events")
         return all_events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
         from sqlalchemy import select, tuple_
         from sqlalchemy.dialects.postgresql import insert
 
-        from ..core.database import SessionLocal
-        from ..models.event import Event
+        from backend.app.core.database import SessionLocal
+        from backend.app.models.event import Event
 
         if not events:
             return 0
@@ -1157,7 +1157,7 @@ async def scrape_visitsplit_events(max_pages: int = 5, use_playwright: bool = Tr
             "scraped_events": len(events),
             "saved_events": saved,
             "message": f"Scraped {len(events)} events from VisitSplit.com, saved {saved} new events" + 
-                      (f" (with enhanced address extraction)" if fetch_details else ""),
+                      (" (with enhanced address extraction)" if fetch_details else ""),
         }
     except Exception as e:
         return {"status": "error", "message": f"VisitSplit scraping failed: {e}"}

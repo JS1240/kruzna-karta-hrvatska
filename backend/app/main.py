@@ -1,43 +1,25 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from typing import Dict
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
-from .core.logging_config import setup_logging
+from app.core.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
-from fastapi import Request, Response
 
-from .core.config import settings
-from .core.cors_middleware import CustomCORSMiddleware
-from .routes import (
-    analytics_router,
-    auth_router,
-    backup_router,
-    booking_router,
+from app.core.config import settings
+from app.core.cors_middleware import CustomCORSMiddleware
+from app.core.exception_handlers import setup_exception_handlers, correlation_id_middleware
+from app.routes import (
     categories_router,
-    croatian_router,
     events_router,
-    gdpr_router,
-    monitoring_router,
-    performance_router,
-    recurring_events_router,
-    scraping_router,
-    social_router,
-    system_test_router,
-    recommendations_router,
-    third_party_router,
-    translations_router,
-    user_events_router,
-    users_router,
-    venue_management_router,
     venues_router,
 )
-from .routes.stripe_webhooks import router as stripe_webhooks_router
+# Stripe webhooks removed for MVP
 
 
 @asynccontextmanager
@@ -45,11 +27,12 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
     logger.info("Starting Kruzna Karta Hrvatska API...")
+    logger.info("Centralized exception handlers and correlation ID middleware configured")
 
     # Start scheduler if enabled
     enable_scheduler = os.getenv("ENABLE_SCHEDULER", "false").lower() == "true"
     if enable_scheduler:
-        from .tasks.scheduler import start_scheduler
+        from app.tasks.scheduler import start_scheduler
 
         development = settings.debug
         start_scheduler(development=development)
@@ -58,7 +41,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     if enable_scheduler:
-        from .tasks.scheduler import stop_scheduler
+        from app.tasks.scheduler import stop_scheduler
 
         stop_scheduler()
     logger.info("Shutting down Kruzna Karta Hrvatska API...")
@@ -72,6 +55,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Setup centralized exception handlers for consistent error responses
+setup_exception_handlers(app)
+
 # Custom CORS middleware to handle OPTIONS requests before route validation
 app.add_middleware(
     CustomCORSMiddleware,
@@ -83,36 +69,52 @@ app.add_middleware(
     max_age=600,
 )
 
+# Add correlation ID middleware for request tracing
+app.middleware("http")(correlation_id_middleware)
+
 # Include routers
-app.include_router(auth_router, prefix="/api")
-app.include_router(users_router, prefix="/api")
 app.include_router(events_router, prefix="/api")
 app.include_router(categories_router, prefix="/api")
 app.include_router(venues_router, prefix="/api")
-app.include_router(translations_router, prefix="/api")
-app.include_router(scraping_router, prefix="/api")
-app.include_router(analytics_router, prefix="/api")
-app.include_router(performance_router, prefix="/api")
-app.include_router(backup_router, prefix="/api")
-app.include_router(monitoring_router, prefix="/api")
-app.include_router(gdpr_router, prefix="/api")
-app.include_router(croatian_router, prefix="/api")
-app.include_router(booking_router, prefix="/api")
-app.include_router(recurring_events_router, prefix="/api")
-app.include_router(venue_management_router, prefix="/api")
-app.include_router(social_router, prefix="/api")
-app.include_router(user_events_router, prefix="/api")
-app.include_router(system_test_router, prefix="/api")
-app.include_router(recommendations_router, prefix="/api")
-app.include_router(third_party_router, prefix="/api")
-app.include_router(stripe_webhooks_router, prefix="/api")
+# Stripe webhooks router removed for MVP
 
 
 @app.get("/")
-def read_root():
+def read_root() -> Dict[str, str]:
+    """Get API information and version details.
+    
+    Root endpoint providing basic information about the Kruzna Karta Hrvatska API.
+    Useful for API discovery, documentation tools, and verification that the
+    service is running and accessible.
+    
+    Returns:
+        Dict containing:
+            - message: Human-readable API name and description
+            - version: Current API version for compatibility checking
+            
+    Note:
+        This endpoint is publicly accessible and does not require authentication.
+        It serves as the entry point for API documentation and health verification.
+    """
     return {"message": "Kruzna Karta Hrvatska API", "version": "1.0.0"}
 
 
 @app.get("/health")
-def health_check():
+def health_check() -> Dict[str, str]:
+    """Perform basic application health check.
+    
+    Simple health endpoint for monitoring systems and load balancers to verify
+    that the application is running and responsive. This is a lightweight check
+    that only verifies application startup, not database connectivity or
+    external service availability.
+    
+    Returns:
+        Dict containing:
+            - status: "healthy" if application is running normally
+            
+    Note:
+        For comprehensive health checking including database and external services,
+        use the /api/events/db-health/ endpoint. This endpoint is designed for
+        high-frequency monitoring with minimal resource usage.
+    """
     return {"status": "healthy"}

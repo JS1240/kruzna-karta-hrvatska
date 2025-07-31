@@ -1,6 +1,6 @@
 """Configuration package for Kruzna Karta Hrvatska backend."""
 
-from .components import (
+from app.config.components import (
     APIConfig,
     AuthConfig,
     CacheConfig,
@@ -12,7 +12,7 @@ from .components import (
     LoggingConfig,
     MonitoringConfig,
     OpenAIConfig,
-    PaymentConfig,
+    # PaymentConfig - removed for MVP (no payment processing)
     PerformanceConfig,
     RedisConfig,
     ScrapingConfig,
@@ -33,7 +33,7 @@ __all__ = [
     "LoggingConfig",
     "MonitoringConfig",
     "OpenAIConfig",
-    "PaymentConfig",
+    # "PaymentConfig" - removed for MVP (no payment processing)
     "PerformanceConfig",
     "RedisConfig",
     "ScrapingConfig",

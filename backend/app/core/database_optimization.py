@@ -7,21 +7,19 @@ from __future__ import annotations
 
 import logging
 import hashlib
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 
 from sqlalchemy import (
-    and_, or_, select, update, delete, func, text, 
-    Index, UniqueConstraint, CheckConstraint
+    and_, select, update, delete, func, text
 )
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, joinedload
 
-from ..core.database import get_db
-from ..models.event import Event
-from ..models.schemas import EventCreate
+from app.core.database import get_db
+from app.models.event import Event
+from app.models.schemas import EventCreate
 
 logger = logging.getLogger(__name__)
 

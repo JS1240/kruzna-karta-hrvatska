@@ -3,7 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class VenueStatus(str, Enum):
@@ -151,19 +151,21 @@ class EnhancedVenueBase(BaseModel):
     search_keywords: Optional[List[str]] = None
     meta_description: Optional[str] = Field(None, max_length=300)
 
-    @validator("max_capacity")
-    def validate_max_capacity(cls, v, values):
-        if v is not None and "capacity" in values and values["capacity"] is not None:
-            if v < values["capacity"]:
+    @field_validator("max_capacity")
+    @classmethod
+    def validate_max_capacity(cls, v, info):
+        if v is not None and "capacity" in info.data and info.data.get("capacity") is not None:
+            if v < info.data.get("capacity"):
                 raise ValueError(
                     "max_capacity must be greater than or equal to capacity"
                 )
         return v
 
-    @validator("min_capacity")
-    def validate_min_capacity(cls, v, values):
-        if v is not None and "capacity" in values and values["capacity"] is not None:
-            if v > values["capacity"]:
+    @field_validator("min_capacity")
+    @classmethod
+    def validate_min_capacity(cls, v, info):
+        if v is not None and "capacity" in info.data and info.data.get("capacity") is not None:
+            if v > info.data.get("capacity"):
                 raise ValueError("min_capacity must be less than or equal to capacity")
         return v
 
@@ -263,9 +265,10 @@ class VenueAvailabilityBase(BaseModel):
     blocked_reason: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = None
 
-    @validator("end_time")
-    def validate_end_time(cls, v, values):
-        if "start_time" in values and v <= values["start_time"]:
+    @field_validator("end_time")
+    @classmethod
+    def validate_end_time(cls, v, info):
+        if "start_time" in info.data and v <= info.data.get("start_time"):
             raise ValueError("end_time must be after start_time")
         return v
 
@@ -320,9 +323,10 @@ class VenueBookingBase(BaseModel):
     insurance_certificate: Optional[str] = Field(None, max_length=500)
     liability_acknowledged: bool = False
 
-    @validator("end_datetime")
-    def validate_end_datetime(cls, v, values):
-        if "start_datetime" in values and v <= values["start_datetime"]:
+    @field_validator("end_datetime")
+    @classmethod
+    def validate_end_datetime(cls, v, info):
+        if "start_datetime" in info.data and v <= info.data.get("start_datetime"):
             raise ValueError("end_datetime must be after start_datetime")
         return v
 

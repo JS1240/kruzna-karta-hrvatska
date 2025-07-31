@@ -9,10 +9,9 @@ import asyncio
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 import httpx
-import json
 from datetime import datetime, timedelta
 
-from .database import SessionLocal
+from app.core.database import SessionLocal
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)

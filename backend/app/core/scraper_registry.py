@@ -181,18 +181,18 @@ class ScraperRegistry:
             return
             
         # Import scraper functions here to avoid circular imports
-        from ..scraping.entrio_scraper import scrape_entrio_events
-        from ..scraping.croatia_scraper import scrape_croatia_events
-        from ..scraping.ulaznice_scraper import scrape_ulaznice_events
-        from ..scraping.infozagreb_scraper import scrape_infozagreb_events
-        from ..scraping.vukovar_scraper import scrape_vukovar_events
-        from ..scraping.visitkarlovac_scraper import scrape_visitkarlovac_events
-        from ..scraping.visitopatija_scraper import scrape_visitopatija_events
-        from ..scraping.visitvarazdin_scraper import scrape_visitvarazdin_events
-        from ..scraping.visitrijeka_scraper import scrape_visitrijeka_events
-        from ..scraping.visitsplit_scraper import scrape_visitsplit_events
-        from ..scraping.zadar_scraper import scrape_zadar_events
-        from ..scraping.tzdubrovnik_scraper import scrape_tzdubrovnik_events
+        from app.scraping.entrio_scraper import scrape_entrio_events
+        from app.scraping.croatia_scraper import scrape_croatia_events
+        from app.scraping.ulaznice_scraper import scrape_ulaznice_events
+        from app.scraping.infozagreb_scraper import scrape_infozagreb_events
+        from app.scraping.vukovar_scraper import scrape_vukovar_events
+        from app.scraping.visitkarlovac_scraper import scrape_visitkarlovac_events
+        from app.scraping.visitopatija_scraper import scrape_visitopatija_events
+        from app.scraping.visitvarazdin_scraper import scrape_visitvarazdin_events
+        from app.scraping.visitrijeka_scraper import scrape_visitrijeka_events
+        from app.scraping.visitsplit_scraper import scrape_visitsplit_events
+        from app.scraping.zadar_scraper import scrape_zadar_events
+        from app.scraping.tzdubrovnik_scraper import scrape_tzdubrovnik_events
         
         # Register all scrapers
         scrapers = [

@@ -6,14 +6,14 @@ import asyncio
 import json
 import logging
 import re
-from datetime import date, datetime
+from datetime import date
 from typing import Dict, List, Optional, Any, Union
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, Tag
 
-from .base_scraper import BaseScraper
-from ..models.schemas import EventCreate
+from app.scraping.base_scraper import BaseScraper
+from backend.app.models.schemas import EventCreate
 
 logger = logging.getLogger(__name__)
 
@@ -1943,8 +1943,8 @@ class InfoZagrebPlaywrightScraper:
         from sqlalchemy import select, tuple_
         from sqlalchemy.dialects.postgresql import insert
         
-        from ..core.database import SessionLocal
-        from ..models.event import Event
+        from backend.app.core.database import SessionLocal
+        from backend.app.models.event import Event
         
         if not events:
             return 0
@@ -1995,7 +1995,7 @@ async def scrape_infozagreb_events(max_pages: int = 5, use_playwright: bool = Tr
             "scraped_events": len(events),
             "saved_events": saved,
             "message": f"Scraped {len(events)} events from InfoZagreb.hr, saved {saved} new events" + 
-                      (f" (with enhanced address extraction)" if use_playwright else ""),
+                      (" (with enhanced address extraction)" if use_playwright else ""),
         }
     except Exception as e:
         return {"status": "error", "message": f"InfoZagreb scraping failed: {e}"}

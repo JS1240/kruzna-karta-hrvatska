@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import re
 from datetime import date
 from typing import Dict, List, Optional, Tuple
@@ -13,10 +12,10 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup, Tag
 
-from ..models.schemas import EventCreate
+from backend.app.models.schemas import EventCreate
 
 # Import configuration
-from ..config.components import get_settings
+from backend.app.config.components import get_settings
 
 # Get global configuration
 _settings = get_settings()
@@ -799,10 +798,9 @@ class ZadarScraper:
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
         from sqlalchemy import select, tuple_
-        from sqlalchemy.dialects.postgresql import insert
 
-        from ..core.database import SessionLocal
-        from ..models.event import Event
+        from backend.app.core.database import SessionLocal
+        from backend.app.models.event import Event
 
         if not events:
             return 0
@@ -857,7 +855,7 @@ async def scrape_zadar_events(max_pages: int = 5, use_playwright: bool = True, f
             "scraped_events": len(events),
             "saved_events": saved,
             "message": f"Scraped {len(events)} events from Zadar Travel, saved {saved} new events" + 
-                      (f" (with enhanced address extraction)" if use_playwright else ""),
+                      (" (with enhanced address extraction)" if use_playwright else ""),
         }
     except Exception as e:
         return {"status": "error", "message": f"Zadar scraping failed: {e}"}
