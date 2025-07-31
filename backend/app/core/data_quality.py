@@ -2,18 +2,21 @@
 Advanced data quality validation and duplicate detection for scraped events.
 """
 
-import hashlib
+import logging
 import re
 import unicodedata
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Tuple
 from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
-from ..models.event import Event
-from ..models.schemas import EventCreate
+from app.models.event import Event
+from app.models.schemas import EventCreate
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class DataQualityValidator:
@@ -325,7 +328,7 @@ class DataQualityValidator:
         score = 100.0
 
         # Name validation (30% weight)
-        name_valid, name_issues = cls.validate_name(event.name)
+        name_valid, name_issues = cls.validate_name(event.title)
         if not name_valid:
             score -= 30 * (len(name_issues) / 5)  # Max 5 possible issues
 
@@ -364,7 +367,7 @@ class DataQualityValidator:
         }
 
         # Validate individual fields
-        name_valid, name_issues = cls.validate_name(event.name)
+        name_valid, name_issues = cls.validate_name(event.title)
         desc_valid, desc_issues = cls.validate_description(event.description)
         loc_valid, loc_issues = cls.validate_location(event.location)
         date_valid, date_issues = cls.validate_date(event.date)
@@ -466,7 +469,7 @@ class DuplicateDetector:
     ) -> Dict[str, float]:
         """Calculate comprehensive similarity between two events."""
         similarity = {
-            "name": cls.calculate_text_similarity(event1.name, event2.name),
+            "name": cls.calculate_text_similarity(event1.title, event2.title),
             "description": cls.calculate_text_similarity(
                 event1.description, event2.description
             ),
@@ -586,7 +589,7 @@ class DuplicateDetector:
         for existing_event in existing_events:
             # Convert existing event to EventCreate for comparison
             existing_event_create = EventCreate(
-                name=existing_event.name,
+                name=existing_event.title,
                 description=existing_event.description or "",
                 location=existing_event.location or "",
                 date=existing_event.date,
@@ -628,7 +631,7 @@ class DataQualityService:
             "processing_summary": {},
         }
 
-        print(f"Processing {len(events)} scraped events...")
+        logger.info(f"Processing {len(events)} scraped events...")
 
         # Step 1: Quality validation
         for i, event in enumerate(events):
@@ -648,7 +651,7 @@ class DataQualityService:
                     {"event": event, "validation": validation, "original_index": i}
                 )
 
-        print(
+        logger.info(
             f"Quality validation: {len(results['valid_events'])} valid, "
             f"{len(results['low_quality_events'])} low quality, "
             f"{len(results['invalid_events'])} invalid"
@@ -663,7 +666,7 @@ class DataQualityService:
 
             # Remove duplicates from valid events
             if batch_duplicates:
-                print(f"Found {len(batch_duplicates)} duplicate groups in batch")
+                logger.info(f"Found {len(batch_duplicates)} duplicate groups in batch")
 
                 # Keep track of which events to remove
                 indices_to_remove = set()
@@ -680,7 +683,7 @@ class DataQualityService:
                     if i not in indices_to_remove
                 ]
 
-                print(f"Removed {len(indices_to_remove)} duplicate events from batch")
+                logger.info(f"Removed {len(indices_to_remove)} duplicate events from batch")
 
         # Step 3: Check for duplicates in database
         final_valid_events = []
@@ -694,8 +697,8 @@ class DataQualityService:
                 results["duplicates_in_db"].append(
                     {"new_event": event, "existing_duplicates": db_duplicates}
                 )
-                print(
-                    f"Event '{event.name}' has {len(db_duplicates)} duplicates in database"
+                logger.info(
+                    f"Event '{event.title}' has {len(db_duplicates)} duplicates in database"
                 )
             else:
                 final_valid_events.append(item)
@@ -715,7 +718,7 @@ class DataQualityService:
             "duplicate_detection_enabled": remove_duplicates,
         }
 
-        print(
+        logger.info(
             f"Final processing result: {len(results['valid_events'])} events ready for database"
         )
 
@@ -734,10 +737,10 @@ class DataQualityService:
                 saved_count += 1
 
             self.db.commit()
-            print(f"Successfully saved {saved_count} events to database")
+            logger.info(f"Successfully saved {saved_count} events to database")
 
         except Exception as e:
-            print(f"Error saving processed events: {e}")
+            logger.error(f"Error saving processed events: {e}")
             self.db.rollback()
             raise
 

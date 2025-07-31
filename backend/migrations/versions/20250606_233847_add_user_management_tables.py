@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '20250606_233847'
-down_revision = '20250606_233309'
+down_revision = '013_add_venue_coordinates_table'
 branch_labels = None
 depends_on = None
 
@@ -125,6 +125,9 @@ def upgrade() -> None:
     op.create_index('idx_user_favorites_event_id', 'user_favorites', ['event_id'])
     op.create_index('idx_user_favorites_created_at', 'user_favorites', ['created_at'])
     
+    # Add foreign key constraint for events.organizer_id
+    op.create_foreign_key('fk_events_organizer_id', 'events', 'users', ['organizer_id'], ['id'])
+    
     # Insert default user roles
     op.execute("""
         INSERT INTO user_roles (name, description, permissions) VALUES
@@ -136,6 +139,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Drop foreign key constraint for events.organizer_id
+    op.drop_constraint('fk_events_organizer_id', 'events', type_='foreignkey')
+    
     # Drop indexes
     op.drop_index('idx_user_favorites_created_at', 'user_favorites')
     op.drop_index('idx_user_favorites_event_id', 'user_favorites')

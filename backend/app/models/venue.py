@@ -10,7 +10,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from ..core.database import Base
+from app.core.database import Base
 
 
 class Venue(Base):
@@ -35,9 +35,6 @@ class Venue(Base):
 
     # Relationships
     events = relationship("Event", back_populates="venue")
-
-    # Social relationships
-    social_posts = relationship("SocialPost", back_populates="venue")
 
     # Constraints
     __table_args__ = (UniqueConstraint("name", "city", name="_venue_name_city_uc"),)

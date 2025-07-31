@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from ..core.database import Base
+from app.core.database import Base
 
 
 class Event(Base):
@@ -93,6 +93,11 @@ class Event(Base):
     # User-generated event relationships  
     event_organizer = relationship(
         "User", foreign_keys=[organizer_id], back_populates="organized_events"
+    )
+    
+    # Translation relationships
+    translations = relationship(
+        "EventTranslation", back_populates="event", cascade="all, delete-orphan"
     )
 
     # Constraints

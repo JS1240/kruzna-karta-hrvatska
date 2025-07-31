@@ -66,7 +66,7 @@ services:
   # Frontend
   frontend:
     build:
-      context: ./frontend
+      context: ./frontend-new
       dockerfile: Dockerfile
     container_name: diidemo-frontend
     env_file:

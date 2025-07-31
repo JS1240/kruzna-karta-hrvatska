@@ -1,0 +1,152 @@
+# Kruzna Karta Hrvatska - Backend Configuration
+# This file contains default values that can be overridden by environment variables
+
+# Database Configuration
+database:
+  host: "${DB_HOST:localhost}"
+  port: "${DB_PORT:5432}"
+  name: "${DB_NAME:kruzna_karta_hrvatska}"
+  user: "${DB_USER:postgres}"
+  password: "${DB_PASSWORD:}"
+  url: "${DATABASE_URL:postgresql://${DB_USER:postgres}:${DB_PASSWORD:}@${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:kruzna_karta_hrvatska}}"
+
+  # Connection Pool Settings
+  pool:
+    size: "${DB_POOL_SIZE:5}"
+    max_overflow: "${DB_MAX_OVERFLOW:10}"
+    timeout: "${DB_POOL_TIMEOUT:30}"
+    recycle: "${DB_POOL_RECYCLE:3600}"
+
+# API Server Configuration
+api:
+  host: "${API_HOST:0.0.0.0}"
+  port: "${API_PORT:8000}"
+  debug: "${DEBUG:false}"
+  title: "Kruzna Karta Hrvatska API"
+  version: "1.0.0"
+  description: "Backend API for Croatian Events Platform"
+
+  # CORS Settings
+  cors:
+    origins:
+      - "${FRONTEND_URL:http://localhost:3001}"
+      - "http://localhost:3000"
+      - "http://localhost:3001"
+      - "http://localhost:5173"
+      - "http://localhost:8080"
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    headers: ["*"]
+    credentials: true
+
+# Authentication & Security
+auth:
+  secret_key: "${SECRET_KEY}"
+  algorithm: "${ALGORITHM:HS256}"
+  access_token_expire_minutes: "${ACCESS_TOKEN_EXPIRE_MINUTES:30}"
+  refresh_token_expire_days: "${REFRESH_TOKEN_EXPIRE_DAYS:7}"
+
+# Redis Configuration
+redis:
+  host: "${REDIS_HOST:localhost}"
+  port: "${REDIS_PORT:6379}"
+  db: "${REDIS_DB:0}"
+  password: "${REDIS_PASSWORD:}"
+  url: "${REDIS_URL:}"
+  max_connections: "${REDIS_MAX_CONNECTIONS:20}"
+
+  # Cache Settings
+  cache:
+    default_ttl: "${CACHE_DEFAULT_TTL:300}"
+    events_ttl: "${CACHE_EVENTS_TTL:600}"
+    search_ttl: "${CACHE_SEARCH_TTL:180}"
+
+# Performance Settings
+performance:
+  enable_caching: "${ENABLE_CACHING:true}"
+  enable_query_optimization: "${ENABLE_QUERY_OPTIMIZATION:true}"
+  max_page_size: "${MAX_PAGE_SIZE:100}"
+  default_page_size: "${DEFAULT_PAGE_SIZE:20}"
+
+# Payment Settings
+payments:
+  stripe:
+    publishable_key: "${STRIPE_PUBLISHABLE_KEY:}"
+    secret_key: "${STRIPE_SECRET_KEY:}"
+    webhook_secret: "${STRIPE_WEBHOOK_SECRET:}"
+    connect_client_id: "${STRIPE_CONNECT_CLIENT_ID:}"
+
+  platform:
+    commission_rate: "${PLATFORM_COMMISSION_RATE:5.0}"
+    currency: "${CURRENCY:EUR}"
+    supported_methods:
+      - "card"
+      - "sepa_debit"
+
+# Scraping Configuration
+scraping:
+  brightdata:
+    user: "${BRIGHTDATA_USER:}"
+    password: "${BRIGHTDATA_PASSWORD:}"
+    host: "brd.superproxy.io"
+    port: "${BRIGHTDATA_PORT:22225}"
+
+  settings:
+    use_proxy: "${USE_PROXY:true}"
+    use_scraping_browser: "${USE_SCRAPING_BROWSER:false}"
+    use_playwright: "${USE_PLAYWRIGHT:true}"
+    max_retries: "${SCRAPING_MAX_RETRIES:3}"
+    timeout: "${SCRAPING_TIMEOUT:30}"
+    delay_between_requests: "${SCRAPING_DELAY:1.0}"
+
+  headers:
+    user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0"
+    accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+    accept_language: "en-US,en;q=0.9,hr;q=0.8"
+
+# Third-party Services
+services:
+  openai:
+    api_key: "${OPENAI_API_KEY:}"
+    model: "${OPENAI_MODEL:gpt-4}"
+    max_tokens: "${OPENAI_MAX_TOKENS:1000}"
+
+  geocoding:
+    provider: "${GEOCODING_PROVIDER:nominatim}"
+    api_key: "${GEOCODING_API_KEY:}"
+
+  email:
+    smtp_host: "${SMTP_HOST:}"
+    smtp_port: "${SMTP_PORT:587}"
+    smtp_user: "${SMTP_USER:}"
+    smtp_password: "${SMTP_PASSWORD:}"
+    from_email: "${FROM_EMAIL:noreply@kruzna-karta.hr}"
+
+# Logging Configuration
+logging:
+  level: "${LOG_LEVEL:INFO}"
+  format: "${LOG_FORMAT:json}"
+  file: "${LOG_FILE:}"
+  max_size: "${LOG_MAX_SIZE:10MB}"
+  backup_count: "${LOG_BACKUP_COUNT:5}"
+
+# Monitoring & Observability
+monitoring:
+  enable_metrics: "${ENABLE_METRICS:true}"
+  enable_tracing: "${ENABLE_TRACING:false}"
+  metrics_port: "${METRICS_PORT:9090}"
+  health_check_interval: "${HEALTH_CHECK_INTERVAL:30}"
+
+# Feature Flags
+features:
+  enable_analytics: "${ENABLE_ANALYTICS:true}"
+  enable_recommendations: "${ENABLE_RECOMMENDATIONS:true}"
+  enable_social_features: "${ENABLE_SOCIAL_FEATURES:true}"
+  enable_booking: "${ENABLE_BOOKING:true}"
+  enable_translations: "${ENABLE_TRANSLATIONS:true}"
+
+# Development Settings
+development:
+  reload: "${DEV_RELOAD:false}"
+  debug_sql: "${DEBUG_SQL:false}"
+  mock_external_apis: "${MOCK_EXTERNAL_APIS:false}"
+  seed_database: "${SEED_DATABASE:false}"

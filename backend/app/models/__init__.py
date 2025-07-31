@@ -1,55 +1,16 @@
-from .analytics import (
-    AlertThreshold,
-    CategoryMetrics,
-    EventPerformanceMetrics,
-    EventView,
-    MetricAlert,
-    PlatformMetrics,
-    SearchLog,
-    UserInteraction,
-    VenueMetrics,
-)
-from .category import EventCategory
-from .event import Event
-from .social import (
-    CommentReaction,
-    ContentReport,
-    EventAttendance,
-    EventReview,
-    GroupMembership,
-    GroupPost,
-    HashtagTrend,
-    PostComment,
-    PostReaction,
-    SocialGroup,
-    SocialNotification,
-    SocialPost,
-    UserConnection,
-    UserFollow,
-    UserSocialProfile,
-    post_mentions,
-)
-from .translation import (
+# Import statements updated for MVP - removed analytics, social, venue_management modules
+from app.models.category import EventCategory
+from app.models.event import Event
+from app.models.translation import (
     CategoryTranslation,
     EventTranslation,
     Language,
     StaticContentTranslation,
     VenueTranslation,
 )
-from .user import User, UserProfile, UserRole, UserRoleAssignment
-from .venue import Venue
-from .venue_management import (
-    EnhancedVenue,
-    Facility,
-    VenueAvailability,
-    VenueBooking,
-    VenueImage,
-    VenueMaintenanceLog,
-    VenuePayment,
-    VenuePricingRule,
-    VenueReview,
-    venue_facilities,
-)
+from app.models.user import User, UserProfile, UserRole, UserRoleAssignment
+from app.models.venue import Venue
+# Analytics, social, and venue_management modules removed for MVP
 
 __all__ = [
     "Event",
@@ -64,39 +25,5 @@ __all__ = [
     "CategoryTranslation",
     "VenueTranslation",
     "StaticContentTranslation",
-    "EventView",
-    "SearchLog",
-    "UserInteraction",
-    "EventPerformanceMetrics",
-    "PlatformMetrics",
-    "CategoryMetrics",
-    "VenueMetrics",
-    "AlertThreshold",
-    "MetricAlert",
-    "EnhancedVenue",
-    "Facility",
-    "VenueAvailability",
-    "VenueBooking",
-    "VenuePayment",
-    "VenueReview",
-    "VenueImage",
-    "VenuePricingRule",
-    "VenueMaintenanceLog",
-    "venue_facilities",
-    "UserSocialProfile",
-    "SocialPost",
-    "PostComment",
-    "PostReaction",
-    "CommentReaction",
-    "EventReview",
-    "UserConnection",
-    "UserFollow",
-    "EventAttendance",
-    "SocialNotification",
-    "ContentReport",
-    "HashtagTrend",
-    "SocialGroup",
-    "GroupMembership",
-    "GroupPost",
-    "post_mentions",
+    # Analytics, social, and venue_management exports removed for MVP
 ]

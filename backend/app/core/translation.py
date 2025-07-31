@@ -1,20 +1,20 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from fastapi import Depends
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-from ..core.database import get_db
-from ..models.category import EventCategory
-from ..models.event import Event
-from ..models.translation import (
+from app.core.database import get_db
+from app.models.category import EventCategory
+from app.models.event import Event
+from app.models.translation import (
     CategoryTranslation,
     EventTranslation,
     Language,
     StaticContentTranslation,
     VenueTranslation,
 )
-from ..models.venue import Venue
+from app.models.venue import Venue
 
 # Supported languages for the Croatian platform
 SUPPORTED_LANGUAGES = {
@@ -85,7 +85,7 @@ class TranslationService:
         # Start with original event data
         event_data = {
             "id": event.id,
-            "name": event.name,
+            "title": event.title,
             "description": event.description,
             "location": event.location,
             "organizer": event.organizer,

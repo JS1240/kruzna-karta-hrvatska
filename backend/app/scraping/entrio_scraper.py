@@ -4,45 +4,48 @@ Combines both BrightData proxy and Playwright approaches.
 """
 
 import asyncio
-import json
-import os
+import logging
 import re
-import time
-from datetime import date, datetime
+from datetime import date
 from typing import Dict, List, Optional, Tuple
-from urllib.parse import parse_qs, urljoin, urlparse
+from urllib.parse import urljoin
 
 import httpx
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup, Tag
 from sqlalchemy import select, tuple_
-from sqlalchemy.dialects.postgresql import insert
 
-from ..core.config import settings
-from ..core.database import SessionLocal
+from backend.app.core.database import SessionLocal
 # Temporarily disabled until OpenAI dependency is added
-# from ..core.llm_location_service import llm_location_service
-from ..models.event import Event
-from ..models.schemas import EventCreate
+# from backend.app.core.llm_location_service import llm_location_service
+from backend.app.models.event import Event
+from backend.app.models.schemas import EventCreate
+
+# Import configuration
+from backend.app.config.components import get_settings
+
+# Get global configuration
+_settings = get_settings()
+_scraping_config = _settings.scraping
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # BrightData configuration
-USER = os.getenv("BRIGHTDATA_USER", "demo_user")
-PASSWORD = os.getenv("BRIGHTDATA_PASSWORD", "demo_password")
-BRIGHTDATA_HOST_RES = "brd.superproxy.io"
-BRIGHTDATA_PORT = int(os.getenv("BRIGHTDATA_PORT", 22225))
-SCRAPING_BROWSER_EP = f"https://brd.superproxy.io:{BRIGHTDATA_PORT}"
-PROXY = f"http://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
+USER = _scraping_config.brightdata_user
+PASSWORD = _scraping_config.brightdata_password
+BRIGHTDATA_HOST_RES = _scraping_config.brightdata_host
+BRIGHTDATA_PORT = _scraping_config.brightdata_port
+SCRAPING_BROWSER_EP = _scraping_config.scraping_browser_endpoint
+PROXY = _scraping_config.proxy_url
 BRD_WSS = f"wss://{USER}:{PASSWORD}@brd.superproxy.io:9222"
 
-CATEGORY_URL = os.getenv("CATEGORY_URL", "https://www.entrio.hr/hr/")
-USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
-USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
-USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "1") == "1"
+CATEGORY_URL = "https://www.entrio.hr/hr/"
+USE_SB = _scraping_config.use_scraping_browser
+USE_PROXY = _scraping_config.use_proxy
+USE_PLAYWRIGHT = _scraping_config.use_playwright
 
-HEADERS = {
-    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0"
-}
+HEADERS = _scraping_config.headers_dict
 
 
 class EventDataTransformer:
@@ -130,7 +133,7 @@ class EventDataTransformer:
         #     if result and result.confidence > 0.6:  # Only use high-confidence results
         #         return result.full_location
         # except Exception as e:
-        #     print(f"LLM location extraction error: {e}")
+        #     logger.error(f"LLM location extraction error: {e}")
         
         # return None
 
@@ -197,6 +200,54 @@ class EventDataTransformer:
         
         # If no specific location found, return None to skip event
         return None
+
+    @staticmethod
+    def extract_location_from_enhanced_data(scraped_data: Dict) -> str:
+        """Extract and format location from enhanced scraped data with address support."""
+        parts = []
+        
+        # Handle enhanced address data from detailed scraping
+        # Priority order: detected_address > street_address > venue > city > region
+        if scraped_data.get("detected_address"):
+            return scraped_data["detected_address"]
+        
+        if scraped_data.get("street_address"):
+            parts.append(scraped_data["street_address"])
+        elif scraped_data.get("venue") or scraped_data.get("venue_detail"):
+            venue = scraped_data.get("venue_detail") or scraped_data.get("venue")
+            parts.append(venue)
+        
+        # Add city information
+        city = scraped_data.get("city") or scraped_data.get("city_name")
+        if city:
+            parts.append(city)
+        
+        # If we have enhanced location data, use it
+        if scraped_data.get("full_location") and not parts:
+            # Try to extract location from full location text
+            location = EventDataTransformer.extract_location_from_text(scraped_data["full_location"], "")
+            if location:
+                return location
+            # If no specific city found, use full location as fallback
+            return scraped_data["full_location"]
+        
+        if parts:
+            # Clean and deduplicate parts
+            unique_parts = []
+            for part in parts:
+                part_clean = str(part).strip()
+                if part_clean and part_clean not in unique_parts:
+                    unique_parts.append(part_clean)
+            return ", ".join(unique_parts)
+        
+        # Fallback to standard location extraction
+        title = scraped_data.get("title", "")
+        description = scraped_data.get("description", "")
+        venue = scraped_data.get("venue", "")
+        
+        # Try to extract from any available text
+        location = EventDataTransformer.extract_location_from_text(f"{title} {description} {venue}", "")
+        return location
 
     @staticmethod
     def parse_time(time_str: str) -> str:
@@ -281,7 +332,11 @@ class EventDataTransformer:
             if not name or len(name) < 3:
                 return None
 
-            # Try to extract location from event title or description if not found
+            # Try to extract location using enhanced data if not found
+            if not location:
+                location = EventDataTransformer.extract_location_from_enhanced_data(scraped_data)
+            
+            # Fallback to basic extraction if enhanced extraction failed
             if not location:
                 location = EventDataTransformer.extract_location_from_text(name, description)
             
@@ -292,11 +347,11 @@ class EventDataTransformer:
                     name, description, venue_context
                 )
                 if location:
-                    print(f"LLM extracted location for '{name}': {location}")
+                    logger.info(f"LLM extracted location for '{name}': {location}")
             
             # Skip event if we still can't determine location
             if not location:
-                print(f"Skipping event '{name}' - could not determine location")
+                logger.debug(f"Skipping event '{name}' - could not determine location")
                 return None
 
             return EventCreate(
@@ -313,7 +368,7 @@ class EventDataTransformer:
             )
 
         except Exception as e:
-            print(f"Error transforming event data: {e}")
+            logger.error(f"Error transforming event data: {e}")
             return None
 
 
@@ -351,7 +406,7 @@ class EntrioRequestsScraper:
             resp.raise_for_status()
             return resp
         except httpx.HTTPError as e:
-            print(f"[ERROR] Request failed for {url}: {e}")
+            logger.error(f"Request failed for {url}: {e}")
             raise
 
     def fetch(self, url: str) -> requests.Response:
@@ -380,60 +435,111 @@ class EntrioRequestsScraper:
             resp.raise_for_status()
             return resp
         except requests.exceptions.RequestException as e:
-            print(f"[ERROR] Request failed for {url}: {e}")
+            logger.error(f"Request failed for {url}: {e}")
             raise
 
-    def extract_location_from_event_page(self, event_url: str) -> str:
-        """Extract detailed location information from event detail page."""
+    def extract_location_from_event_page(self, event_url: str) -> Dict:
+        """Extract detailed location information from event detail page using real Entrio.hr selectors."""
         try:
             response = self.fetch(event_url)
             soup = BeautifulSoup(response.text, "html.parser")
             
-            # Look for location information in various places
-            location_selectors = [
-                # Common location indicators
-                ".event-location",
-                ".location",
-                ".venue",
-                ".address",
-                '[class*="location"]',
-                '[class*="venue"]',
-                '[class*="address"]',
-                # Text content that might contain location
-                'script[type="application/ld+json"]',  # Structured data
-                'meta[property="event:location"]',
-                'meta[name="location"]',
-            ]
+            location_data = {}
             
-            for selector in location_selectors:
-                elements = soup.select(selector)
-                for element in elements:
-                    text = element.get_text(strip=True) if hasattr(element, 'get_text') else str(element)
-                    if text and len(text) > 3:
-                        # Extract location using our text parser
-                        location = EventDataTransformer.extract_location_from_text(text, "")
-                        if location:
-                            return location
+            # Primary selector - discovered through MCP investigation
+            location_header = soup.select_one('.event-header__location')
+            if location_header:
+                location_text = location_header.get_text(strip=True)
+                if location_text:
+                    location_data['full_location'] = location_text
+                    
+                    # Parse "Venue Name, City" format from event detail pages
+                    venue_city_parts = location_text.split(',')
+                    if len(venue_city_parts) >= 2:
+                        location_data['venue'] = venue_city_parts[0].strip()
+                        location_data['city'] = venue_city_parts[1].strip()
+                        location_data['location'] = location_text  # "Venue Name, City"
+                    else:
+                        location_data['location'] = location_text
+                        location_data['venue'] = location_text
             
-            # Look for location in the page title or meta description
-            title = soup.find('title')
-            if title:
-                title_text = title.get_text(strip=True)
-                location = EventDataTransformer.extract_location_from_text(title_text, "")
-                if location:
-                    return location
+            # Fallback selectors if primary selector doesn't work
+            if not location_data.get('full_location'):
+                fallback_selectors = [
+                    # Common location indicators
+                    ".event-location",
+                    ".location", 
+                    ".venue",
+                    ".address",
+                    '[class*="location"]',
+                    '[class*="venue"]',
+                    '[class*="address"]',
+                    '[class*="adresa"]',
+                    '[class*="lokacija"]',
+                    '.venue-info',
+                    '.location-details'
+                ]
+                
+                for selector in fallback_selectors:
+                    elements = soup.select(selector)
+                    for element in elements:
+                        text = element.get_text(strip=True) if hasattr(element, 'get_text') else str(element)
+                        if text and len(text) > 3:
+                            # Store the full location text
+                            if not location_data.get('full_location') or len(text) > len(location_data.get('full_location', '')):
+                                location_data['full_location'] = text
+                                location_data['location'] = text
+                        
+                        # Try to extract specific venue information
+                        venue_selectors = ['.venue', '.venue-name', '[class*="venue"]', '.hall', '[class*="hall"]', '.dvorana']
+                        for venue_sel in venue_selectors:
+                            venue_el = element.select_one(venue_sel)
+                            if venue_el:
+                                venue_text = venue_el.get_text(strip=True)
+                                if venue_text:
+                                    location_data['venue'] = venue_text
+                        
+                        # Try to extract city information from links
+                        city_links = element.select('a[href*="grad"], a[href*="city"], a[href*="location"]')
+                        for city_link in city_links:
+                            city_text = city_link.get_text(strip=True)
+                            if city_text:
+                                location_data['city'] = city_text
+                                location_data['city_url'] = city_link.get('href', '')
+                        
+                        # Croatian address pattern detection
+                        import re
+                        address_patterns = [
+                            r'([A-ZČĆĐŠŽ][a-zčćđšž\s]+(?:ulica|cesta|trg|put|avenija|bb)\s*\d*[a-z]?)',
+                            r'(\d{5}\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]+)',
+                            r'([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?\s*,\s*\d{5}\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]+)'
+                        ]
+                        
+                        for pattern in address_patterns:
+                            matches = re.findall(pattern, text, re.IGNORECASE)
+                            if matches:
+                                location_data['street_address'] = matches[0].strip()
+                                break
             
-            # Look in meta description
-            meta_desc = soup.find('meta', attrs={'name': 'description'})
-            if meta_desc and meta_desc.get('content'):
-                location = EventDataTransformer.extract_location_from_text(meta_desc['content'], "")
-                if location:
-                    return location
+            # Look for location in the page title or meta description if not found
+            if not location_data:
+                title = soup.find('title')
+                if title:
+                    title_text = title.get_text(strip=True)
+                    location_data['full_location'] = title_text
+                
+                # Look in meta description
+                meta_desc = soup.find('meta', attrs={'name': 'description'})
+                if meta_desc and meta_desc.get('content'):
+                    if not location_data.get('full_location'):
+                        location_data['full_location'] = meta_desc['content']
+            
+            return location_data
                     
         except Exception as e:
-            print(f"Error extracting location from event page {event_url}: {e}")
+            logger.error(f"Error extracting location from event page {event_url}: {e}")
         
-        return None
+        return {}
 
     def parse_event_from_element(self, event_element: Tag) -> Dict:
         """Extract event details from a single event element."""
@@ -535,13 +641,13 @@ class EntrioRequestsScraper:
                         break
 
         except Exception as e:
-            print(f"Error parsing event element: {e}")
+            logger.error(f"Error parsing event element: {e}")
 
         return event_data
 
     async def scrape_events_page(self, url: str) -> Tuple[List[Dict], Optional[str]]:
         """Scrape events from a single page."""
-        print(f"→ Fetching {url}")
+        logger.info(f"→ Fetching {url}")
         resp = await self.fetch_async(url)
         soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -565,7 +671,7 @@ class EntrioRequestsScraper:
         for selector in event_selectors:
             elements = soup.select(selector)
             if len(elements) > 0:
-                print(f"Found {len(elements)} events using selector: {selector}")
+                logger.info(f"Found {len(elements)} events using selector: {selector}")
                 event_elements = elements
                 break
 
@@ -574,11 +680,12 @@ class EntrioRequestsScraper:
             if isinstance(event_element, Tag):
                 event_data = self.parse_event_from_element(event_element)
                 if event_data and len(event_data) > 1:
-                    # Try to extract detailed location if we have a link
-                    if event_data.get("link") and not event_data.get("location"):
-                        detailed_location = self.extract_location_from_event_page(event_data["link"])
-                        if detailed_location:
-                            event_data["location"] = detailed_location
+                    # Try to extract detailed location data if we have a link
+                    if event_data.get("link"):
+                        detailed_location_data = self.extract_location_from_event_page(event_data["link"])
+                        if detailed_location_data:
+                            # Merge the detailed location data
+                            event_data.update(detailed_location_data)
                     events.append(event_data)
 
         # Find next page
@@ -598,7 +705,7 @@ class EntrioRequestsScraper:
                     next_page_url = urljoin(url, href)
                     break
 
-        print(f"Extracted {len(events)} events from page")
+        logger.info(f"Extracted {len(events)} events from page")
         return events, next_page_url
 
     async def scrape_all_events(
@@ -615,7 +722,7 @@ class EntrioRequestsScraper:
                 all_events.extend(events)
 
                 page_count += 1
-                print(
+                logger.info(
                     f"Page {page_count}: Found {len(events)} events (Total: {len(all_events)})"
                 )
 
@@ -626,7 +733,7 @@ class EntrioRequestsScraper:
                 await asyncio.sleep(1)  # Be respectful
 
             except Exception as e:
-                print(f"Failed to scrape page {current_url}: {e}")
+                logger.error(f"Failed to scrape page {current_url}: {e}")
                 break
 
         return all_events
@@ -636,7 +743,7 @@ class EntrioPlaywrightScraper:
     """Scraper using Playwright for JavaScript-heavy pages."""
 
     async def scrape_with_playwright(
-        self, start_url: str = "https://entrio.hr/", max_pages: int = 5
+        self, start_url: str = "https://entrio.hr/", max_pages: int = 5, fetch_details: bool = False
     ) -> List[Dict]:
         """Scrape events using Playwright with anti-detection."""
         from playwright.async_api import async_playwright
@@ -711,7 +818,7 @@ class EntrioPlaywrightScraper:
 
             # Try to access the main page first 
             try:
-                print(f"→ Fetching {start_url}")
+                logger.info(f"→ Fetching {start_url}")
                 await page.goto(start_url, wait_until="domcontentloaded", timeout=30000)
                 await page.wait_for_timeout(3000)
 
@@ -740,19 +847,19 @@ class EntrioPlaywrightScraper:
                     }
                 """)
                 
-                print(f"Found {len(homepage_events)} events on homepage")
+                logger.info(f"Found {len(homepage_events)} events on homepage")
                 all_events.extend(homepage_events)
                 
                 # Now try to access events page with advanced Cloudflare bypass
                 await self.access_events_page_with_bypass(page, all_events, max_pages)
 
-                print(f"Total events found: {len(all_events)}")
+                logger.info(f"Total events found: {len(all_events)}")
                 
                 if not all_events:
-                    print("No events found on any page")
+                    logger.info("No events found on any page")
                     
             except Exception as e:
-                print(f"Failed to scrape page {start_url}: {e}")
+                logger.error(f"Failed to scrape page {start_url}: {e}")
 
             await browser.close()
 
@@ -760,13 +867,12 @@ class EntrioPlaywrightScraper:
 
     async def access_events_page_with_bypass(self, page, all_events, max_pages):
         """Advanced Cloudflare bypass to access events page."""
-        import random
         
-        print("Attempting to access events page with advanced bypass...")
+        logger.info("Attempting to access events page with advanced bypass...")
         
         # Method 1: Handle cookie acceptance and human simulation
         try:
-            print("Step 1: Handling cookie acceptance and overlays...")
+            logger.info("Step 1: Handling cookie acceptance and overlays...")
             
             # Look for and handle cookie acceptance
             await self.handle_cookie_acceptance(page)
@@ -793,13 +899,13 @@ class EntrioPlaywrightScraper:
                 try:
                     events_link = await page.query_selector(selector)
                     if events_link:
-                        print(f"Found events link with selector: {selector}")
+                        logger.info(f"Found events link with selector: {selector}")
                         break
                 except:
                     continue
             
             if events_link:
-                print("Attempting natural click on events link...")
+                logger.info("Attempting natural click on events link...")
                 
                 # Scroll to element smoothly
                 await events_link.scroll_into_view_if_needed()
@@ -812,20 +918,20 @@ class EntrioPlaywrightScraper:
                     
                     page_title = await page.title()
                     page_url = page.url
-                    print(f"After click - URL: {page_url}, Title: {page_title}")
+                    logger.info(f"After click - URL: {page_url}, Title: {page_title}")
                     
                     if "/events" in page_url and "Cloudflare" not in page_title and "Attention Required" not in page_title:
-                        print(f"✅ Successfully accessed events page: {page_title}")
-                        await self.extract_events_from_current_page(page, all_events, max_pages)
+                        logger.info(f"✅ Successfully accessed events page: {page_title}")
+                        await self.extract_events_from_current_page(page, all_events, max_pages, fetch_details=fetch_details)
                         return
                     else:
-                        print("⚠️ Events page click was blocked or redirected")
+                        logger.warning("⚠️ Events page click was blocked or redirected")
                         
                 except Exception as click_error:
-                    print(f"Click failed: {click_error}")
+                    logger.error(f"Click failed: {click_error}")
             
         except Exception as e:
-            print(f"Method 1 failed: {e}")
+            logger.error(f"Method 1 failed: {e}")
 
     async def handle_cookie_acceptance(self, page):
         """Handle cookie acceptance overlays and popups."""
@@ -851,20 +957,20 @@ class EntrioPlaywrightScraper:
                 try:
                     element = await page.query_selector(selector)
                     if element:
-                        print(f"Found cookie element: {selector}")
+                        logger.debug(f"Found cookie element: {selector}")
                         # Try to remove overlay or click accept
                         if 'overlay' in selector:
                             await page.evaluate(f'document.querySelector("{selector}")?.remove()')
                         else:
                             await element.click()
                         await page.wait_for_timeout(1000)
-                        print(f"Handled cookie element: {selector}")
+                        logger.debug(f"Handled cookie element: {selector}")
                         break
                 except:
                     continue
                     
         except Exception as e:
-            print(f"Cookie handling failed: {e}")
+            logger.error(f"Cookie handling failed: {e}")
 
     async def simulate_human_behavior(self, page):
         """Simulate realistic human browsing behavior."""
@@ -896,10 +1002,10 @@ class EntrioPlaywrightScraper:
             await page.wait_for_timeout(random.randint(1000, 2000))
             
         except Exception as e:
-            print(f"Human simulation failed: {e}")
+            logger.error(f"Human simulation failed: {e}")
         
         # Method 2: Enhanced direct URL bypass with stealth techniques
-        print("Step 2: Trying advanced direct URL bypass...")
+        logger.info("Step 2: Trying advanced direct URL bypass...")
         
         events_urls = [
             "https://www.entrio.hr/events",
@@ -912,7 +1018,7 @@ class EntrioPlaywrightScraper:
         
         for attempt, url in enumerate(events_urls):
             try:
-                print(f"Attempt {attempt + 1}: Trying {url}")
+                logger.info(f"Attempt {attempt + 1}: Trying {url}")
                 
                 # Wait with human-like delay
                 await page.wait_for_timeout(random.randint(5000, 10000))
@@ -935,7 +1041,7 @@ class EntrioPlaywrightScraper:
                 })
                 
                 # Try navigating to URL
-                print(f"Navigating to {url}...")
+                logger.info(f"Navigating to {url}...")
                 response = await page.goto(url, wait_until="networkidle", timeout=30000)
                 
                 # Wait for page to fully load and any dynamic content
@@ -949,9 +1055,9 @@ class EntrioPlaywrightScraper:
                 page_url = page.url
                 page_content = await page.content()
                 
-                print(f"Result - URL: {page_url}")
-                print(f"Result - Title: {page_title}")
-                print(f"Result - Content length: {len(page_content)}")
+                logger.info(f"Result - URL: {page_url}")
+                logger.info(f"Result - Title: {page_title}")
+                logger.info(f"Result - Content length: {len(page_content)}")
                 
                 # More sophisticated detection of successful access
                 success_indicators = [
@@ -970,25 +1076,110 @@ class EntrioPlaywrightScraper:
                 ]
                 
                 if any(success_indicators) and not any(failed_indicators):
-                    print(f"🎉 SUCCESS! Bypassed protection for {url}")
-                    print(f"   Title: {page_title}")
-                    print(f"   URL: {page_url}")
+                    logger.info(f"🎉 SUCCESS! Bypassed protection for {url}")
+                    logger.info(f"   Title: {page_title}")
+                    logger.info(f"   URL: {page_url}")
                     
                     # Try to extract events from this page
-                    await self.extract_events_from_current_page(page, all_events, max_pages)
+                    await self.extract_events_from_current_page(page, all_events, max_pages, fetch_details=fetch_details)
                     return
                 else:
-                    print(f"❌ Still blocked for {url}")
+                    logger.warning(f"❌ Still blocked for {url}")
                     if any(failed_indicators):
-                        print(f"   Detected blocking indicators")
+                        logger.warning("   Detected blocking indicators")
                     
             except Exception as e:
-                print(f"❌ Failed to access {url}: {e}")
+                logger.error(f"❌ Failed to access {url}: {e}")
                 continue
         
-        print("⚠️ All advanced bypass methods failed, using homepage events only")
+        logger.warning("⚠️ All advanced bypass methods failed, using homepage events only")
 
-    async def extract_events_from_current_page(self, page, all_events, max_pages):
+    async def fetch_event_details(self, page, event_url: str) -> Dict:
+        """Fetch detailed address information from event page."""
+        try:
+            await page.goto(event_url, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2000)  # Wait for content to load
+            
+            # Extract detailed location information using real Entrio.hr selectors
+            event_details = await page.evaluate(
+                """
+                () => {
+                    const details = {};
+                    
+                    // Primary selector - discovered through MCP investigation
+                    const locationHeader = document.querySelector('.event-header__location');
+                    if (locationHeader && locationHeader.textContent.trim()) {
+                        const locationText = locationHeader.textContent.trim();
+                        details.full_location = locationText;
+                        
+                        // Parse "Venue Name, City" format from event detail pages
+                        const venueCityParts = locationText.split(',');
+                        if (venueCityParts.length >= 2) {
+                            details.venue = venueCityParts[0].trim();
+                            details.city = venueCityParts[1].trim();
+                            details.location = locationText; // "Venue Name, City"
+                        } else {
+                            details.location = locationText;
+                            details.venue = locationText;
+                        }
+                    }
+                    
+                    // Fallback selectors for other address information
+                    const fallbackSelectors = [
+                        '[class*="location"]',
+                        '[class*="address"]', 
+                        '[class*="venue"]',
+                        '[class*="adresa"]',
+                        '[class*="lokacija"]',
+                        '.event-location',
+                        '.venue-info',
+                        '.location-details'
+                    ];
+                    
+                    // Only use fallback if primary selector didn't find anything
+                    if (!details.full_location) {
+                        for (const selector of fallbackSelectors) {
+                            const elements = document.querySelectorAll(selector);
+                            elements.forEach(el => {
+                                const text = el.textContent.trim();
+                                if (text && text.length > 2) {
+                                    if (!details.full_location || text.length > details.full_location.length) {
+                                        details.full_location = text;
+                                        details.location = text;
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    
+                    // Look for structured address patterns in page content
+                    const pageText = document.body.textContent;
+                    const addressPatterns = [
+                        /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+(?:ulica|cesta|trg|put|avenija|bb)\\s*\\d*[a-z]?)/gi,
+                        /(\\d{5}\\s+[A-ZČĆĐŠŽ][a-zčćđšž\\s]+)/gi,
+                        /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+[a-z]?\\s*,\\s*\\d{5}\\s+[A-ZČĆĐŠŽ][a-zčćđšž\\s]+)/gi
+                    ];
+                    
+                    for (const pattern of addressPatterns) {
+                        const matches = pageText.match(pattern);
+                        if (matches && matches.length > 0) {
+                            details.street_address = matches[0].trim();
+                            break;
+                        }
+                    }
+                    
+                    return details;
+                }
+                """
+            )
+            
+            return event_details
+        
+        except Exception as e:
+            logger.error(f"Error fetching event details from {event_url}: {e}")
+            return {}
+
+    async def extract_events_from_current_page(self, page, all_events, max_pages, fetch_details: bool = False):
         """Extract events from the current events page and handle pagination."""
         page_count = 0
         
@@ -1001,82 +1192,141 @@ class EntrioPlaywrightScraper:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 await page.wait_for_timeout(2000)
                 
-                # Extract events from current page
+                # Extract events from current page using real Entrio.hr selectors discovered via MCP
                 events_data = await page.evaluate("""
                     () => {
                         const events = [];
                         
-                        // Look for different event selectors on events page
-                        const selectors = [
-                            'a[href*="/event/"]',
-                            '.event-card a',
-                            '.event-item a',
-                            '.event-listing a',
-                            '[class*="event"] a',
-                            'article a[href*="/event/"]'
-                        ];
+                        // Real Entrio.hr event card selectors based on website analysis
+                        const eventCards = document.querySelectorAll('article.event-card__wrap');
+                        console.log(`Found ${eventCards.length} event cards`);
                         
-                        let eventLinks = [];
-                        for (const selector of selectors) {
-                            const links = Array.from(document.querySelectorAll(selector))
-                                .filter(link => link.href.includes('/event/') && !link.href.includes('my_event'));
-                            if (links.length > 0) {
-                                eventLinks = links;
-                                console.log(`Found ${links.length} events with selector: ${selector}`);
-                                break;
-                            }
-                        }
-                        
-                        // Limit to avoid duplicates but get more events
-                        eventLinks.slice(0, 50).forEach(linkEl => {
+                        eventCards.forEach(card => {
                             const data = {};
-                            data.link = linkEl.href;
                             
-                            // Try to extract title from link text or parent elements
-                            let title = linkEl.textContent?.trim() || '';
-                            if (!title) {
-                                const parent = linkEl.closest('div, article, section');
-                                if (parent) {
-                                    const titleEl = parent.querySelector('h1, h2, h3, h4, h5, h6, .title, [class*="title"]');
-                                    if (titleEl) {
-                                        title = titleEl.textContent?.trim() || '';
+                            // Extract event link using real Entrio selector
+                            const linkEl = card.querySelector('a.event-card__action, a[href*="/event/"]');
+                            if (linkEl) {
+                                data.link = linkEl.href;
+                            }
+                            
+                            // Extract title - look in the card content
+                            const titleSelectors = [
+                                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                                '[class*="title"]', '[class*="name"]',
+                                '.event-title', '.event-name', '.event-card__title'
+                            ];
+                            
+                            for (const selector of titleSelectors) {
+                                const titleEl = card.querySelector(selector);
+                                if (titleEl && titleEl.textContent.trim()) {
+                                    data.title = titleEl.textContent.trim();
+                                    break;
+                                }
+                            }
+                            
+                            // If no title found, extract from card text content
+                            if (!data.title) {
+                                const cardText = card.textContent || '';
+                                // Look for patterns like event names (usually the first substantial text)
+                                const lines = cardText.split('\\n').map(line => line.trim()).filter(line => line.length > 3);
+                                if (lines.length > 0) {
+                                    // Skip date lines, find the event name
+                                    for (const line of lines) {
+                                        if (!line.match(/\\d{1,2}\\.\\d{1,2}\\.\\d{4}/) && line.length > 5) {
+                                            data.title = line;
+                                            break;
+                                        }
                                     }
                                 }
                             }
-                            data.title = title;
                             
-                            // Try to extract image
-                            let imgEl = linkEl.querySelector('img');
-                            if (!imgEl) {
-                                const parent = linkEl.closest('div, article, section');
-                                if (parent) {
-                                    imgEl = parent.querySelector('img');
+                            // Extract venue/location using the discovered "DD.MM.YYYY. Venue Name, City" pattern
+                            const cardText = card.textContent || '';
+                            const locationPattern = /(\\d{1,2}\\.\\d{1,2}\\.\\d{4})\\.\\s*(.+)/;
+                            const locationMatch = cardText.match(locationPattern);
+                            
+                            if (locationMatch) {
+                                data.date = locationMatch[1]; // Extract date (DD.MM.YYYY)
+                                const venueCity = locationMatch[2].trim();
+                                
+                                // Split venue and city by comma for "Venue Name, City" format
+                                const venueCityParts = venueCity.split(',');
+                                if (venueCityParts.length >= 2) {
+                                    data.venue = venueCityParts[0].trim();
+                                    data.city = venueCityParts[1].trim();
+                                    data.location = venueCity; // "Venue Name, City"
+                                } else {
+                                    data.location = venueCity;
+                                    data.venue = venueCity;
                                 }
+                                data.full_location = locationMatch[0]; // Full "DD.MM.YYYY. Venue Name, City"
+                            } else {
+                                // Fallback: try to find date and location separately
+                                const dateMatch = cardText.match(/\\d{1,2}\\.\\d{1,2}\\.\\d{4}/);
+                                if (dateMatch) {
+                                    data.date = dateMatch[0];
+                                }
+                                
+                                // Try generic location selectors as fallback
+                                const locationSelectors = [
+                                    '.venue', '.location', '.place', '.where',
+                                    '[class*="venue"]', '[class*="location"]',
+                                    '[class*="place"]', '[class*="address"]'
+                                ];
+                                
+                                for (const selector of locationSelectors) {
+                                    const locationEl = card.querySelector(selector);
+                                    if (locationEl && locationEl.textContent.trim()) {
+                                        data.location = locationEl.textContent.trim();
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Extract image
+                            let imgEl = card.querySelector('img');
+                            if (!imgEl && linkEl) {
+                                imgEl = linkEl.querySelector('img');
                             }
                             if (imgEl && imgEl.src) {
                                 data.image_url = imgEl.src;
                             }
                             
-                            // Try to extract date
-                            const parent = linkEl.closest('div, article, section');
-                            if (parent) {
-                                const dateEl = parent.querySelector('.date, .event-date, time, [class*="date"]');
-                                if (dateEl) {
-                                    data.date = dateEl.textContent?.trim() || '';
-                                }
-                                
-                                const venueEl = parent.querySelector('.venue, .location, [class*="venue"], [class*="location"]');
-                                if (venueEl) {
-                                    data.venue = venueEl.textContent?.trim() || '';
-                                }
-                                
-                                const priceEl = parent.querySelector('.price, [class*="price"]');
-                                if (priceEl) {
-                                    data.price = priceEl.textContent?.trim() || '';
+                            // Extract price information
+                            const priceSelectors = [
+                                '.price', '[class*="price"]', '.event-price',
+                                '[class*="cost"]', '[class*="ticket"]'
+                            ];
+                            
+                            for (const selector of priceSelectors) {
+                                const priceEl = card.querySelector(selector);
+                                if (priceEl && priceEl.textContent.trim()) {
+                                    data.price = priceEl.textContent.trim();
+                                    break;
                                 }
                             }
                             
-                            events.push(data);
+                            // Croatian address pattern detection in full text content
+                            const addressPatterns = [
+                                /\\b[\\w\\s]+\\s+\\d+[a-z]?\\s*,\\s*\\d{5}\\s+[\\w\\s]+/gi,  // Street Number, Postal City
+                                /\\b[A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+(ulica|cesta|trg|put|avenija|bb)\\s*\\d*[a-z]?\\b/gi,  // Croatian street types
+                                /\\b\\d{5}\\s+[A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\b/gi,  // Postal code + city
+                                /\\b[A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+[a-z]?\\b/gi  // Simple street + number
+                            ];
+                            
+                            for (const pattern of addressPatterns) {
+                                const matches = cardText.match(pattern);
+                                if (matches && matches.length > 0) {
+                                    data.detected_address = matches[0].trim();
+                                    break;
+                                }
+                            }
+                            
+                            // Only add events with meaningful data
+                            if (data.title || data.link) {
+                                events.push(data);
+                            }
                         });
                         
                         return events;
@@ -1089,26 +1339,26 @@ class EntrioPlaywrightScraper:
                 
                 if len(new_events) > 0:
                     all_events.extend(new_events)
-                    print(f"Page {page_count + 1}: Found {len(new_events)} new events (Total: {len(all_events)})")
+                    logger.info(f"Page {page_count + 1}: Found {len(new_events)} new events (Total: {len(all_events)})")
                 else:
-                    print(f"Page {page_count + 1}: No new events found")
+                    logger.info(f"Page {page_count + 1}: No new events found")
                 
                 # Look for next page
                 next_button = await page.query_selector('a[class*="next"], a[aria-label*="next"], .pagination a:last-child, [class*="pagination"] a:last-child')
                 
                 if next_button and page_count < max_pages - 1:
-                    print("Found next page button, clicking...")
+                    logger.info("Found next page button, clicking...")
                     await next_button.scroll_into_view_if_needed()
                     await page.wait_for_timeout(1000)
                     await next_button.click()
                     await page.wait_for_timeout(3000)
                     page_count += 1
                 else:
-                    print("No more pages or reached max pages")
+                    logger.info("No more pages or reached max pages")
                     break
                     
             except Exception as e:
-                print(f"Error on page {page_count + 1}: {e}")
+                logger.error(f"Error on page {page_count + 1}: {e}")
                 break
 
 
@@ -1121,25 +1371,25 @@ class EntrioScraper:
         self.transformer = EventDataTransformer()
 
     async def scrape_events(
-        self, max_pages: int = 5, use_playwright: bool = None
+        self, max_pages: int = 5, use_playwright: bool = None, fetch_details: bool = False
     ) -> List[EventCreate]:
         """Scrape events and return as EventCreate objects."""
         if use_playwright is None:
             use_playwright = USE_PLAYWRIGHT
 
-        print(f"Starting Entrio.hr scraper (Playwright: {use_playwright})")
+        logger.info(f"Starting Entrio.hr scraper (Playwright: {use_playwright}, fetch_details: {fetch_details})")
 
         # Scrape raw data
         if use_playwright:
             raw_events = await self.playwright_scraper.scrape_with_playwright(
-                max_pages=max_pages
+                max_pages=max_pages, fetch_details=fetch_details
             )
         else:
             raw_events = await self.requests_scraper.scrape_all_events(
                 max_pages=max_pages
             )
 
-        print(f"Scraped {len(raw_events)} raw events")
+        logger.info(f"Scraped {len(raw_events)} raw events")
 
         # Transform to EventCreate objects
         events = []
@@ -1148,7 +1398,7 @@ class EntrioScraper:
             if event:
                 events.append(event)
 
-        print(f"Transformed {len(events)} valid events")
+        logger.info(f"Transformed {len(events)} valid events")
         return events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
@@ -1184,7 +1434,6 @@ class EntrioScraper:
 
             if to_insert:
                 # Use direct SQLAlchemy Core insert to avoid any field mapping issues
-                from sqlalchemy import text
                 
                 # Insert each event individually to avoid bulk insert mapping issues
                 saved_count = 0
@@ -1198,7 +1447,7 @@ class EntrioScraper:
                     except Exception as e:
                         # Skip duplicate or invalid events
                         db.rollback()
-                        print(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
+                        logger.debug(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
                         continue
                 
                 db.commit()
@@ -1208,7 +1457,7 @@ class EntrioScraper:
             return 0
 
         except Exception as e:
-            print(f"Error saving events to database: {e}")
+            logger.error(f"Error saving events to database: {e}")
             db.rollback()
             raise
         finally:
@@ -1216,19 +1465,19 @@ class EntrioScraper:
 
 
 # Convenience functions for API endpoints
-async def scrape_entrio_events(max_pages: int = 5) -> Dict:
+async def scrape_entrio_events(max_pages: int = 5, fetch_details: bool = False) -> Dict:
     """Scrape Entrio events and save to database."""
     scraper = EntrioScraper()
 
     try:
-        events = await scraper.scrape_events(max_pages=max_pages)
+        events = await scraper.scrape_events(max_pages=max_pages, fetch_details=fetch_details)
         saved_count = scraper.save_events_to_database(events)
 
         return {
             "status": "success",
             "scraped_events": len(events),
             "saved_events": saved_count,
-            "message": f"Successfully scraped {len(events)} events, saved {saved_count} new events",
+            "message": f"Successfully scraped {len(events)} events, saved {saved_count} new events (fetch_details: {fetch_details})",
         }
 
     except Exception as e:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-import os
+import logging
 import re
 from datetime import date
 from typing import Dict, List, Optional, Tuple
@@ -12,25 +12,33 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup, Tag
 
-from ..models.schemas import EventCreate
+from backend.app.models.schemas import EventCreate
 
-# Bright Data configuration (shared across scrapers)
-USER = os.getenv("BRIGHTDATA_USER", "demo_user")
-PASSWORD = os.getenv("BRIGHTDATA_PASSWORD", "demo_password")
-BRIGHTDATA_HOST_RES = "brd.superproxy.io"
-BRIGHTDATA_PORT = int(os.getenv("BRIGHTDATA_PORT", 22225))
-SCRAPING_BROWSER_EP = f"https://{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
-PROXY = f"http://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
+# Import configuration
+from backend.app.config.components import get_settings
 
-USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
-USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
+# Get global configuration
+_settings = get_settings()
+
+# Set up logging
+logger = logging.getLogger(__name__)
+_scraping_config = _settings.scraping
+
+# BrightData configuration
+USER = _scraping_config.brightdata_user
+PASSWORD = _scraping_config.brightdata_password
+BRIGHTDATA_HOST_RES = _scraping_config.brightdata_host
+BRIGHTDATA_PORT = _scraping_config.brightdata_port
+SCRAPING_BROWSER_EP = _scraping_config.scraping_browser_endpoint
+PROXY = _scraping_config.proxy_url
+
+USE_SB = _scraping_config.use_scraping_browser
+USE_PROXY = _scraping_config.use_proxy
+
+HEADERS = _scraping_config.headers_dict
 
 BASE_URL = "https://zadar.travel"
 EVENTS_URL = f"{BASE_URL}/events/"
-
-HEADERS = {
-    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ScraperBot/1.0",
-}
 
 
 class ZadarTransformer:
@@ -134,11 +142,126 @@ class ZadarTransformer:
     def clean_text(text: str) -> str:
         return " ".join(text.split()) if text else ""
 
+    @staticmethod
+    def extract_location(data: Dict) -> str:
+        """Extract and format location from Zadar event data with enhanced address support."""
+        # Priority order: detected_address > structured_location > venue + city > venue > city > default
+        
+        # Highest priority: detected_address from detailed scraping
+        if data.get("detected_address"):
+            return data["detected_address"].strip()
+        
+        # Second priority: structured location from detail pages
+        if data.get("structured_location"):
+            structured_location = data["structured_location"].strip()
+            return structured_location
+        
+        # Third priority: location field from listing or detail pages
+        if data.get("location"):
+            location = data["location"].strip()
+            # If we have city info and it's not in location, add it
+            if data.get("city") and data["city"] not in location:
+                return f"{location}, {data['city']}"
+            return location
+        
+        # Fourth priority: combine venue information
+        venue = data.get("venue", "").strip()
+        city = data.get("city", "").strip()
+        
+        if venue and city and city not in venue:
+            location = f"{venue}, {city}"
+        elif venue:
+            location = venue
+        elif city:
+            location = city
+        else:
+            location = ""
+        
+        # Fallback to Zadar if nothing found
+        return location if location else "Zadar"
+
+    @staticmethod
+    def parse_location_from_text(text: str) -> Dict[str, str]:
+        """Parse location information from event text using Zadar-specific patterns."""
+        result = {}
+        
+        if not text:
+            return result
+        
+        # Pattern 1: LOKACIJA field from detail pages
+        lokacija_match = re.search(r"LOKACIJA:\s*([^\n\r]+)", text, re.IGNORECASE)
+        if lokacija_match:
+            result["structured_location"] = lokacija_match.group(1).strip()
+        
+        # Pattern 2: ORGANIZATOR/KONTAKT field from detail pages  
+        organizator_match = re.search(r"ORGANIZATOR:\s*([^\n\r]+)", text, re.IGNORECASE)
+        if organizator_match:
+            result["organizator"] = organizator_match.group(1).strip()
+        
+        kontakt_match = re.search(r"KONTAKT:\s*([^\n\r]+)", text, re.IGNORECASE)
+        if kontakt_match:
+            result["kontakt"] = kontakt_match.group(1).strip()
+        
+        # Pattern 3: Enhanced Croatian address patterns for Zadar region
+        address_patterns = [
+            # Full address with postal code: "Ulica Vladimira Nazora 1, 23000 Zadar"
+            r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+\d+[a-z]?\s*,?\s*23000\s+Zadar)",
+            # Street with number: "Ulica Vladimira Nazora 1", "Trg pet bunara 5"
+            r"([A-ZČĆĐŠŽ][a-zčćđšž\s]+\s+(?:trg|ulica|ul\.|cesta)?\s*\d+[a-z]?)",
+            # Postal code with city: "23000 Zadar"
+            r"(23000\s+Zadar(?:[^\n,]*)?)",
+            # Zadar-specific venue patterns
+            r"((?:Cedulin Palace|Church of St|Zadar City Walls|City Library|Tourist)\s+[A-ZČĆĐŠŽ][a-zčćđšž\s]*)",
+            # General Croatian address with number (broader pattern)
+            r"([A-ZČĆĐŠŽ][a-zčćđšž]{2,}\s+(?:[A-ZČĆĐŠŽ][a-zčćđšž\s]*\s+)?\d+[a-z]?)"
+        ]
+        
+        for pattern in address_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                result["detected_address"] = matches[0].strip()
+                break
+        
+        # Extract Zadar city information
+        if "Zadar" in text:
+            result["city"] = "Zadar"
+        
+        return result
+
+    @staticmethod
+    def get_zadar_venues():
+        """Get list of known Zadar venues for enhanced recognition."""
+        return [
+            "Cedulin Palace Atrium",
+            "Church of St Chrysogonus", 
+            "Zadar City Walls",
+            "City Library Zadar",
+            "Arsenal Zadar",
+            "Forum Zadar",
+            "Sea Organ",
+            "Greeting to the Sun",
+            "Five Wells Square",
+            "People's Square",
+            "St. Donatus Church",
+            "Archaeological Museum Zadar",
+            "Museum of Ancient Glass",
+            "Tourist Information Centre Zadar"
+        ]
+
     @classmethod
     def transform(cls, data: Dict) -> Optional[EventCreate]:
         try:
             title = cls.clean_text(data.get("title", ""))
-            location = cls.clean_text(data.get("location", "Zadar"))
+            
+            # Parse location information from text content
+            full_text = data.get("full_text", "") or data.get("description", "")
+            location_info = cls.parse_location_from_text(full_text)
+            
+            # Merge parsed location info with existing data
+            enhanced_data = {**data, **location_info}
+            
+            # Use enhanced location extraction
+            location = cls.extract_location(enhanced_data)
             description = cls.clean_text(data.get("description", ""))
             price = cls.clean_text(data.get("price", ""))
 
@@ -227,6 +350,23 @@ class ZadarRequestsScraper:
         loc_el = soup.select_one(".location, .venue, .place")
         if loc_el:
             data["location"] = loc_el.get_text(strip=True)
+        
+        # Look for structured location data
+        kontakt_section = soup.select_one('[class*="kontakt"], [class*="contact"]')
+        if kontakt_section:
+            kontakt_text = kontakt_section.get_text(strip=True)
+            if kontakt_text:
+                data["kontakt"] = kontakt_text
+        
+        # Look for organizator information
+        organizator_section = soup.select_one('[class*="organizator"], [class*="organizer"]')
+        if organizator_section:
+            organizator_text = organizator_section.get_text(strip=True)
+            if organizator_text:
+                data["organizator"] = organizator_text
+        
+        # Store full page text for advanced pattern matching
+        data["full_text"] = soup.get_text(separator=" ", strip=True)
 
         price_el = soup.select_one(".price")
         if price_el:
@@ -270,12 +410,14 @@ class ZadarRequestsScraper:
                 loc_p = container.select_one("p")
                 if loc_p and loc_p.get_text(strip=True):
                     location_text = loc_p.get_text(strip=True)
-                    # Default to Zadar if location is generic or empty
-                    if location_text and location_text.lower() not in ["", "zadar"]:
-                        data["location"] = f"{location_text}, Zadar"
-                    else:
-                        data["location"] = "Zadar"
+                    # Store raw location for enhanced processing
+                    data["location"] = location_text
                     break
+        
+        # Capture full element text for pattern matching
+        element_text = el.get_text(separator=" ", strip=True)
+        if element_text:
+            data["full_text"] = element_text
         
         # Fallback for location
         if "location" not in data:
@@ -296,8 +438,8 @@ class ZadarRequestsScraper:
         # Since this is a JavaScript SPA, the static HTML won't have events
         # The actual events need to be scraped using Playwright when available
         if not containers and "Loading..." in resp.text:
-            print("Detected Nuxt.js SPA - static HTML has no events content")
-            print("Playwright is required to scrape events from this JavaScript application")
+            logger.warning("Detected Nuxt.js SPA - static HTML has no events content")
+            logger.warning("Playwright is required to scrape events from this JavaScript application")
             return [], None
         
         # Fallback selectors if Vue.js structure not found
@@ -322,7 +464,7 @@ class ZadarRequestsScraper:
                         data.update({k: v for k, v in detail.items() if v})
                     except Exception as e:
                         # Log but don't fail the whole scraping
-                        print(f"Warning: Could not fetch details from {link}: {e}")
+                        logger.warning(f"Warning: Could not fetch details from {link}: {e}")
                 
                 # Only add events that have at least title and date
                 if data.get("title") and data.get("date"):
@@ -352,29 +494,29 @@ class ZadarRequestsScraper:
         current_url = EVENTS_URL
         page = 0
         
-        print(f"Starting Zadar scraper from {EVENTS_URL}")
+        logger.info(f"Starting Zadar scraper from {EVENTS_URL}")
         
         while current_url and page < max_pages:
             page += 1
-            print(f"Scraping page {page}: {current_url}")
+            logger.info(f"Scraping page {page}: {current_url}")
             
             try:
                 events, next_url = await self.scrape_events_page(current_url)
-                print(f"Found {len(events)} events on page {page}")
+                logger.info(f"Found {len(events)} events on page {page}")
                 all_events.extend(events)
                 
                 if not next_url or not events:
-                    print(f"No more pages or events found after page {page}")
+                    logger.info(f"No more pages or events found after page {page}")
                     break
                     
                 current_url = next_url
                 await asyncio.sleep(1)  # Be respectful
                 
             except Exception as e:
-                print(f"Error scraping page {page}: {e}")
+                logger.error(f"Error scraping page {page}: {e}")
                 break
         
-        print(f"Total events scraped: {len(all_events)}")
+        logger.info(f"Total events scraped: {len(all_events)}")
         return all_events
 
     async def close(self) -> None:
@@ -384,7 +526,76 @@ class ZadarRequestsScraper:
 class ZadarPlaywrightScraper:
     """Playwright scraper for JavaScript-heavy Zadar Travel website."""
     
-    async def scrape_with_playwright(self, max_pages: int = 5) -> List[Dict]:
+    async def fetch_event_details(self, page, event_url: str) -> Dict:
+        """Fetch detailed address information from individual event page."""
+        try:
+            await page.goto(event_url, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2000)  # Wait for content to load
+            
+            # Extract detailed location information from event detail page
+            event_details = await page.evaluate("""
+                () => {
+                    const details = {};
+                    
+                    // Extract LOKACIJA field
+                    const pageText = document.body.textContent;
+                    const locationMatch = pageText.match(/LOKACIJA:\\s*([^\\n\\r]+)/i);
+                    if (locationMatch) {
+                        details.structured_location = locationMatch[1].trim();
+                    }
+                    
+                    // Extract ORGANIZATOR field
+                    const organizatorMatch = pageText.match(/ORGANIZATOR:\\s*([^\\n\\r]+)/i);
+                    if (organizatorMatch) {
+                        details.organizator = organizatorMatch[1].trim();
+                    }
+                    
+                    // Extract KONTAKT field
+                    const kontaktMatch = pageText.match(/KONTAKT:\\s*([^\\n\\r]+)/i);
+                    if (kontaktMatch) {
+                        details.kontakt = kontaktMatch[1].trim();
+                    }
+                    
+                    // Look for detailed address patterns in page content
+                    const addressPatterns = [
+                        // Full address: "Ulica Vladimira Nazora 1, 23000 Zadar"
+                        /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+\\d+[a-z]?\\s*,?\\s*23000\\s+Zadar)/gi,
+                        // Street with number: "Ulica Vladimira Nazora 1", "Trg pet bunara 5"
+                        /([A-ZČĆĐŠŽ][a-zčćđšž\\s]+\\s+(?:trg|ulica|ul\\.|cesta)?\\s*\\d+[a-z]?)/gi,
+                        // Postal code + city: "23000 Zadar"
+                        /(23000\\s+Zadar(?:[^\\n,]*)?)/gi,
+                        // Zadar-specific venues
+                        /(Cedulin Palace|Church of St|Zadar City Walls|City Library|Arsenal|Forum|Sea Organ)/gi
+                    ];
+                    
+                    for (const pattern of addressPatterns) {
+                        const matches = pageText.match(pattern);
+                        if (matches && matches.length > 0) {
+                            // Get the first clean match
+                            details.detected_address = matches[0].trim().replace(/\\s+/g, ' ');
+                            break;
+                        }
+                    }
+                    
+                    // Extract Zadar city information
+                    if (pageText.includes('Zadar')) {
+                        details.city = 'Zadar';
+                    }
+                    
+                    // Store full page text for further processing
+                    details.full_text = pageText;
+                    
+                    return details;
+                }
+            """)
+            
+            return event_details
+            
+        except Exception as e:
+            logger.error(f"Error fetching event details from {event_url}: {e}")
+            return {}
+    
+    async def scrape_with_playwright(self, max_pages: int = 5, fetch_details: bool = False) -> List[Dict]:
         try:
             from playwright.async_api import async_playwright
             import random
@@ -413,7 +624,7 @@ class ZadarPlaywrightScraper:
                 page = await context.new_page()
                 
                 try:
-                    print(f"Navigating to {EVENTS_URL}")
+                    logger.info(f"Navigating to {EVENTS_URL}")
                     await page.goto(EVENTS_URL, wait_until="networkidle", timeout=30000)
                     
                     # Wait for content to load
@@ -466,10 +677,13 @@ class ZadarPlaywrightScraper:
                                         const locP = item.querySelector('p');
                                         if (locP) {
                                             const locText = locP.textContent?.trim() || '';
-                                            data.location = locText === 'Zadar' ? 'Zadar' : `${locText}, Zadar`;
+                                            data.location = locText;
                                         }
                                     }
                                 });
+                                
+                                // Store full article text for enhanced processing
+                                data.full_text = article.textContent;
                                 
                                 // Default location fallback
                                 if (!data.location) {
@@ -486,21 +700,55 @@ class ZadarPlaywrightScraper:
                         }
                     """)
                     
-                    print(f"Found {len(events_data)} events via Playwright")
-                    all_events.extend(events_data)
+                    valid_events = [
+                        event for event in events_data
+                        if event.get("title") and event.get("date")
+                    ]
+                    
+                    # Fetch detailed address information if requested
+                    if fetch_details and valid_events:
+                        logger.info(f"Fetching detailed address info for {len(valid_events)} events...")
+                        enhanced_events = []
+                        
+                        for i, event in enumerate(valid_events):
+                            if event.get("link"):
+                                try:
+                                    # Rate limiting - fetch details for every 3rd event to avoid overwhelming server
+                                    if i % 3 == 0:
+                                        details = await self.fetch_event_details(page, event["link"])
+                                        if details:
+                                            # Merge detailed information
+                                            event.update(details)
+                                            logger.info(f"Enhanced event {i+1}/{len(valid_events)}: {event.get('title', 'Unknown')}")
+                                        
+                                        # Add delay between detail fetches
+                                        await page.wait_for_timeout(1000)
+                                    
+                                    enhanced_events.append(event)
+                                    
+                                except Exception as e:
+                                    logger.warning(f"Error fetching details for event {event.get('title', 'Unknown')}: {e}")
+                                    enhanced_events.append(event)  # Add original event even if detail fetch fails
+                            else:
+                                enhanced_events.append(event)
+                        
+                        valid_events = enhanced_events
+                    
+                    logger.info(f"Found {len(valid_events)} events via Playwright")
+                    all_events.extend(valid_events)
                     
                 except Exception as e:
-                    print(f"Error scraping with Playwright: {e}")
+                    logger.error(f"Error scraping with Playwright: {e}")
                 
                 await browser.close()
             
             return all_events
             
         except ImportError:
-            print("Playwright not available, falling back to requests approach")
+            logger.warning("Playwright not available, falling back to requests approach")
             return []
         except Exception as e:
-            print(f"Playwright error: {e}")
+            logger.error(f"Playwright error: {e}")
             return []
 
 
@@ -512,20 +760,30 @@ class ZadarScraper:
         self.playwright_scraper = ZadarPlaywrightScraper()
         self.transformer = ZadarTransformer()
 
-    async def scrape_events(self, max_pages: int = 5, use_playwright: bool = True) -> List[EventCreate]:
+    async def scrape_events(self, max_pages: int = 5, use_playwright: bool = True, fetch_details: bool = False) -> List[EventCreate]:
         raw = []
         
         if use_playwright:
             # Try Playwright first for JavaScript-heavy content
-            raw = await self.playwright_scraper.scrape_with_playwright(max_pages=max_pages)
+            logger.info("Using Playwright for enhanced scraping...")
+            try:
+                raw = await self.playwright_scraper.scrape_with_playwright(
+                    max_pages=max_pages, 
+                    fetch_details=fetch_details
+                )
+                logger.info(f"Playwright extracted {len(raw)} raw events")
+            except Exception as e:
+                logger.error(f"Playwright failed: {e}, falling back to requests approach")
+                raw = []
             
             # If Playwright fails or returns no results, fallback to requests
             if not raw:
-                print("Playwright returned no results, falling back to requests approach")
+                logger.warning("Playwright returned no results, falling back to requests approach")
                 raw = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
                 await self.requests_scraper.close()
         else:
             # Use requests approach directly
+            logger.info("Using requests/BeautifulSoup approach...")
             raw = await self.requests_scraper.scrape_all_events(max_pages=max_pages)
             await self.requests_scraper.close()
         
@@ -535,14 +793,14 @@ class ZadarScraper:
             if event:
                 events.append(event)
         
+        logger.info(f"Transformed {len(events)} valid events from {len(raw)} raw events")
         return events
 
     def save_events_to_database(self, events: List[EventCreate]) -> int:
         from sqlalchemy import select, tuple_
-        from sqlalchemy.dialects.postgresql import insert
 
-        from ..core.database import SessionLocal
-        from ..models.event import Event
+        from backend.app.core.database import SessionLocal
+        from backend.app.models.event import Event
 
         if not events:
             return 0
@@ -568,7 +826,7 @@ class ZadarScraper:
                     except Exception as e:
                         # Skip duplicate or invalid events
                         db.rollback()
-                        print(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
+                        logger.warning(f"Skipping event {event_data.get('title', 'Unknown')}: {e}")
                         continue
                 
                 db.commit()
@@ -577,22 +835,27 @@ class ZadarScraper:
             return 0
         except Exception as e:
             db.rollback()
-            print(f"Database error in Zadar scraper: {e}")
+            logger.error(f"Database error in Zadar scraper: {e}")
             raise
         finally:
             db.close()
 
 
-async def scrape_zadar_events(max_pages: int = 5) -> Dict:
+async def scrape_zadar_events(max_pages: int = 5, use_playwright: bool = True, fetch_details: bool = False) -> Dict:
     scraper = ZadarScraper()
     try:
-        events = await scraper.scrape_events(max_pages=max_pages)
+        events = await scraper.scrape_events(
+            max_pages=max_pages, 
+            use_playwright=use_playwright, 
+            fetch_details=fetch_details
+        )
         saved = scraper.save_events_to_database(events)
         return {
             "status": "success",
             "scraped_events": len(events),
             "saved_events": saved,
-            "message": f"Scraped {len(events)} events from Zadar Travel, saved {saved} new events",
+            "message": f"Scraped {len(events)} events from Zadar Travel, saved {saved} new events" + 
+                      (" (with enhanced address extraction)" if use_playwright else ""),
         }
     except Exception as e:
         return {"status": "error", "message": f"Zadar scraping failed: {e}"}

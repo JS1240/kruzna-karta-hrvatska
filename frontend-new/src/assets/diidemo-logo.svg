@@ -1,0 +1,18 @@
+<svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .logo-text { font-family: 'Arial', sans-serif; font-weight: bold; }
+      .main-text { font-size: 72px; fill: #000; }
+      .tagline { font-size: 24px; fill: #2563eb; }
+      .dot { fill: #f97316; }
+    </style>
+  </defs>
+  
+  <!-- Main logo text -->
+  <text x="20" y="80" class="logo-text main-text">Diidemo</text>
+  <text x="420" y="80" class="logo-text main-text">.hr</text>
+  <circle cx="500" cy="65" r="8" class="dot"/>
+  
+  <!-- Tagline -->
+  <text x="20" y="130" class="logo-text tagline">Because "NoThInG t0 d0" is not an option</text>
+</svg>

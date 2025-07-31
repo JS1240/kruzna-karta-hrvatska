@@ -1,0 +1,404 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors */
+    --brand-primary: 244 97% 30%;        /* Navy Blue #0E0099 */
+    --brand-secondary: 248 46% 51%;      /* Purple #564CB7 */
+    --brand-tertiary: 197 60% 50%;       /* Light Blue #33A2CC */
+    --brand-accent: 30 100% 60%;         /* Orange #FF9933 */
+    --brand-accent-blue: 203 100% 30%;   /* Dark Blue #006699 */
+    --brand-white: 0 0% 100%;           /* White #FFFFFF */
+
+    /* Primary Color Scale */
+    --primary-50: 248 100% 97%;         /* Very light navy */
+    --primary-100: 246 100% 94%;        /* Light navy */
+    --primary-200: 245 100% 88%;        /* Lighter navy */
+    --primary-300: 244 100% 78%;        /* Light navy */
+    --primary-400: 244 98% 54%;         /* Medium navy */
+    --primary-500: 244 97% 30%;         /* Base navy #0E0099 */
+    --primary-600: 244 97% 25%;         /* Dark navy */
+    --primary-700: 244 97% 20%;         /* Darker navy */
+    --primary-800: 244 97% 15%;         /* Very dark navy */
+    --primary-900: 244 97% 10%;         /* Deepest navy */
+    --primary-950: 244 97% 5%;          /* Almost black navy */
+
+    /* Secondary Color Scale */
+    --secondary-50: 248 65% 95%;        /* Very light purple */
+    --secondary-100: 248 60% 90%;       /* Light purple */
+    --secondary-200: 248 55% 80%;       /* Lighter purple */
+    --secondary-300: 248 50% 70%;       /* Light purple */
+    --secondary-400: 248 48% 60%;       /* Medium purple */
+    --secondary-500: 248 46% 51%;       /* Base purple #564CB7 */
+    --secondary-600: 248 46% 41%;       /* Dark purple */
+    --secondary-700: 248 46% 31%;       /* Darker purple */
+    --secondary-800: 248 46% 21%;       /* Very dark purple */
+    --secondary-900: 248 46% 11%;       /* Deepest purple */
+    --secondary-950: 248 46% 6%;        /* Almost black purple */
+
+    /* Tertiary Color Scale */
+    --tertiary-50: 197 80% 95%;         /* Very light blue */
+    --tertiary-100: 197 75% 90%;        /* Light blue */
+    --tertiary-200: 197 70% 80%;        /* Lighter blue */
+    --tertiary-300: 197 65% 70%;        /* Light blue */
+    --tertiary-400: 197 62% 60%;        /* Medium blue */
+    --tertiary-500: 197 60% 50%;        /* Base blue #33A2CC */
+    --tertiary-600: 197 60% 40%;        /* Dark blue */
+    --tertiary-700: 197 60% 30%;        /* Darker blue */
+    --tertiary-800: 197 60% 20%;        /* Very dark blue */
+    --tertiary-900: 197 60% 10%;        /* Deepest blue */
+    --tertiary-950: 197 60% 5%;         /* Almost black blue */
+
+    /* Accent Color Scale */
+    --accent-50: 30 100% 95%;           /* Very light orange */
+    --accent-100: 30 100% 90%;          /* Light orange */
+    --accent-200: 30 100% 80%;          /* Lighter orange */
+    --accent-300: 30 100% 70%;          /* Light orange */
+    --accent-400: 30 100% 65%;          /* Medium orange */
+    --accent-500: 30 100% 60%;          /* Base orange #FF9933 */
+    --accent-600: 30 100% 50%;          /* Dark orange */
+    --accent-700: 30 100% 40%;          /* Darker orange */
+    --accent-800: 30 100% 30%;          /* Very dark orange */
+    --accent-900: 30 100% 20%;          /* Deepest orange */
+    --accent-950: 30 100% 10%;          /* Almost black orange */
+
+    /* Accent Blue Color Scale */
+    --accent-blue-50: 203 100% 95%;     /* Very light dark blue */
+    --accent-blue-100: 203 100% 90%;    /* Light dark blue */
+    --accent-blue-200: 203 100% 80%;    /* Lighter dark blue */
+    --accent-blue-300: 203 100% 70%;    /* Light dark blue */
+    --accent-blue-400: 203 100% 50%;    /* Medium dark blue */
+    --accent-blue-500: 203 100% 30%;    /* Base dark blue #006699 */
+    --accent-blue-600: 203 100% 25%;    /* Dark dark blue */
+    --accent-blue-700: 203 100% 20%;    /* Darker dark blue */
+    --accent-blue-800: 203 100% 15%;    /* Very dark dark blue */
+    --accent-blue-900: 203 100% 10%;    /* Deepest dark blue */
+    --accent-blue-950: 203 100% 5%;     /* Almost black dark blue */
+  }
+
+  .dark {
+    /* Adjusted colors for dark mode */
+    --primary-50: 244 97% 8%;           /* Dark navy for dark mode */
+    --primary-100: 244 97% 12%;         /* Dark navy */
+    --primary-200: 244 97% 18%;         /* Dark navy */
+    --primary-300: 244 97% 25%;         /* Dark navy */
+    --primary-400: 244 98% 40%;         /* Medium navy */
+    --primary-500: 244 97% 50%;         /* Brightened base navy */
+    --primary-600: 244 100% 65%;        /* Light navy */
+    --primary-700: 244 100% 75%;        /* Lighter navy */
+    --primary-800: 244 100% 85%;        /* Very light navy */
+    --primary-900: 244 100% 92%;        /* Lightest navy */
+    --primary-950: 244 100% 96%;        /* Almost white navy */
+
+    --secondary-50: 248 46% 8%;         /* Dark purple for dark mode */
+    --secondary-100: 248 46% 12%;       /* Dark purple */
+    --secondary-200: 248 46% 18%;       /* Dark purple */
+    --secondary-300: 248 46% 25%;       /* Dark purple */
+    --secondary-400: 248 48% 40%;       /* Medium purple */
+    --secondary-500: 248 50% 65%;       /* Brightened base purple */
+    --secondary-600: 248 55% 75%;       /* Light purple */
+    --secondary-700: 248 60% 82%;       /* Lighter purple */
+    --secondary-800: 248 65% 88%;       /* Very light purple */
+    --secondary-900: 248 70% 92%;       /* Lightest purple */
+    --secondary-950: 248 75% 96%;       /* Almost white purple */
+
+    --tertiary-50: 197 60% 8%;          /* Dark blue for dark mode */
+    --tertiary-100: 197 60% 12%;        /* Dark blue */
+    --tertiary-200: 197 60% 18%;        /* Dark blue */
+    --tertiary-300: 197 60% 25%;        /* Dark blue */
+    --tertiary-400: 197 62% 40%;        /* Medium blue */
+    --tertiary-500: 197 65% 65%;        /* Brightened base blue */
+    --tertiary-600: 197 70% 75%;        /* Light blue */
+    --tertiary-700: 197 75% 82%;        /* Lighter blue */
+    --tertiary-800: 197 80% 88%;        /* Very light blue */
+    --tertiary-900: 197 85% 92%;        /* Lightest blue */
+    --tertiary-950: 197 90% 96%;        /* Almost white blue */
+
+    --accent-50: 30 100% 8%;            /* Dark orange for dark mode */
+    --accent-100: 30 100% 12%;          /* Dark orange */
+    --accent-200: 30 100% 18%;          /* Dark orange */
+    --accent-300: 30 100% 25%;          /* Dark orange */
+    --accent-400: 30 100% 45%;          /* Medium orange */
+    --accent-500: 30 100% 65%;          /* Brightened base orange */
+    --accent-600: 30 100% 75%;          /* Light orange */
+    --accent-700: 30 100% 82%;          /* Lighter orange */
+    --accent-800: 30 100% 88%;          /* Very light orange */
+    --accent-900: 30 100% 92%;          /* Lightest orange */
+    --accent-950: 30 100% 96%;          /* Almost white orange */
+
+    --accent-blue-50: 203 100% 8%;      /* Dark dark blue for dark mode */
+    --accent-blue-100: 203 100% 12%;    /* Dark dark blue */
+    --accent-blue-200: 203 100% 18%;    /* Dark dark blue */
+    --accent-blue-300: 203 100% 25%;    /* Dark dark blue */
+    --accent-blue-400: 203 100% 40%;    /* Medium dark blue */
+    --accent-blue-500: 203 100% 55%;    /* Brightened base dark blue */
+    --accent-blue-600: 203 100% 70%;    /* Light dark blue */
+    --accent-blue-700: 203 100% 80%;    /* Lighter dark blue */
+    --accent-blue-800: 203 100% 88%;    /* Very light dark blue */
+    --accent-blue-900: 203 100% 92%;    /* Lightest dark blue */
+    --accent-blue-950: 203 100% 96%;    /* Almost white dark blue */
+  }
+}
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .btn {
+    @apply inline-flex items-center justify-center text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    /* Brick button design - sharp corners */
+    border-radius: 0;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .btn-primary {
+    background: hsl(var(--primary-500));
+    border-color: hsl(var(--primary-600));
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: hsl(var(--primary-600));
+    border-color: hsl(var(--primary-700));
+  }
+  
+  .btn-primary:focus {
+    --tw-ring-color: hsl(var(--primary-500));
+  }
+  
+  .btn-secondary {
+    background: hsl(var(--secondary-100));
+    border-color: hsl(var(--secondary-200));
+    color: hsl(var(--secondary-800));
+  }
+  
+  .btn-secondary:hover {
+    background: hsl(var(--secondary-200));
+    border-color: hsl(var(--secondary-300));
+  }
+  
+  .btn-secondary:focus {
+    --tw-ring-color: hsl(var(--secondary-500));
+  }
+  
+  .btn-outline {
+    background: transparent;
+    border-color: hsl(var(--primary-300));
+    color: hsl(var(--primary-600));
+  }
+  
+  .btn-outline:hover {
+    background: hsl(var(--primary-50));
+    border-color: hsl(var(--primary-400));
+    color: hsl(var(--primary-700));
+  }
+  
+  .btn-outline:focus {
+    --tw-ring-color: hsl(var(--primary-500));
+  }
+  
+  .card {
+    @apply rounded-lg border border-gray-200 bg-white shadow-sm;
+  }
+  
+  /* Frosted Glass Card Styles */
+  .card-glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .card-glass:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  /* Glass card with brand accent */
+  .card-glass-primary {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(var(--primary-300) / 0.3);
+    border-radius: 12px;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .card-glass-primary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: hsl(var(--primary-400) / 0.4);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  /* Dark mode glass card adjustments */
+  .dark .card-glass {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  .dark .card-glass:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .dark .card-glass-primary {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: hsl(var(--primary-400) / 0.2);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  .dark .card-glass-primary:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: hsl(var(--primary-300) / 0.3);
+  }
+  
+  .input {
+    @apply flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Mapbox GL JS styles */
+.mapboxgl-map {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 850px !important;
+}
+
+/* Responsive map adjustments */
+@media (max-width: 768px) {
+  .mapboxgl-control-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .mapboxgl-ctrl-bottom-right {
+    bottom: 1rem;
+    right: 1rem;
+  }
+}
+
+.mapboxgl-popup-content {
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.mapboxgl-popup-close-button {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #6b7280;
+  right: 8px;
+  top: 8px;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #374151;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+  border-top-color: #fff;
+}
+
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+  border-bottom-color: #fff;
+}
+
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: #fff;
+}
+
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: #fff;
+}

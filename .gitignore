@@ -90,6 +90,9 @@ coverage/
 __pycache__/
 *.py[cod]
 
+# Security - Encryption keys
+*.key
+
 # Test output
 junit.xml
 

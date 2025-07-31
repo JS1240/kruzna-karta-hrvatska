@@ -7,12 +7,12 @@ import json
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 import redis
 from redis.exceptions import ConnectionError, RedisError
 
-from .config import settings
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,21 @@ class CacheService:
     """Comprehensive Redis caching service with multiple strategies."""
 
     def __init__(self, redis_url: str = None):
-        """Initialize Redis connection with fallback handling."""
+        """Initialize Redis connection with fallback handling.
+        
+        Sets up the Redis caching service with connection management, TTL configuration
+        for different data types, and automatic fallback when Redis is unavailable.
+        Establishes connection immediately and logs connection status.
+        
+        Args:
+            redis_url: Optional Redis connection URL. If not provided, uses settings.redis_url
+                Format: redis://localhost:6379 or redis://user:pass@host:port/db
+                
+        Note:
+            The service gracefully handles Redis unavailability by disabling caching
+            operations rather than failing. TTL configuration is optimized for different
+            data types (events: 30min, categories: 2h, search: 10min, etc.).
+        """
         self.redis_url = redis_url or settings.redis_url
         self._redis = None
         self._connection_failed = False
@@ -46,7 +60,7 @@ class CacheService:
 
         self._connect()
 
-    def _connect(self):
+    def _connect(self) -> None:
         """Establish Redis connection with error handling."""
         try:
             if self.redis_url:
@@ -115,7 +129,25 @@ class CacheService:
             return None
 
     def get(self, namespace: str, key: str) -> Optional[Any]:
-        """Get value from cache."""
+        """Get value from cache with automatic deserialization and error handling.
+        
+        Retrieves a cached value from the specified namespace using the provided key.
+        Automatically deserializes JSON data and handles connection failures gracefully
+        by returning None when Redis is unavailable.
+        
+        Args:
+            namespace: Cache namespace (e.g., "events", "categories", "search_results")
+                Used for logical separation and bulk operations
+            key: Unique identifier within the namespace for the cached item
+                
+        Returns:
+            Optional[Any]: The cached value if found and successfully deserialized,
+                None if key doesn't exist, cache is unavailable, or deserialization fails
+                
+        Note:
+            This method never raises exceptions, returning None on any error to ensure
+            application resilience when caching is unavailable.
+        """
         if not self.is_available:
             return None
 
@@ -135,7 +167,28 @@ class CacheService:
     def set(
         self, namespace: str, key: str, value: Any, ttl: Optional[int] = None
     ) -> bool:
-        """Set value in cache with TTL."""
+        """Set value in cache with TTL and automatic serialization.
+        
+        Stores a value in the cache with automatic JSON serialization and configurable
+        time-to-live (TTL). Uses namespace-specific default TTLs or provided value.
+        Handles serialization of complex objects including datetime and Pydantic models.
+        
+        Args:
+            namespace: Cache namespace for logical separation and TTL configuration
+            key: Unique identifier within the namespace for the cached item
+            value: Any serializable Python object (dict, list, string, number, datetime,
+                Pydantic models, objects with __dict__ attribute)
+            ttl: Optional TTL in seconds. If None, uses namespace-specific default:
+                - events: 1800s (30min), categories: 7200s (2h), search_results: 600s (10min)
+                
+        Returns:
+            bool: True if value was successfully stored, False if operation failed
+                or Redis is unavailable
+                
+        Note:
+            The method automatically handles object serialization using JSON with
+            custom handlers for datetime objects and Pydantic models.
+        """
         if not self.is_available:
             return False
 
@@ -154,7 +207,23 @@ class CacheService:
             return False
 
     def delete(self, namespace: str, key: str) -> bool:
-        """Delete value from cache."""
+        """Delete value from cache with error handling.
+        
+        Removes a specific cached item from the given namespace. Used for cache
+        invalidation when data changes or manual cache management.
+        
+        Args:
+            namespace: Cache namespace containing the key to delete
+            key: Unique identifier of the cached item to remove
+                
+        Returns:
+            bool: True if key was successfully deleted (or didn't exist),
+                False if operation failed or Redis is unavailable
+                
+        Note:
+            Returns True even if the key didn't exist, matching Redis behavior.
+            Never raises exceptions to maintain application stability.
+        """
         if not self.is_available:
             return False
 
@@ -168,7 +237,25 @@ class CacheService:
             return False
 
     def invalidate_pattern(self, namespace: str, pattern: str = "*") -> int:
-        """Invalidate all keys matching pattern in namespace."""
+        """Invalidate all keys matching pattern in namespace with batch processing.
+        
+        Efficiently removes multiple cache keys matching a pattern within a namespace.
+        Uses batch processing to handle large numbers of keys without blocking Redis.
+        Essential for cache invalidation when related data changes.
+        
+        Args:
+            namespace: Cache namespace to search within
+            pattern: Redis pattern to match keys against (default: "*" for all keys)
+                Supports wildcards: * (any chars), ? (single char), [abc] (char set)
+                
+        Returns:
+            int: Number of keys successfully deleted from the cache
+                
+        Note:
+            Uses SCAN for memory-efficient iteration and batches deletions in groups
+            of 500 to prevent blocking Redis. Logs the number of deleted keys for
+            monitoring cache invalidation operations.
+        """
         if not self.is_available:
             return 0
 
@@ -268,7 +355,29 @@ class CacheService:
             return None
 
     def get_stats(self) -> Dict[str, Any]:
-        """Get cache statistics."""
+        """Get comprehensive cache statistics and performance metrics.
+        
+        Retrieves detailed information about Redis performance, memory usage,
+        connection status, and namespace-specific statistics. Essential for
+        monitoring cache effectiveness and identifying performance issues.
+        
+        Returns:
+            Dict containing cache statistics:
+                - status: "available", "unavailable", or "error"
+                - redis_connected: Boolean connection status
+                - redis_version: Redis server version
+                - used_memory: Human-readable memory usage
+                - connected_clients: Number of client connections
+                - total_commands_processed: Lifetime command count
+                - keyspace_hits/misses: Cache hit/miss counters
+                - hit_ratio: Cache hit ratio percentage
+                - uptime_seconds: Redis server uptime
+                - namespace_stats: Key counts per namespace
+                
+        Note:
+            Returns limited information when Redis is unavailable. Used by
+            monitoring systems to track cache performance and health.
+        """
         if not self.is_available:
             return {"status": "unavailable", "redis_connected": False}
 
@@ -328,7 +437,28 @@ class CacheService:
         return self.invalidate_pattern(namespace, "*")
 
     def health_check(self) -> Dict[str, Any]:
-        """Perform health check on cache service."""
+        """Perform comprehensive health check on cache service.
+        
+        Executes a series of tests to verify cache functionality including basic
+        operations (set/get/delete), performance metrics, and connection status.
+        Provides detailed diagnostics for monitoring and troubleshooting.
+        
+        Returns:
+            Dict containing health check results:
+                - timestamp: ISO format timestamp of the check
+                - service: "cache" identifier
+                - status: "healthy", "degraded", or "unhealthy"
+                - redis_connected: Boolean connection status
+                - issues: List of identified problems (if any)
+                - set_success/get_success/delete_success: Operation test results
+                - hit_ratio: Current cache hit ratio percentage
+                - used_memory: Memory usage information
+                - connected_clients: Number of active connections
+                
+        Note:
+            Performs actual cache operations with a test key to verify functionality.
+            Safe to call frequently as it uses minimal resources and cleans up test data.
+        """
         health_data = {
             "timestamp": datetime.now().isoformat(),
             "service": "cache",
@@ -418,10 +548,37 @@ def cache_key_generator(*args, **kwargs) -> str:
 
 def cached(
     namespace: str, ttl: Optional[int] = None, key_func: Optional[Callable] = None
-):
-    """Decorator for caching function results."""
+) -> Callable:
+    """Decorator for caching function results with automatic key generation.
+    
+    Provides transparent caching for function calls by storing results in Redis
+    and returning cached values on subsequent calls with the same arguments.
+    Includes cache invalidation methods and handles cache misses gracefully.
+    
+    Args:
+        namespace: Cache namespace for logical separation (e.g., "events", "search")
+        ttl: Optional TTL in seconds. If None, uses namespace-specific default
+        key_func: Optional custom function to generate cache keys from arguments
+            Signature: key_func(*args, **kwargs) -> str
+            
+    Returns:
+        Callable: Decorator function that wraps the target function with caching
+        
+    Note:
+        The decorated function gains two additional methods:
+        - invalidate(*args, **kwargs): Remove specific cached result
+        - invalidate_all(): Remove all cached results for this function
+        
+        Automatic key generation handles database objects, basic types, and
+        creates MD5 hashes for long keys to stay within Redis limits.
+        
+    Example:
+        @cached("events", ttl=1800)
+        def get_popular_events(category_id: int) -> List[Event]:
+            return db.query(Event).filter(...).all()
+    """
 
-    def decorator(func):
+    def decorator(func) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Get cache service
@@ -460,10 +617,10 @@ def cached(
     return decorator
 
 
-def cache_invalidate_on_change(namespaces: List[str]):
+def cache_invalidate_on_change(namespaces: List[str]) -> Callable:
     """Decorator to invalidate cache when data changes."""
 
-    def decorator(func):
+    def decorator(func) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             result = func(*args, **kwargs)
@@ -486,7 +643,20 @@ _cache_service = None
 
 
 def get_cache_service() -> CacheService:
-    """Get global cache service instance."""
+    """Get global cache service instance with lazy initialization.
+    
+    Returns the singleton CacheService instance, creating it on first access.
+    Provides consistent access to caching functionality across the application
+    without requiring manual initialization in most cases.
+    
+    Returns:
+        CacheService: The global cache service instance with Redis connection
+        
+    Note:
+        Uses lazy initialization pattern - the service is created on first access
+        using default configuration from settings. For custom configuration,
+        use init_cache_service() before first access.
+    """
     global _cache_service
     if _cache_service is None:
         _cache_service = CacheService()
@@ -494,7 +664,24 @@ def get_cache_service() -> CacheService:
 
 
 def init_cache_service(redis_url: str = None) -> CacheService:
-    """Initialize cache service with custom configuration."""
+    """Initialize cache service with custom configuration.
+    
+    Creates a new CacheService instance with custom Redis URL, replacing any
+    existing global instance. Used for testing, development, or when multiple
+    Redis instances are needed.
+    
+    Args:
+        redis_url: Optional custom Redis connection URL. If not provided,
+            uses the default from settings
+            
+    Returns:
+        CacheService: Newly created cache service instance
+        
+    Note:
+        This function replaces the global cache service instance, affecting
+        all subsequent calls to get_cache_service(). Primarily used during
+        application startup or in test environments.
+    """
     global _cache_service
     _cache_service = CacheService(redis_url)
     return _cache_service

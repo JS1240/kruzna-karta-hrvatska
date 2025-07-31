@@ -38,6 +38,7 @@ dependencies = [
     "stripe>=7.0.0",
     "email-validator>=2.2.0",
     "openai>=1.0.0",
+    "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]
@@ -70,3 +71,9 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "mypy>=1.16.0",
+    "ruff>=0.12.7",
+]
