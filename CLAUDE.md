@@ -396,3 +396,6 @@ Mapbox documentation:
 
 Pydantic documentation:
 - [Pydantic](https://docs.pydantic.dev/latest/)
+
+BrightData documentation:
+- [BrightData](https://docs.brightdata.com/introduction)

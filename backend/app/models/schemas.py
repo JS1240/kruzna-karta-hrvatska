@@ -163,6 +163,14 @@ class Event(EventBase):
     category: Optional[EventCategory] = None
     venue: Optional[Venue] = None
 
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def handle_null_timestamps(cls, v) -> datetime:
+        """Handle NULL timestamp values by providing current datetime as fallback."""
+        if v is None:
+            return datetime.now()
+        return v
+
     class Config:
         from_attributes = True
 

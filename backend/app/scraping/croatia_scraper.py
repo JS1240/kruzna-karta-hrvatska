@@ -4,39 +4,43 @@ This scraper handles the Vue.js-based dynamic content and extracts event informa
 """
 
 import logging
-import os
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, List, Optional
 from urllib.parse import urljoin
 
-
+from app.config.components import get_settings
+from app.core.database import SessionLocal
+from app.core.geocoding_service import geocoding_service
+from app.models.event import Event
+from app.models.schemas import EventCreate
 
 # Set up logging
 logger = logging.getLogger(__name__)
-from backend.app.core.database import SessionLocal
-from backend.app.models.event import Event
-from backend.app.models.schemas import EventCreate
 
-# BrightData configuration (reuse from entrio scraper)
-USER = os.getenv("BRIGHTDATA_USER", "demo_user")
-PASSWORD = os.getenv("BRIGHTDATA_PASSWORD", "demo_password")
-BRIGHTDATA_HOST_RES = "brd.superproxy.io"
-BRIGHTDATA_PORT = int(os.getenv("BRIGHTDATA_PORT", 22225))
-SCRAPING_BROWSER_EP = f"https://brd.superproxy.io:{BRIGHTDATA_PORT}"
+# Load configuration
+CONFIG = get_settings()
+
+# BrightData configuration from centralized settings
+SCRAPING_CONFIG = CONFIG.scraping
+USER = SCRAPING_CONFIG.brightdata_user
+PASSWORD = SCRAPING_CONFIG.brightdata_password
+BRIGHTDATA_HOST_RES = SCRAPING_CONFIG.brightdata_host
+BRIGHTDATA_PORT = SCRAPING_CONFIG.brightdata_port
+
+# WebSocket URL for Bright Data scraping browser
+BRD_WSS = SCRAPING_CONFIG.scraping_browser_endpoint if SCRAPING_CONFIG.is_websocket_endpoint else f"wss://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:9222"
+
+# Proxy URL
 PROXY = f"http://{USER}:{PASSWORD}@{BRIGHTDATA_HOST_RES}:{BRIGHTDATA_PORT}"
-BRD_WSS = f"wss://{USER}:{PASSWORD}@brd.superproxy.io:9222"
 
-USE_SB = os.getenv("USE_SCRAPING_BROWSER", "0") == "1"
-USE_PROXY = os.getenv("USE_PROXY", "0") == "1"
-USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "1") == "1"
+# Configuration flags
+USE_PROXY = SCRAPING_CONFIG.use_proxy
+USE_PLAYWRIGHT = SCRAPING_CONFIG.use_playwright
+USE_SB = bool(SCRAPING_CONFIG.scraping_browser_url)
 
-HEADERS = {
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "accept-language": "hr-HR,hr;q=0.9,en;q=0.8",
-    "accept-encoding": "gzip, deflate, br",
-}
+# Headers from configuration
+HEADERS = SCRAPING_CONFIG.headers_dict
 
 BASE_URL = "https://croatia.hr"
 EVENTS_URL = "https://croatia.hr/hr-hr/dogadanja"
@@ -245,8 +249,10 @@ class CroatiaEventDataTransformer:
                 start_date_str
             )
             if not parsed_date:
-                # Skip events without valid dates
-                return None
+                # For events without valid dates, use a default future date
+                from datetime import date, timedelta
+                parsed_date = date.today() + timedelta(days=30)  # Default to 30 days from now
+                logger.warning(f"No valid date found for event '{name}', using default: {parsed_date}")
 
             # Parse time
             time_str = scraped_data.get("time", "") or scraped_data.get("startTime", "")
@@ -277,14 +283,37 @@ class CroatiaEventDataTransformer:
             if not name or len(name) < 3:
                 return None
 
-            if not location:
-                location = "Croatia"
+            if not location or location.strip().lower() in ["croatia", "", "hr"]:
+                # Extract location from the URL domain as fallback
+                if scraped_data.get("link"):
+                    import re
+                    # Try to extract city/region from URL patterns
+                    url_match = re.search(r"visit([^.]+)\.croatia\.hr", scraped_data["link"])
+                    if url_match:
+                        city_from_url = url_match.group(1).replace("-", " ").title()
+                        # Clean up common URL patterns
+                        city_from_url = city_from_url.replace("Central ", "Central-")  # "Central Istria"
+                        city_from_url = city_from_url.replace("Dugo Selo", "Dugo Selo")  # Keep proper names
+                        location = city_from_url
+                    else:
+                        # Try other URL patterns
+                        domain_match = re.search(r"//([^/]+)\.croatia\.hr", scraped_data["link"])
+                        if domain_match:
+                            domain_part = domain_match.group(1)
+                            if domain_part != "www" and domain_part != "croatia":
+                                location = domain_part.replace("-", " ").title()
+                            else:
+                                location = "Croatia"
+                        else:
+                            location = "Croatia"
+                else:
+                    location = "Croatia"
 
             if not description:
                 description = f"Event in Croatia: {name}"
 
             return EventCreate(
-                name=name,
+                title=name,
                 time=parsed_time,
                 date=parsed_date,
                 location=location,
@@ -292,6 +321,7 @@ class CroatiaEventDataTransformer:
                 price=price,
                 image=image_url,
                 link=link,
+                source="croatia",
             )
 
         except Exception as e:
@@ -397,9 +427,17 @@ class CroatiaPlaywrightScraper:
         page_count = 0
 
         async with async_playwright() as p:
-            if USE_PROXY:
+            if USE_PROXY and SCRAPING_CONFIG.is_websocket_endpoint:
+                # Use WebSocket connection for Bright Data scraping browser
+                logger.info(f"Connecting to Bright Data scraping browser: {BRD_WSS}")
                 browser = await p.chromium.connect_over_cdp(BRD_WSS)
+            elif USE_PROXY:
+                # Use regular Chromium with proxy
+                logger.info(f"Launching Chromium with proxy: {PROXY}")
+                browser = await p.chromium.launch(proxy={"server": PROXY})
             else:
+                # Local browser without proxy
+                logger.info("Launching local Chromium browser")
                 browser = await p.chromium.launch()
 
             page = await browser.new_page()
@@ -740,10 +778,23 @@ class CroatiaScraper:
         logger.info(f"Transformed {len(events)} valid events for Croatia.hr")
         return events
 
-    def save_events_to_database(self, events: List[EventCreate]) -> int:
-        """Save events to database and return count of saved events."""
+    async def save_events_to_database(self, events: List[EventCreate]) -> int:
+        """Save events to database with geocoding and return count of saved events."""
         if not events:
             return 0
+
+        # First, geocode all event locations
+        try:
+            locations_to_geocode = [(event.location, "") for event in events if event.location]
+            logger.info(f"Geocoding {len(locations_to_geocode)} event locations...")
+            
+            geocoding_results = await geocoding_service.batch_geocode_venues(locations_to_geocode)
+            geocoded_count = len(geocoding_results)
+            logger.info(f"Successfully geocoded {geocoded_count}/{len(locations_to_geocode)} locations")
+            
+        except Exception as e:
+            logger.warning(f"Geocoding failed, continuing without coordinates: {e}")
+            geocoding_results = {}
 
         db = SessionLocal()
         saved_count = 0
@@ -760,7 +811,20 @@ class CroatiaScraper:
                 )
 
                 if not existing:
-                    db_event = Event(**event_data.model_dump())
+                    # Create event with explicit timestamps and geocoding
+                    current_time = datetime.now()
+                    event_dict = event_data.model_dump()
+                    event_dict['created_at'] = current_time
+                    event_dict['updated_at'] = current_time
+                    
+                    # Add geocoding coordinates if available
+                    if event_data.location in geocoding_results:
+                        result = geocoding_results[event_data.location]
+                        event_dict['latitude'] = result.latitude
+                        event_dict['longitude'] = result.longitude
+                        logger.debug(f"Added coordinates for {event_data.location}: {result.latitude}, {result.longitude}")
+                    
+                    db_event = Event(**event_dict)
                     db.add(db_event)
                     saved_count += 1
                 else:
@@ -786,7 +850,7 @@ async def scrape_croatia_events(max_pages: int = 5, fetch_details: bool = False)
 
     try:
         events = await scraper.scrape_events(max_pages=max_pages, fetch_details=fetch_details)
-        saved_count = scraper.save_events_to_database(events)
+        saved_count = await scraper.save_events_to_database(events)
 
         return {
             "status": "success",

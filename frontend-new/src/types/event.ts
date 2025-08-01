@@ -155,3 +155,66 @@ export interface PaginationInfo {
   has_next: boolean;
   has_previous: boolean;
 }
+
+// Clustering-related interfaces
+export interface GeoPoint {
+  latitude: number;
+  longitude: number;
+}
+
+export interface PixelPoint {
+  x: number;
+  y: number;
+}
+
+export interface EventCluster {
+  id: string;
+  events: Event[];
+  center: GeoPoint;
+  pixelCenter: PixelPoint;
+  count: number;
+  bounds?: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  };
+  category?: string; // Dominant category
+  isCluster: boolean;
+}
+
+export interface ClusteringOptions {
+  zoom: number;
+  mapBounds: MapBounds;
+  mapSize: {
+    width: number;
+    height: number;
+  };
+  minClusterSize?: number;
+  maxClusterDistance?: number;
+}
+
+export interface ClusterConfig {
+  shouldCluster: boolean;
+  threshold: number;
+  minClusterSize: number;
+  showIndividualEvents: boolean;
+  showEventCounts: boolean;
+  maxDisplayRadius: number;
+}
+
+export interface ClusteringState {
+  clusters: EventCluster[];
+  config: ClusterConfig;
+  isProcessing: boolean;
+  totalEvents: number;
+  clusterCount: number;
+  singleEventCount: number;
+}
+
+export interface MapInteractionState {
+  selectedCluster?: EventCluster | null;
+  hoveredCluster?: EventCluster | null;
+  showClusterPopup: boolean;
+  popupPosition?: { x: number; y: number };
+}
