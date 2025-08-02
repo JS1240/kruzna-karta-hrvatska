@@ -155,3 +155,35 @@ export interface PaginationInfo {
   has_next: boolean;
   has_previous: boolean;
 }
+
+// Import clustering-related interfaces
+import { GeoPoint, PixelPoint } from '@/utils/geoUtils';
+import { EventCluster, ClusteringOptions } from '@/utils/mapClustering';
+
+// Re-export for backwards compatibility
+export type { GeoPoint, PixelPoint, EventCluster, ClusteringOptions };
+
+export interface ClusterConfig {
+  shouldCluster: boolean;
+  threshold: number;
+  minClusterSize: number;
+  showIndividualEvents: boolean;
+  showEventCounts: boolean;
+  maxDisplayRadius: number;
+}
+
+export interface ClusteringState {
+  clusters: EventCluster[];
+  config: ClusterConfig;
+  isProcessing: boolean;
+  totalEvents: number;
+  clusterCount: number;
+  singleEventCount: number;
+}
+
+export interface MapInteractionState {
+  selectedCluster?: EventCluster | null;
+  hoveredCluster?: EventCluster | null;
+  showClusterPopup: boolean;
+  popupPosition?: { x: number; y: number };
+}

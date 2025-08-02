@@ -13,13 +13,13 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup, Tag
 
-from backend.app.models.schemas import EventCreate
+from app.models.schemas import EventCreate
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Import configuration
-from backend.app.config.components import get_settings
+from app.config.components import get_settings
 
 # Get global configuration
 _settings = get_settings()

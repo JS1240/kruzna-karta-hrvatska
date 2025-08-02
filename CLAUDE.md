@@ -5,24 +5,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 This is a full-stack Croatian events platform ("Kružna Karta Hrvatska") built as a monorepo with:
-- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite
-- **Backend**: FastAPI + Python + PostgreSQL
-- **Infrastructure**: Docker
+- **Frontend**: React 19 + TypeScript + Tailwind CSS + Vite (located in `frontend-new/`)
+- **Backend**: FastAPI + Python + PostgreSQL with advanced geocoding and scraping capabilities
+- **Infrastructure**: Docker with comprehensive development tooling
 
-The platform aggregates events from multiple Croatian websites through web scraping.
+The platform aggregates events from 14+ Croatian websites through intelligent web scraping, provides real-time geocoding for venues, and features an advanced map system with clustering capabilities powered by Mapbox GL JS.
 
 ## Key Architecture
 
 ### Monorepo Structure
-- `frontend/` - React TypeScript application
-- `backend/` - FastAPI Python application  
+- `frontend-new/` - React 19 TypeScript application with advanced mapping
+- `backend/` - FastAPI Python application with geocoding and scraping services
 - `docker/` - Docker configurations and infrastructure
+- Root-level `Makefile` with 40+ development commands
 
 ### Technology Stack
-- **Frontend**: React 18, TypeScript, Tailwind CSS, React Router, React Query, Leaflet maps
-- **Backend**: FastAPI, SQLAlchemy, Alembic, Celery, Redis, Playwright (web scraping)
-- **Database**: PostgreSQL with Redis for caching/sessions
-- **Deployment**: Docker Compose, Nginx reverse proxy
+- **Frontend**: React 19, TypeScript 5.8, Tailwind CSS 3.4, Vite 7, Mapbox GL JS 3.13, TanStack Query 5
+- **Backend**: FastAPI, SQLAlchemy 2.0, Alembic, Celery, Redis, Playwright, Pydantic 2.4+
+- **Database**: PostgreSQL with Redis for caching/sessions, advanced geocoding tables
+- **Deployment**: Docker Compose, Nginx reverse proxy, uv package management
+
+### Advanced Features
+- **Map System**: Mapbox GL JS with intelligent clustering, real-time filtering, and performance optimization
+- **Geocoding Service**: Real-time venue geocoding with Croatian geographic database and fallback systems
+- **Scraping System**: 14+ specialized scrapers (Entrio, InfoZagreb, Visit sites, etc.) with enhanced error handling
+- **Type-Safe Configuration**: Pydantic-based configuration management with environment variable expansion
+- **Performance Optimization**: Throttled map updates, marker batching, clustering transitions
 
 ## Development Commands
 
@@ -62,11 +70,56 @@ make db-reset     # Reset database with sample data
 
 ## Key Business Logic
 
-### Web Scraping System
-- Scrapes event websites using Playwright and any other scraping tools that are available and helpful
-- Located in `backend/app/scraping/`
-- Handles multiple site structures and formats
-- Stores events with deduplication logic
+### Enhanced Scraping System
+**Multi-Source Event Scraping**:
+- **Base Architecture**: Abstract base scraper with common functionality for retry logic, date parsing, and text cleaning
+- **BrightData Integration**: Proxy support with scraping browser for JavaScript-heavy sites
+- **Playwright Support**: Dynamic content scraping for Vue.js/React applications
+- **Specialized Scrapers**: 14+ Croatian event sources including Croatia.hr, Entrio, Info Zagreb, city tourism sites
+- **Data Transformation**: Croatian date/time parsing, location extraction, and event normalization
+- **Deduplication**: Hash-based duplicate detection and event merging
+
+**Supported Event Sources**:
+- `croatia_scraper.py` - Croatia.hr official tourism events (Vue.js-based)
+- `entrio_scraper.py` - Entrio ticketing platform
+- `infozagreb_scraper.py` - Zagreb city events
+- City tourism sites: Split, Rijeka, Dubrovnik, Karlovac, Opatija, Varaždin, Vukovar, Zadar
+- `ulaznice_scraper.py` - Ulaznice.hr ticketing platform
+
+### Advanced Geocoding and Location Services
+**Real-time Geocoding Service**:
+- **Multi-Provider Strategy**: Mapbox API primary, Nominatim (OpenStreetMap) fallback
+- **Croatian Geographic Database**: Built-in database of 70+ Croatian cities, regions, and landmarks with coordinates
+- **Venue Coordinate Caching**: Database caching of geocoded venues with 30-day refresh cycle
+- **Fallback Strategies**: Croatian city center fallback, Zagreb coordinates as ultimate fallback
+- **Address Enhancement**: Croatian address pattern recognition and street-level geocoding
+- **Batch Processing**: Concurrent geocoding with rate limiting and retry logic
+
+**Croatian Geographic Coverage**:
+- Major cities: Zagreb, Split, Rijeka, Osijek, Zadar, Pula, Dubrovnik
+- Tourist destinations: Hvar, Korčula, Krk, Rovinj, Opatija, Makarska
+- Regional centers and counties with population-based confidence scoring
+- Fuzzy matching for Croatian diacritics (č, ć, š, ž, đ)
+
+### Configuration System
+**Type-Safe Configuration Management**:
+- **Pydantic Settings**: Full type validation with automatic environment variable binding
+- **YAML Configuration**: `backend/config.yaml` with environment variable expansion (`${VAR:default}`)
+- **Component-Based Structure**: Database, Redis, API, Auth, Scraping, Services, Monitoring configs
+- **Security**: Automatic secure key generation, insecure value detection, minimum security requirements
+- **Development**: Mock external APIs, debug options, database seeding flags
+
+**Configuration Components**:
+```python
+# Access via centralized CONFIG object
+from app.config.components import get_settings
+CONFIG = get_settings()
+
+# Type-safe access to all settings
+database_url = CONFIG.database.url
+scraping_config = CONFIG.scraping
+geocoding_provider = CONFIG.services.geocoding.provider
+```
 
 ### Event Management
 - Events stored with venue, pricing, and scheduling data
@@ -76,29 +129,73 @@ make db-reset     # Reset database with sample data
 
 ### Multi-language Support
 - Croatian (hr) as primary language and English (en) as secondary
-- Translation files in `frontend/src/locales/`
+- Translation files in `frontend-new/src/locales/`
 - Backend API serves localized content
+
+### Database Schema Updates
+**Enhanced Event Schema**:
+- Geographic coordinates (`latitude`, `longitude`) with decimal precision
+- Enhanced location tracking (`location`, `venue_id` relationships)
+- Scraping metadata (`source`, `external_id`, `scrape_hash`, `last_scraped_at`)
+- Event categorization and tagging systems
+- Booking system integration with commission tracking
+
+**New Tables**:
+- `venue_coordinates` - Geocoding cache with confidence scoring and multiple data sources
+- Additional analytics, booking, and social feature tables from migration system
+
+**Geographic Extensions**:
+- PostGIS/Earthdistance for geographic queries and distance calculations
+- Spatial indexing for location-based event searches
+- Croatian coordinate validation and bounds checking
 
 ## Development Guidelines
 
-### Frontend Patterns
-- Components in `frontend/src/components/`
-- Pages in `frontend/src/pages/`
-- Hooks for API calls using React Query
-- Tailwind for styling with custom theme
-- TypeScript strict mode enabled
+### Frontend Patterns (frontend-new/)
+- React 19 with strict TypeScript and ESLint configuration
+- Components in `src/components/` with feature-based organization
+- Custom hooks for map interactions (`useEventClustering`, `useThrottledMapUpdates`)
+- TanStack Query for API state management with intelligent caching
+- Mapbox-specific utilities in `src/utils/` for clustering and geo calculations
+- Tailwind CSS with CVA (Class Variance Authority) for component variants
+
+### Frontend Performance Optimization
+- **Throttled Map Updates**: Dual-state system with immediate updates (60fps) for smooth animations and debounced updates (250ms) for expensive operations
+- **Event Clustering**: Real-time clustering algorithm with zoom-aware thresholds and distance-based grouping
+- **Batched Marker Positioning**: RAF-throttled batch calculations for marker positions to prevent layout thrashing
+- **Performance Monitoring**: Development-mode performance metrics tracking with timing analysis
+- **Hardware Acceleration**: CSS transforms with `translateZ(0)` and `will-change` optimizations
+- **Memory Management**: Efficient cleanup and resource management for map instances and event listeners
+
+### Advanced Map System
+- **Mapbox GL JS Integration**: Modern vector tile rendering with custom styling
+- **Dynamic Clustering**: Zoom-aware event clustering with micro-positioning to prevent overlaps
+- **Interactive Markers**: Custom cluster markers with hover states and click interactions
+- **Smart Popups**: Context-aware popups for single events vs. event clusters
+- **Bounds Management**: Automatic fitting and bounds calculation for optimal viewing
+- **Real-time Updates**: Throttled map state management for smooth pan/zoom operations
+- **Responsive Design**: Adaptive clustering thresholds and marker sizing based on zoom level
 
 ### Backend Patterns
-- FastAPI with dependency injection
-- SQLAlchemy ORM with Alembic migrations
-- Pydantic models for API serialization
-- Celery for background tasks (scraping, emails)
-- JWT authentication with Redis sessions
+- FastAPI with Pydantic 2.4+ for type-safe validation and configuration
+- Configuration management through `app/config/components.py` with environment expansion
+- SQLAlchemy 2.0 ORM with advanced geocoding tables and spatial queries
+- 14+ specialized scrapers in `app/scraping/` with base scraper inheritance
+- Real-time geocoding service with Croatian geographic database fallback
+- Celery for background tasks with comprehensive error handling and monitoring
 
 ### Environment Setup
-- Frontend env: `frontend/.env` (API_URL, maps config)
-- Backend env: `backend/.env` (database, Redis, secrets)
-- Docker env: `docker/.env` (ports, volumes)
+- Frontend env: `frontend-new/.env` (Mapbox tokens, API endpoints)
+- Backend env: `backend/.env` (database, Redis, geocoding services, scraper config)
+- Docker env: `docker/.env` (ports, volumes, service configuration)
+- Configuration via YAML with Pydantic validation and type safety
+
+### Advanced Development Features
+- uv package management for Python dependencies with lock file
+- Comprehensive Makefile with 40+ commands for development workflows
+- Type-safe configuration system with environment variable expansion
+- Real-time geocoding with intelligent caching and Croatian location database
+- Advanced map clustering with performance optimization and smooth transitions
 
 ### Testing
 - Frontend: Vitest + React Testing Library
@@ -124,41 +221,98 @@ make db-reset     # Reset database with sample data
 - Add Pydantic schemas in `backend/app/schemas/`
 - Follow existing patterns for error handling
 
-### Frontend Components
-- Use TypeScript interfaces for props
-- Follow existing component structure
-- Use React Query for data fetching
-- Implement responsive design with Tailwind
+**Enhanced Event API**:
+- `GET /events` - Advanced filtering by location, date range, coordinates, radius
+- `GET /events/search` - Full-text search with geographic constraints
+- `GET /events/{id}` - Event details with venue coordinates and directions
+- Geographic search parameters: `latitude`, `longitude`, `radius_km`
+
+**Venue Management API**:
+- `GET /venues` - Venue listing with coordinate data
+- `GET /venues/search` - Geographic venue search
+- Automatic geocoding integration for new venues
+
+**Scraping Management**:
+- Background task scheduling for event scraping
+- Real-time scraping status and statistics
+- Manual scraping trigger endpoints for development
+
+### Frontend Map Components
+- Create map components in `frontend-new/src/components/map/`
+- Use `EventMap` component for full-featured map display with clustering
+- Implement custom hooks for performance-critical map operations
+- Follow clustering patterns for geo-spatial data visualization
+- Use Mapbox GL JS patterns for custom marker and popup implementations
+
+### Backend Development Patterns
+**Enhanced Patterns**:
+- **Centralized Configuration**: All settings via `CONFIG` object from `app.config.components`
+- **Geographic Data Handling**: Coordinate validation, Croatian bounds checking, fallback strategies
+- **Async Geocoding**: Batch geocoding with concurrent processing and rate limiting
+- **Scraping Architecture**: Abstract base classes with site-specific implementations
+- **Error Handling**: Comprehensive logging with structured error context
+- **Type Safety**: Full Pydantic model validation for all data transformations
+
+**File Organization**:
+```
+backend/app/
+├── config/components.py      # Centralized configuration
+├── core/geocoding_service.py # Geocoding and location services
+├── core/croatian_geo_db.py   # Croatian geographic database
+├── scraping/base_scraper.py  # Base scraper architecture
+├── scraping/*_scraper.py     # 14+ specialized scrapers
+├── models/schemas.py         # Enhanced Pydantic schemas
+└── migrations/versions/      # Database schema evolution
+```
 
 ## Infrastructure
 
 ### Local Development
-- All services run via Docker Compose
-- Frontend dev server proxies API calls
-- Hot reload enabled for both frontend and backend
-- PostgreSQL and Redis run in containers
+- All services orchestrated via comprehensive Makefile commands
+- Frontend dev server with HMR and Mapbox integration
+- Backend with uv package management and real-time geocoding
+- PostgreSQL with advanced geocoding tables and spatial extensions
+- Redis for caching, sessions, and geocoding results
+
+### Advanced Services
+- **Geocoding Service**: Real-time venue coordinate resolution with Croatian geographic database
+- **Scraping System**: 14+ specialized scrapers with intelligent error handling and performance monitoring
+- **Map Clustering**: Dynamic event clustering with performance optimization and smooth transitions
+- **Configuration Management**: Type-safe Pydantic configuration with environment variable expansion
 
 ### Production Deployment
-- Docker Compose with production configurations
-- Nginx reverse proxy handles routing
-- SSL termination and static file serving
-- Environment-specific configurations
+- Docker Compose with optimized production configurations
+- Nginx reverse proxy with static file serving and SSL termination
+- Advanced database with geocoding tables and spatial queries
+- Comprehensive monitoring and error handling across all services
 
 ## Troubleshooting
 
 ### Common Issues
-- Port conflicts: Check `docker/.env` for port assignments
-- Database connection: Ensure PostgreSQL container is running
-- Migration failures: Check migration files and database state
-- Scraping issues: Verify Playwright browser installation
+- **Port conflicts**: Check `docker/.env` and root `package.json` for port assignments
+- **Database connection**: Ensure PostgreSQL container with geocoding extensions is running
+- **Migration failures**: Check Alembic migrations and geocoding table schemas
+- **Scraping issues**: Verify Playwright browser installation and Croatian scraper configurations
+- **Map rendering**: Ensure Mapbox access token is configured in `frontend-new/.env`
+- **Geocoding failures**: Check geocoding service configuration and Croatian location database
 
-### Useful Debug Commands
+### Enhanced Debug Commands
 ```bash
-make shell          # Backend Python shell
-make frontend-shell # Frontend container shell
-make db-logs       # Database logs
-make nginx-logs    # Nginx logs
+make help           # Show all 40+ available commands
+make dev            # Start full development environment
+make frontend-dev   # Frontend only with Mapbox (runs on port 3001)
+make backend-dev    # Backend with geocoding services
+make logs           # All service logs
+make db-shell       # PostgreSQL with geocoding tables
+make lint           # Frontend + backend linting
+make test           # Comprehensive test suite
 ```
+
+### Performance Optimization
+- **Map Performance**: Use throttled updates and clustering for large event datasets
+- **Geocoding**: Leverage caching and Croatian location database for faster lookups
+- **Scraping**: Monitor scraper performance and adjust throttling as needed
+- **Database**: Utilize spatial indexes and optimized geocoding queries
 
 
 # Rules for Backend Development
@@ -266,7 +420,7 @@ make nginx-logs    # Nginx logs
 # FRONTEND RULES — React · Vite · TailwindCSS · TypeScript (v1.0)
 
 > **Scope**  
-> These rules govern all web-frontend code in this repository. They apply to React 18+, Vite 5+, TailwindCSS 3+, and TypeScript 5+.  
+> These rules govern all web-frontend code in this repository. They apply to React 19+, Vite 7+, TailwindCSS 3.4+, and TypeScript 5.8+.  
 > Animations must follow the **GSAP (Tween / Timeline)** guidelines below; when other motion libraries are used, apply comparable constraints.
 
 ---
@@ -287,8 +441,9 @@ make nginx-logs    # Nginx logs
 
 ### 1.2 State & Data Flow
 - **MUST** favour **React context + hooks** for cross-cutting state; prefer **Zustand** or **Redux Toolkit** only for complex, shared state.
-- **MUST** treat server data as immutable; normalise and cache via **React Query** (TanStack Query) or SWR.
+- **MUST** treat server data as immutable; normalise and cache via **TanStack Query** v5 with intelligent caching strategies.
 - **MUST** handle errors and loading states for every async request.
+- **MUST** use custom hooks for performance-critical operations like map updates and clustering.
 
 ### 1.3 TailwindCSS
 - **MUST** enable `content` paths correctly in `tailwind.config.js` to purge unused styles.
@@ -396,3 +551,6 @@ Mapbox documentation:
 
 Pydantic documentation:
 - [Pydantic](https://docs.pydantic.dev/latest/)
+
+BrightData documentation:
+- [BrightData](https://docs.brightdata.com/introduction)

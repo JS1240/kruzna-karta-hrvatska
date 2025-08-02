@@ -199,15 +199,18 @@ class PerformanceConfig(BaseModel):
 class ScrapingConfig(BaseModel):
     """Web scraping configuration."""
     # BrightData Settings
-    brightdata_user: str = Field(default="demo_user", alias="brightdata.user")
-    brightdata_password: str = Field(default="demo_password", alias="brightdata.password")
-    brightdata_host: str = Field(default="brd.superproxy.io", alias="brightdata.host")
-    brightdata_port: int = Field(default=22225, alias="brightdata.port")
+    brightdata_user: str = Field(default="demo_user", alias="BRIGHTDATA_USER")
+    brightdata_password: str = Field(default="demo_password", alias="BRIGHTDATA_PASSWORD")
+    brightdata_host: str = Field(default="brd.superproxy.io", alias="BRIGHTDATA_HOST")
+    brightdata_port: int = Field(default=9222, alias="BRIGHTDATA_PORT")
+    scraping_browser_url: Optional[str] = Field(default=None, alias="USE_SCRAPING_BROWSER")
     
     # Scraping Settings
-    use_proxy: bool = Field(default=True, alias="settings.use_proxy")
-    use_scraping_browser: bool = Field(default=False, alias="settings.use_scraping_browser")
-    use_playwright: bool = Field(default=True, alias="settings.use_playwright")
+    use_proxy: bool = Field(default=True, alias="USE_PROXY")
+    use_scraping_browser: bool = Field(default=False, alias="scraping.use_scraping_browser")
+    use_playwright: bool = Field(default=True, alias="USE_PLAYWRIGHT")
+    enable_scheduler: bool = Field(default=False, alias="ENABLE_SCHEDULER")
+    debug_scraper: bool = Field(default=False, alias="DEBUG_SCRAPER")
     max_retries: int = Field(default=3, alias="settings.max_retries")
     timeout: int = Field(default=30, alias="settings.timeout")
     delay_between_requests: float = Field(default=1.0, alias="settings.delay_between_requests")
@@ -234,7 +237,16 @@ class ScrapingConfig(BaseModel):
     @property
     def scraping_browser_endpoint(self) -> str:
         """Build scraping browser endpoint."""
+        # If we have a direct scraping browser URL (WebSocket), use that
+        if self.scraping_browser_url:
+            return self.scraping_browser_url
+        # Otherwise, build the HTTPS endpoint
         return f"https://{self.brightdata_host}:{self.brightdata_port}"
+    
+    @property
+    def is_websocket_endpoint(self) -> bool:
+        """Check if the scraping browser endpoint is a WebSocket URL."""
+        return bool(self.scraping_browser_url and self.scraping_browser_url.startswith('wss://'))
     
     @property
     def headers_dict(self) -> Dict[str, str]:
@@ -257,6 +269,7 @@ class GeocodingConfig(BaseModel):
     """Geocoding service configuration."""
     provider: str = "nominatim"
     api_key: Optional[str] = None
+    mapbox_token: Optional[str] = Field(default=None, alias="VITE_MAPBOX_ACCESS_TOKEN")
 
 
 class EmailConfig(BaseModel):

@@ -163,6 +163,22 @@ class Event(EventBase):
     category: Optional[EventCategory] = None
     venue: Optional[Venue] = None
 
+    @field_validator('created_at', mode='before')
+    @classmethod
+    def handle_null_created_at(cls, v) -> datetime:
+        """Handle NULL created_at by providing current UTC datetime."""
+        if v is None:
+            return datetime.now(datetime.timezone.utc)
+        return v
+
+    @field_validator('updated_at', mode='before')
+    @classmethod
+    def handle_null_updated_at(cls, v) -> datetime:
+        """Handle NULL updated_at by providing current UTC datetime."""
+        if v is None:
+            return datetime.now(datetime.timezone.utc)
+        return v
+
     class Config:
         from_attributes = True
 
