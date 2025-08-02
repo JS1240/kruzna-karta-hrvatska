@@ -59,7 +59,8 @@ export const EventMap: React.FC<EventMapProps> = ({
   });
   
   // Use batched marker position calculations
-  const { queueMarkerUpdate, getMarkerPosition } = useMarkerPositionBatch(map.current);
+  const { queueMarkerUpdate, getMarkerPosition } =
+    useMarkerPositionBatch(map.current || undefined);
   
   // Clustering state
   const [interactionState, setInteractionState] = useState<MapInteractionState>({

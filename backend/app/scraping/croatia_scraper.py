@@ -99,7 +99,7 @@ class CroatiaEventDataTransformer:
         
         # Score each category based on keyword matches
         category_scores = {}
-        for cat_key, cat_data in CroatiaEventDataTransformer.EVENT_CATEGORIES.items():
+        for _, cat_data in CroatiaEventDataTransformer.EVENT_CATEGORIES.items():
             score = 0
             for keyword in cat_data["keywords"]:
                 if keyword in content:

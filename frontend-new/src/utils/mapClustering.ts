@@ -16,6 +16,7 @@ import {
   type PixelPoint 
 } from './geoUtils';
 
+// Define the clustering-specific interfaces here as the main source
 export interface EventCluster {
   id: string;
   events: Event[];

@@ -3,7 +3,7 @@
  * Manages clustering state based on map zoom and bounds changes
  */
 
-import { useMemo, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import { Event, MapBounds } from '@/types/event';
 import { performanceMonitor } from '@/lib/utils';
 import { 
@@ -51,8 +51,8 @@ export const useEventClustering = (
     enableClustering = true
   } = options;
 
-  // Ref to track processing state
-  const isProcessingRef = useRef(false);
+  // State to track processing
+  const [isProcessing, setIsProcessing] = useState(false);
   const lastProcessedRef = useRef<string>('');
 
   // Get zoom-dependent configuration
@@ -92,7 +92,7 @@ export const useEventClustering = (
       }
 
       // Mark as processing
-      isProcessingRef.current = true;
+      setIsProcessing(true);
 
       const clusteringOptions: ClusteringOptions = {
         zoom,
@@ -122,7 +122,7 @@ export const useEventClustering = (
           isCluster: false
         } as EventCluster));
       } finally {
-        isProcessingRef.current = false;
+        setIsProcessing(false);
       }
     } finally {
       endTiming();
@@ -164,7 +164,7 @@ export const useEventClustering = (
   return {
     clusters,
     config,
-    isProcessing: isProcessingRef.current,
+    isProcessing,
     totalEvents: statistics.totalEvents,
     clusterCount: statistics.clusterCount,
     singleEventCount: statistics.singleEventCount,

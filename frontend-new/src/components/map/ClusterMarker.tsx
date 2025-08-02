@@ -46,7 +46,6 @@ const getClusterSizeClass = (count: number): string => {
  */
 const formatEventCount = (count: number): string => {
   if (count >= 100) return '99+';
-  if (count >= 10) return count.toString();
   return count.toString();
 };
 

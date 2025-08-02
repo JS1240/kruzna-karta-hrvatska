@@ -34,7 +34,7 @@ def test_configuration():
         config = get_settings()
         scraping_config = config.scraping
         
-        logger.info(f"✅ Configuration loaded successfully")
+        logger.info("✅ Configuration loaded successfully")
         logger.info(f"  • Bright Data User: {scraping_config.brightdata_user}")
         logger.info(f"  • Bright Data Port: {scraping_config.brightdata_port}")
         logger.info(f"  • Use Proxy: {scraping_config.use_proxy}")
@@ -57,7 +57,7 @@ def test_database_connection():
         
         # Try to query events table
         event_count = db.query(Event).count()
-        logger.info(f"✅ Database connection successful")
+        logger.info("✅ Database connection successful")
         logger.info(f"  • Current events in database: {event_count}")
         
         db.close()
@@ -76,7 +76,7 @@ async def test_scraper():
         result = await scrape_croatia_events(max_pages=1, fetch_details=False)
         
         if result["status"] == "success":
-            logger.info(f"✅ Scraper test successful!")
+            logger.info("✅ Scraper test successful!")
             logger.info(f"  • Scraped events: {result['scraped_events']}")
             logger.info(f"  • Saved events: {result['saved_events']}")
             logger.info(f"  • Message: {result['message']}")

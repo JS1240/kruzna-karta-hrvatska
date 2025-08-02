@@ -269,6 +269,7 @@ class GeocodingConfig(BaseModel):
     """Geocoding service configuration."""
     provider: str = "nominatim"
     api_key: Optional[str] = None
+    mapbox_token: Optional[str] = Field(default=None, alias="VITE_MAPBOX_ACCESS_TOKEN")
 
 
 class EmailConfig(BaseModel):

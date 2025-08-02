@@ -156,43 +156,12 @@ export interface PaginationInfo {
   has_previous: boolean;
 }
 
-// Clustering-related interfaces
-export interface GeoPoint {
-  latitude: number;
-  longitude: number;
-}
+// Import clustering-related interfaces
+import { GeoPoint, PixelPoint } from '@/utils/geoUtils';
+import { EventCluster, ClusteringOptions } from '@/utils/mapClustering';
 
-export interface PixelPoint {
-  x: number;
-  y: number;
-}
-
-export interface EventCluster {
-  id: string;
-  events: Event[];
-  center: GeoPoint;
-  pixelCenter: PixelPoint;
-  count: number;
-  bounds?: {
-    north: number;
-    south: number;
-    east: number;
-    west: number;
-  };
-  category?: string; // Dominant category
-  isCluster: boolean;
-}
-
-export interface ClusteringOptions {
-  zoom: number;
-  mapBounds: MapBounds;
-  mapSize: {
-    width: number;
-    height: number;
-  };
-  minClusterSize?: number;
-  maxClusterDistance?: number;
-}
+// Re-export for backwards compatibility
+export type { GeoPoint, PixelPoint, EventCluster, ClusteringOptions };
 
 export interface ClusterConfig {
   shouldCluster: boolean;

@@ -62,8 +62,8 @@ export const useThrottledMapUpdates = (
   const performanceEnabled = useRef(enablePerformanceMonitoring);
 
   // Throttled immediate update for smooth marker positioning
-  const throttledImmediateUpdate = useCallback((newState: Partial<MapState>) => {
-    rafThrottle(() => {
+  const throttledImmediateUpdate = useCallback(
+    rafThrottle((newState: Partial<MapState>) => {
       const endTiming = performanceEnabled.current 
         ? performanceMonitor.startTiming('immediate-update')
         : () => 0;
@@ -75,8 +75,9 @@ export const useThrottledMapUpdates = (
       });
 
       endTiming();
-    })();
-  }, []);
+    }),
+    []
+  );
 
   // Debounced stable update for expensive operations
   const debouncedStableUpdate = useCallback(

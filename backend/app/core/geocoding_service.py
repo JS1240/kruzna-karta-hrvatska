@@ -12,7 +12,8 @@ import httpx
 from datetime import datetime, timedelta
 
 from app.core.database import SessionLocal
-from app.core.croatian_geo_db import croatian_geo_db, CroatianLocation
+from app.core.croatian_geo_db import croatian_geo_db
+from app.config.components import get_settings
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,8 @@ class GeocodingService:
     """Service for real-time geocoding and venue discovery."""
     
     def __init__(self):
-        self.mapbox_token = os.getenv("VITE_MAPBOX_ACCESS_TOKEN")
+        config = get_settings()
+        self.mapbox_token = config.services.geocoding.mapbox_token
         self.cache = {}
         self._session = None
         

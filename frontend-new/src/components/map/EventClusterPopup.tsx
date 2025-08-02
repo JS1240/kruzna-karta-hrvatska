@@ -173,9 +173,18 @@ export const EventClusterPopup: React.FC<EventClusterPopupProps> = ({
   // Sort events by date
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => {
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
-      return dateA - dateB;
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+
+      // Handle invalid dates
+      const timeA = dateA.getTime();
+      const timeB = dateB.getTime();
+
+      if (isNaN(timeA) && isNaN(timeB)) return 0;
+      if (isNaN(timeA)) return 1;  // Push invalid dates to end
+      if (isNaN(timeB)) return -1;
+
+      return timeA - timeB;
     });
   }, [events]);
 
