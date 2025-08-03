@@ -554,3 +554,130 @@ Pydantic documentation:
 
 BrightData documentation:
 - [BrightData](https://docs.brightdata.com/introduction)
+
+---
+
+## Change Management
+
+This project maintains a comprehensive changelog to track all modifications, improvements, and fixes. This ensures transparency, facilitates debugging, and provides context for future development decisions.
+
+### Change Tracking System
+
+**Primary Documentation**: [`CHANGELOG.md`](./CHANGELOG.md) - Complete history of all changes following [Keep a Changelog](https://keepachangelog.com/) format.
+
+**Change Categories**:
+- **Added**: New features, functionality, or capabilities
+- **Changed**: Modifications to existing functionality, refactoring, improvements
+- **Deprecated**: Features marked for removal (with migration path)
+- **Removed**: Features, files, or functionality completely removed
+- **Fixed**: Bug fixes, error corrections, issue resolutions  
+- **Security**: Security-related changes, vulnerability fixes, enhancements
+
+### Mandatory Change Documentation
+
+**When Claude Code makes ANY changes to the project**:
+
+1. **MUST** update `CHANGELOG.md` immediately after implementing changes
+2. **MUST** use appropriate category (Added/Changed/Fixed/etc.)
+3. **MUST** include specific details about what changed and why
+4. **MUST** reference affected files and functions when relevant
+5. **MUST** note any breaking changes or migration requirements
+
+### Change Entry Format
+
+```markdown
+### [Category]
+- **Component/Feature Name**: 
+  - Specific change description with technical details
+  - Impact on functionality and user experience
+  - Files affected: `path/to/file.py`, `path/to/component.tsx`
+  - Migration notes (if applicable)
+```
+
+### Change Documentation Examples
+
+**Good Change Entries**:
+```markdown
+### Added
+- **Croatia.hr Scraper Enhancements**:
+  - Vue.js dynamic content handling with Playwright browser automation
+  - Event categorization system using Croatian keywords (10+ categories)
+  - Files affected: `backend/app/scraping/croatia_scraper.py`
+  - Breaking change: Removed BASE_URL constant, requires configuration update
+
+### Fixed  
+- **Map Performance Issues**:
+  - Resolved layout thrashing during marker positioning operations
+  - Implemented RAF-throttled batch calculations for smooth 60fps updates
+  - Files affected: `frontend-new/src/components/map/EventMap.tsx`
+  - Performance improvement: 40% reduction in render time for large datasets
+```
+
+### Recent Major Changes
+
+The following significant enhancements have been implemented (see [`CHANGELOG.md`](./CHANGELOG.md) for complete details):
+
+**2024-08-03 - Croatia Scraper Enhancement Release**:
+- Enhanced Croatia.hr scraper with Vue.js handling and Croatian categorization
+- Advanced geocoding service with Croatian geographic database integration  
+- Dynamic map clustering with performance optimization
+- Comprehensive frontend performance improvements
+
+**Key Files Modified**:
+- `backend/app/scraping/croatia_scraper.py` - Complete scraper rewrite
+- `backend/app/core/geocoding_service.py` - Enhanced geocoding capabilities
+- `backend/app/core/croatian_geo_db.py` - New Croatian geographic database
+- `frontend-new/src/components/map/*` - Advanced clustering system
+- `frontend-new/src/hooks/useEventClustering.ts` - Performance optimization hooks
+
+### Development Workflow Integration
+
+**Before Starting Work**:
+1. Review recent entries in `CHANGELOG.md` to understand current state
+2. Check for any breaking changes that might affect your work
+3. Note any deprecated features to avoid using in new development
+
+**During Development**:
+1. Keep notes of changes made for later documentation
+2. Consider impact on existing functionality and users
+3. Plan change documentation structure as you work
+
+**After Completing Work**:
+1. Update `CHANGELOG.md` with comprehensive change documentation
+2. Ensure all affected files and components are listed
+3. Include migration guidance for breaking changes
+4. Test that documentation accurately reflects implemented changes
+
+### Claude Code Instructions
+
+**For All Code Modifications**:
+- Always read the current `CHANGELOG.md` before making changes to understand project state
+- Document every change immediately after implementation, not as batch updates
+- Use specific technical details rather than generic descriptions
+- Include file paths, function names, and component names where relevant
+- Note performance impacts, breaking changes, and user-facing improvements
+- Reference the changelog when explaining decisions or providing context
+
+**Change Documentation Priority**:
+1. **Critical**: Security fixes, breaking changes, data loss risks
+2. **High**: New features, API changes, configuration updates  
+3. **Medium**: Performance improvements, bug fixes, refactoring
+4. **Low**: Documentation updates, code cleanup, minor UI tweaks
+
+### Debugging and Troubleshooting
+
+When investigating issues:
+1. **Check CHANGELOG.md first** - Recent changes often reveal issue sources
+2. **Look for "Fixed" entries** - Similar issues may have been resolved before
+3. **Review "Changed" entries** - Modifications might have introduced regressions
+4. **Check version dates** - Correlate issues with timing of specific changes
+
+### Quality Assurance
+
+**Before Release/Deployment**:
+- Verify `CHANGELOG.md` accurately reflects all changes since last release
+- Ensure breaking changes are clearly documented with migration paths
+- Confirm security-related changes are properly categorized and detailed
+- Review that all significant bug fixes and new features are documented
+
+This change management system ensures that every modification to the Croatian Events Platform is properly tracked, documented, and understood by all team members and future developers.
