@@ -12,6 +12,8 @@ import httpx
 from datetime import datetime, timedelta
 
 from app.core.database import SessionLocal
+from app.core.croatian_geo_db import croatian_geo_db
+from app.config.components import get_settings
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,8 @@ class GeocodingService:
     """Service for real-time geocoding and venue discovery."""
     
     def __init__(self):
-        self.mapbox_token = os.getenv("VITE_MAPBOX_ACCESS_TOKEN")
+        config = get_settings()
+        self.mapbox_token = config.services.geocoding.mapbox_token
         self.cache = {}
         self._session = None
         
@@ -151,14 +154,15 @@ class GeocodingService:
     ) -> bool:
         """Cache venue coordinates in database for future use."""
         try:
-            async with SessionLocal() as session:
+            session = SessionLocal()
+            try:
                 # Check if venue already exists
                 check_query = text("""
                     SELECT id FROM venue_coordinates 
                     WHERE LOWER(venue_name) = LOWER(:venue_name)
                 """)
                 
-                existing = await session.execute(check_query, {"venue_name": venue_name})
+                existing = session.execute(check_query, {"venue_name": venue_name})
                 if existing.fetchone():
                     return True  # Already cached
                 
@@ -176,7 +180,7 @@ class GeocodingService:
                 """)
                 
                 now = datetime.utcnow()
-                await session.execute(insert_query, {
+                session.execute(insert_query, {
                     "venue_name": venue_name,
                     "latitude": result.latitude,
                     "longitude": result.longitude,
@@ -189,9 +193,11 @@ class GeocodingService:
                     "updated_at": now
                 })
                 
-                await session.commit()
-                logger.info(f"Cached venue coordinates: {venue_name} → {result.latitude}, {result.longitude}")
+                session.commit()
+                logger.debug(f"Cached venue coordinates: {venue_name} → {result.latitude}, {result.longitude}")
                 return True
+            finally:
+                session.close()
                 
         except Exception as e:
             # If table doesn't exist, log warning but don't fail
@@ -207,7 +213,8 @@ class GeocodingService:
     ) -> Optional[GeocodeResult]:
         """Get cached venue coordinates from database."""
         try:
-            async with SessionLocal() as session:
+            session = SessionLocal()
+            try:
                 query = text("""
                     SELECT latitude, longitude, accuracy, confidence, 
                            source, place_name, place_type
@@ -219,7 +226,7 @@ class GeocodingService:
                 # Only use cache entries from last 30 days
                 cutoff_date = datetime.utcnow() - timedelta(days=30)
                 
-                result = await session.execute(query, {
+                result = session.execute(query, {
                     "venue_name": venue_name,
                     "cutoff_date": cutoff_date
                 })
@@ -235,6 +242,8 @@ class GeocodingService:
                         place_name=row[5],
                         place_type=row[6]
                     )
+            finally:
+                session.close()
                     
         except Exception as e:
             # If table doesn't exist, log debug message but don't fail
@@ -277,31 +286,179 @@ class GeocodingService:
         
         return results
 
+    async def geocode_with_croatian_fallback(
+        self, 
+        location: str, 
+        context: str = ""
+    ) -> Optional[GeocodeResult]:
+        """Enhanced geocoding with Croatian geographic database fallback."""
+        if not location or not location.strip():
+            return None
+            
+        location = location.strip()
+        
+        # Step 1: Check Croatian geographic database first for exact matches
+        croatian_location = croatian_geo_db.find_location(location)
+        if croatian_location:
+            logger.info(f"Found {location} in Croatian geo database: {croatian_location.name}")
+            return GeocodeResult(
+                latitude=croatian_location.latitude,
+                longitude=croatian_location.longitude,
+                accuracy=croatian_location.location_type,
+                confidence=croatian_location.confidence,
+                source='croatian_db',
+                place_name=croatian_location.name,
+                place_type=croatian_location.location_type
+            )
+        
+        # Step 2: Try Mapbox geocoding with original query
+        mapbox_result = await self.geocode_with_mapbox(location, context)
+        if mapbox_result and mapbox_result.confidence > 0.3:  # Lowered threshold
+            return mapbox_result
+        
+        # Step 3: Try simplified queries for Mapbox
+        simplified_queries = [
+            f"{location}, Croatia",
+            f"{location.split(',')[0].strip()}, Croatia",  # Take first part before comma
+            f"{location.split()[0]} Croatia" if ' ' in location else f"{location} Croatia"  # First word
+        ]
+        
+        for query in simplified_queries:
+            if query != f"{location}, Croatia":  # Don't repeat the same query
+                result = await self.geocode_with_mapbox(query.strip(), "")
+                if result and result.confidence > 0.3:
+                    logger.info(f"Geocoded {location} using simplified query: {query}")
+                    return result
+                await asyncio.sleep(0.1)  # Small delay between attempts
+        
+        # Step 4: Try Nominatim (OpenStreetMap) as fallback
+        nominatim_result = await self.geocode_with_nominatim(location)
+        if nominatim_result:
+            return nominatim_result
+        
+        # Step 5: Last resort - use Croatian city center if location contains Croatian city name
+        for city_name, city_location in croatian_geo_db.locations.items():
+            if city_location.location_type == "city":
+                for alias in [city_name] + city_location.aliases:
+                    if alias in location.lower():
+                        logger.warning(f"Using city center fallback for {location} -> {city_location.name}")
+                        return GeocodeResult(
+                            latitude=city_location.latitude,
+                            longitude=city_location.longitude,
+                            accuracy='city_fallback',
+                            confidence=0.3,  # Low confidence for fallback
+                            source='croatian_db_fallback',
+                            place_name=f"{city_location.name} (approximate)",
+                            place_type='city'
+                        )
+        
+        # Step 6: Ultimate fallback - Zagreb center for Croatian events
+        if "croatia" in location.lower() or context.lower().startswith("croatia"):
+            zagreb_coords = croatian_geo_db.get_fallback_coordinates()
+            logger.warning(f"Using Zagreb fallback for {location}")
+            return GeocodeResult(
+                latitude=zagreb_coords[0],
+                longitude=zagreb_coords[1],
+                accuracy='country_fallback',
+                confidence=0.2,  # Very low confidence
+                source='croatia_fallback',
+                place_name="Zagreb, Croatia (country fallback)",
+                place_type='country'
+            )
+        
+        return None
+
+    async def geocode_with_nominatim(
+        self, 
+        location: str
+    ) -> Optional[GeocodeResult]:
+        """Geocode using Nominatim (OpenStreetMap) as fallback."""
+        try:
+            session = await self.get_session()
+            
+            # Prepare query for Nominatim
+            query = f"{location}, Croatia"
+            url = "https://nominatim.openstreetmap.org/search"
+            
+            params = {
+                'q': query,
+                'format': 'json',
+                'countrycodes': 'hr',  # Croatia only
+                'limit': 1,
+                'addressdetails': 1
+            }
+            
+            headers = {
+                'User-Agent': 'KruznaKartaHrvatska/1.0 (event-geocoding)'
+            }
+            
+            response = await session.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            
+            if not data:
+                return None
+            
+            result = data[0]
+            lat = float(result['lat'])
+            lng = float(result['lon'])
+            
+            # Validate coordinates are in Croatia
+            if not self.is_within_croatia(lat, lng):
+                return None
+            
+            # Determine confidence based on result type
+            place_type = result.get('type', 'unknown')
+            confidence = 0.4  # Lower confidence for Nominatim
+            
+            if place_type in ['city', 'town', 'village']:
+                confidence = 0.5
+            elif place_type in ['house', 'building']:
+                confidence = 0.6
+            
+            return GeocodeResult(
+                latitude=lat,
+                longitude=lng,
+                accuracy=place_type,
+                confidence=confidence,
+                source='nominatim',
+                place_name=result.get('display_name', location),
+                place_type=place_type
+            )
+            
+        except Exception as e:
+            logger.debug(f"Nominatim geocoding failed for {location}: {e}")
+            return None
+
     async def batch_geocode_venues(
         self, 
         venues: List[Tuple[str, str]]  # [(venue_name, context), ...]
     ) -> Dict[str, GeocodeResult]:
-        """Batch geocode multiple venues with rate limiting."""
+        """Enhanced batch geocoding with multiple fallback strategies."""
         results = {}
         
         for venue_name, context in venues:
             if not venue_name:
                 continue
                 
-            # Check cache
+            # Check cache first
             cached = await self.get_cached_venue_coordinates(venue_name)
             if cached:
                 results[venue_name] = cached
                 continue
             
-            # Geocode
-            result = await self.geocode_with_mapbox(venue_name, context)
-            if result and result.confidence > 0.5:
+            # Use enhanced geocoding with fallbacks
+            result = await self.geocode_with_croatian_fallback(venue_name, context)
+            if result:  # Accept any result now (removed confidence threshold)
                 results[venue_name] = result
                 await self.cache_venue_coordinates(venue_name, result)
+                logger.info(f"Geocoded {venue_name}: {result.latitude}, {result.longitude} "
+                          f"(confidence: {result.confidence}, source: {result.source})")
+            else:
+                logger.warning(f"Failed to geocode venue: {venue_name}")
             
-            # Rate limiting
-            await asyncio.sleep(0.2)
+            # Rate limiting - slightly longer delay for comprehensive approach
+            await asyncio.sleep(0.3)
         
         return results
 

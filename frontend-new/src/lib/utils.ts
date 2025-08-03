@@ -50,3 +50,136 @@ export function isDevelopment(): boolean {
 export function isProduction(): boolean {
   return process.env.NODE_ENV === 'production';
 }
+
+/**
+ * Throttle a function to execute at most once per specified interval
+ * Uses requestAnimationFrame for smooth animations when no wait time specified
+ */
+export function throttle<T extends (...args: unknown[]) => unknown>(
+  func: T,
+  wait: number = 16 // Default to 16ms for 60fps
+): (...args: Parameters<T>) => void {
+  let inThrottle: boolean;
+  let lastFunc: number;
+  let lastRan: number;
+  
+  return (...args: Parameters<T>) => {
+    if (!inThrottle) {
+      func(...args);
+      lastRan = Date.now();
+      inThrottle = true;
+    } else {
+      clearTimeout(lastFunc);
+      lastFunc = window.setTimeout(() => {
+        if ((Date.now() - lastRan) >= wait) {
+          func(...args);
+          lastRan = Date.now();
+        }
+      }, Math.max(wait - (Date.now() - lastRan), 0));
+    }
+  };
+}
+
+/**
+ * RAF-based throttle for smooth 60fps animations
+ */
+export function rafThrottle<T extends (...args: unknown[]) => unknown>(
+  func: T
+): (...args: Parameters<T>) => void {
+  let rafId: number | null = null;
+  let latestArgs: Parameters<T>;
+  
+  return (...args: Parameters<T>) => {
+    latestArgs = args;
+    
+    if (rafId === null) {
+      rafId = requestAnimationFrame(() => {
+        func(...latestArgs);
+        rafId = null;
+      });
+    }
+  };
+}
+
+/**
+ * Advanced debounce with immediate execution option
+ */
+export function advancedDebounce<T extends (...args: unknown[]) => unknown>(
+  func: T,
+  wait: number,
+  immediate: boolean = false
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null;
+  
+  return (...args: Parameters<T>) => {
+    const callNow = immediate && !timeout;
+    
+    if (timeout) clearTimeout(timeout);
+    
+    timeout = setTimeout(() => {
+      timeout = null;
+      if (!immediate) func(...args);
+    }, wait);
+    
+    if (callNow) func(...args);
+  };
+}
+
+/**
+ * Performance monitoring utility
+ */
+export class PerformanceMonitor {
+  private metrics: Map<string, number[]> = new Map();
+  
+  startTiming(label: string): () => number {
+    const start = performance.now();
+    
+    return () => {
+      const duration = performance.now() - start;
+      
+      if (!this.metrics.has(label)) {
+        this.metrics.set(label, []);
+      }
+      
+      const times = this.metrics.get(label)!;
+      times.push(duration);
+      
+      // Keep only last 100 measurements to prevent memory leaks
+      if (times.length > 100) {
+        times.shift();
+      }
+      
+      return duration;
+    };
+  }
+  
+  getAverageTime(label: string): number {
+    const times = this.metrics.get(label);
+    if (!times || times.length === 0) return 0;
+    
+    return times.reduce((sum, time) => sum + time, 0) / times.length;
+  }
+  
+  getMetrics(): Record<string, { avg: number; count: number; last: number }> {
+    const result: Record<string, { avg: number; count: number; last: number }> = {};
+    
+    this.metrics.forEach((times, label) => {
+      result[label] = {
+        avg: this.getAverageTime(label),
+        count: times.length,
+        last: times[times.length - 1] || 0
+      };
+    });
+    
+    return result;
+  }
+  
+  clear(): void {
+    this.metrics.clear();
+  }
+}
+
+/**
+ * Global performance monitor instance
+ */
+export const performanceMonitor = new PerformanceMonitor();
