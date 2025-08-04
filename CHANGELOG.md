@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Comprehensive Subagents Documentation**:
+  - Complete subagents reference section in CLAUDE.md with 30+ specialized agents
+  - Detailed descriptions, capabilities, and usage guidelines for each subagent
+  - Mandatory "Always Use Subagents" policy for complex tasks and specialized domains
+  - Croatian Events Platform specific usage scenarios and workflow integration
+  - Best practices for subagent selection and quality assurance
+
 ### In Development
 - Performance optimizations for map clustering
 - Enhanced error handling for scraping failures
